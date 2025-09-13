@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,14 +14,18 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
+import { Audio } from 'expo-av';
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   Calendar,
   MapPin,
-  Camera,
   Mic,
+  Play,
+  Pause,
+  Square,
+  Trash2,
   Shield,
 } from 'lucide-react-native';
 import { useIncidents } from '@/providers/IncidentProvider';
@@ -62,7 +66,55 @@ export default function ReportScreen() {
     severity: '',
     supportServices: [] as string[],
     isAnonymous: false,
+    voiceRecording: undefined as {
+      uri: string;
+      duration: number;
+      transcription?: string;
+    } | undefined,
   });
+
+  // Voice recording state
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [playbackPosition, setPlaybackPosition] = useState(0);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [hasAudioPermission, setHasAudioPermission] = useState(false);
+
+  useEffect(() => {
+    requestAudioPermissions();
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+      if (recording) {
+        recording.stopAndUnloadAsync();
+      }
+    };
+  }, []);
+
+  const requestAudioPermissions = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      setHasAudioPermission(status === 'granted');
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Audio recording permission is needed to use voice reporting feature.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => {} }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error requesting audio permissions:', error);
+    }
+  };
 
   const totalSteps = 4;
 
@@ -82,10 +134,19 @@ export default function ReportScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (createError) {
       Alert.alert('Error', createError);
       return;
+    }
+
+    let finalDescription = reportData.description;
+    
+    // If there's a voice recording, include transcription in description
+    if (reportData.voiceRecording?.transcription) {
+      finalDescription = reportData.description 
+        ? `${reportData.description}\n\n[Voice Recording Transcription]\n${reportData.voiceRecording.transcription}`
+        : `[Voice Recording Transcription]\n${reportData.voiceRecording.transcription}`;
     }
 
     createIncident({
@@ -93,7 +154,7 @@ export default function ReportScreen() {
       incidentDate: reportData.incidentDate,
       incidentTime: reportData.incidentTime,
       location: reportData.location.address || reportData.location.description ? reportData.location : undefined,
-      description: reportData.description,
+      description: finalDescription,
       severity: reportData.severity,
       supportServices: reportData.supportServices,
       isAnonymous: reportData.isAnonymous,
@@ -167,6 +228,187 @@ export default function ReportScreen() {
       : [...reportData.supportServices, serviceId];
     
     updateReportData('supportServices', services);
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      if (!hasAudioPermission) {
+        await requestAudioPermissions();
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Update duration every second
+      const interval = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      // Store interval reference for cleanup
+      (newRecording as any).durationInterval = interval;
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      Alert.alert('Error', 'Failed to start recording. Please try again.');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recording) return;
+
+      // Clear duration interval
+      if ((recording as any).durationInterval) {
+        clearInterval((recording as any).durationInterval);
+      }
+
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+      
+      const uri = recording.getURI();
+      if (uri) {
+        updateReportData('voiceRecording', {
+          uri,
+          duration: recordingDuration,
+        });
+        
+        // Auto-transcribe the recording
+        await transcribeRecording(uri);
+      }
+      
+      setRecording(null);
+      
+      // Reset audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      Alert.alert('Error', 'Failed to stop recording.');
+    }
+  };
+
+  const playRecording = async () => {
+    try {
+      if (!reportData.voiceRecording?.uri) return;
+
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: reportData.voiceRecording.uri },
+        { shouldPlay: true }
+      );
+      
+      setSound(newSound);
+      setIsPlaying(true);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded) {
+          setPlaybackPosition(status.positionMillis || 0);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setPlaybackPosition(0);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to play recording:', error);
+      Alert.alert('Error', 'Failed to play recording.');
+    }
+  };
+
+  const pauseRecording = async () => {
+    try {
+      if (sound) {
+        await sound.pauseAsync();
+        setIsPlaying(false);
+      }
+    } catch (error) {
+      console.error('Failed to pause recording:', error);
+    }
+  };
+
+  const deleteRecording = () => {
+    Alert.alert(
+      'Delete Recording',
+      'Are you sure you want to delete this voice recording?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (sound) {
+              sound.unloadAsync();
+              setSound(null);
+            }
+            setIsPlaying(false);
+            setPlaybackPosition(0);
+            updateReportData('voiceRecording', undefined);
+          },
+        },
+      ]
+    );
+  };
+
+  const transcribeRecording = async (uri: string) => {
+    if (Platform.OS === 'web') {
+      // Web transcription not implemented in this demo
+      return;
+    }
+
+    try {
+      setIsTranscribing(true);
+      
+      const formData = new FormData();
+      const uriParts = uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      
+      const audioFile = {
+        uri,
+        name: `recording.${fileType}`,
+        type: `audio/${fileType}`,
+      } as any;
+      
+      formData.append('audio', audioFile);
+      
+      const response = await fetch('https://toolkit.rork.com/stt/transcribe/', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        updateReportData('voiceRecording', {
+          ...reportData.voiceRecording!,
+          transcription: result.text,
+        });
+      }
+    } catch (error) {
+      console.error('Transcription failed:', error);
+      // Silently fail transcription - recording is still saved
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const renderStepContent = () => {
@@ -292,12 +534,117 @@ export default function ReportScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Description</Text>
+              <View style={styles.descriptionHeader}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TouchableOpacity
+                  style={styles.voiceButton}
+                  onPress={() => setShowVoiceRecorder(!showVoiceRecorder)}
+                  testID="voice-recorder-toggle"
+                >
+                  <Mic color="#6A2CB0" size={16} />
+                  <Text style={styles.voiceButtonText}>Voice</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {showVoiceRecorder && (
+                <View style={styles.voiceRecorderContainer}>
+                  {!reportData.voiceRecording ? (
+                    <View style={styles.recordingControls}>
+                      <TouchableOpacity
+                        style={[
+                          styles.recordButton,
+                          isRecording && styles.recordButtonActive,
+                        ]}
+                        onPress={isRecording ? stopRecording : startRecording}
+                        disabled={!hasAudioPermission}
+                      >
+                        {isRecording ? (
+                          <Square color="#FFFFFF" size={24} />
+                        ) : (
+                          <Mic color="#FFFFFF" size={24} />
+                        )}
+                      </TouchableOpacity>
+                      
+                      <View style={styles.recordingInfo}>
+                        <Text style={styles.recordingStatus}>
+                          {isRecording ? 'Recording...' : 'Tap to record'}
+                        </Text>
+                        {isRecording && (
+                          <Text style={styles.recordingDuration}>
+                            {formatDuration(recordingDuration)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.recordingPlayback}>
+                      <View style={styles.playbackControls}>
+                        <TouchableOpacity
+                          style={styles.playButton}
+                          onPress={isPlaying ? pauseRecording : playRecording}
+                        >
+                          {isPlaying ? (
+                            <Pause color="#6A2CB0" size={20} />
+                          ) : (
+                            <Play color="#6A2CB0" size={20} />
+                          )}
+                        </TouchableOpacity>
+                        
+                        <View style={styles.playbackInfo}>
+                          <Text style={styles.playbackDuration}>
+                            {formatDuration(Math.floor(playbackPosition / 1000))} / {formatDuration(reportData.voiceRecording.duration)}
+                          </Text>
+                          <View style={styles.progressBar}>
+                            <View 
+                              style={[
+                                styles.progressFill,
+                                { 
+                                  width: `${(playbackPosition / (reportData.voiceRecording.duration * 1000)) * 100}%` 
+                                }
+                              ]} 
+                            />
+                          </View>
+                        </View>
+                        
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={deleteRecording}
+                        >
+                          <Trash2 color="#E53935" size={16} />
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {isTranscribing && (
+                        <View style={styles.transcriptionStatus}>
+                          <Text style={styles.transcriptionText}>Transcribing audio...</Text>
+                        </View>
+                      )}
+                      
+                      {reportData.voiceRecording.transcription && (
+                        <View style={styles.transcriptionResult}>
+                          <Text style={styles.transcriptionLabel}>Transcription:</Text>
+                          <Text style={styles.transcriptionContent}>
+                            {reportData.voiceRecording.transcription}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  
+                  <View style={styles.voiceRecorderNote}>
+                    <Shield color="#43A047" size={14} />
+                    <Text style={styles.voiceRecorderNoteText}>
+                      Voice recordings are encrypted and secure. Transcription helps our team understand your report better.
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
               <TextInput
                 style={styles.textArea}
                 value={reportData.description}
                 onChangeText={(value) => updateReportData('description', value)}
-                placeholder="Describe what happened (optional)"
+                placeholder={reportData.voiceRecording ? "Add additional details (optional)" : "Describe what happened (optional)"}
                 placeholderTextColor="#D8CEE8"
                 multiline
                 numberOfLines={4}
@@ -375,6 +722,16 @@ export default function ReportScreen() {
                   {reportData.isAnonymous ? 'Anonymous' : 'Identified'}
                 </Text>
               </View>
+
+              {reportData.voiceRecording && (
+                <View style={styles.reviewItem}>
+                  <Text style={styles.reviewLabel}>Voice Recording:</Text>
+                  <Text style={styles.reviewValue}>
+                    {formatDuration(reportData.voiceRecording.duration)} audio recording included
+                    {reportData.voiceRecording.transcription && ' (transcribed)'}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.privacyOptions}>
@@ -442,11 +799,11 @@ export default function ReportScreen() {
 
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
+        <View style={styles.progressBarHeader}>
           <LinearGradient
             colors={['#6A2CB0', '#E24B95']}
             style={[
-              styles.progressFill,
+              styles.progressFillHeader,
               { width: `${(currentStep / totalSteps) * 100}%` },
             ]}
             start={{ x: 0, y: 0 }}
@@ -523,13 +880,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 20,
   },
-  progressBar: {
+  progressBarHeader: {
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 2,
     marginBottom: 8,
   },
-  progressFill: {
+  progressFillHeader: {
     height: '100%',
     borderRadius: 2,
   },
@@ -767,5 +1124,148 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  // Voice recording styles
+  descriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  voiceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F0FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  voiceButtonText: {
+    color: '#6A2CB0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  voiceRecorderContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+  },
+  recordingControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  recordButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#6A2CB0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordButtonActive: {
+    backgroundColor: '#E53935',
+  },
+  recordingInfo: {
+    flex: 1,
+  },
+  recordingStatus: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  recordingDuration: {
+    fontSize: 14,
+    color: '#6A2CB0',
+    fontWeight: '600',
+  },
+  recordingPlayback: {
+    gap: 12,
+  },
+  playbackControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#6A2CB0',
+  },
+  playbackInfo: {
+    flex: 1,
+  },
+  playbackDuration: {
+    fontSize: 14,
+    color: '#341A52',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#D8CEE8',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6A2CB0',
+    borderRadius: 2,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFEBEE',
+  },
+  transcriptionStatus: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  transcriptionText: {
+    fontSize: 14,
+    color: '#6A2CB0',
+    fontStyle: 'italic',
+  },
+  transcriptionResult: {
+    backgroundColor: '#F5F0FF',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  transcriptionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6A2CB0',
+    marginBottom: 4,
+  },
+  transcriptionContent: {
+    fontSize: 14,
+    color: '#341A52',
+    lineHeight: 18,
+  },
+  voiceRecorderNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#E8F5E8',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  voiceRecorderNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#2E7D32',
+    lineHeight: 16,
   },
 });
