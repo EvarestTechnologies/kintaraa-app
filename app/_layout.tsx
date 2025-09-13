@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
+import { IncidentProvider } from "@/providers/IncidentProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -55,8 +56,10 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
           <SafetyProvider>
-            <RootLayoutNav />
-            <StatusBar style="auto" />
+            <IncidentProvider>
+              <RootLayoutNav />
+              <StatusBar style="auto" />
+            </IncidentProvider>
           </SafetyProvider>
         </AuthProvider>
       </GestureHandlerRootView>

@@ -8,9 +8,12 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Location from 'expo-location';
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +24,7 @@ import {
   Mic,
   Shield,
 } from 'lucide-react-native';
+import { useIncidents } from '@/providers/IncidentProvider';
 
 const incidentTypes = [
   { id: 'physical', title: 'Physical Violence', color: '#E53935' },
@@ -41,11 +45,19 @@ const supportServices = [
 ];
 
 export default function ReportScreen() {
+  const { createIncident, isCreating, createError } = useIncidents();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [reportData, setReportData] = useState({
     type: '',
-    date: '',
-    location: '',
+    incidentDate: '',
+    incidentTime: '',
+    location: {
+      address: '',
+      coordinates: undefined as { latitude: number; longitude: number } | undefined,
+      description: '',
+    },
     description: '',
     severity: '',
     supportServices: [] as string[],
@@ -71,12 +83,25 @@ export default function ReportScreen() {
   };
 
   const handleSubmit = () => {
-    // Generate report ID
-    const reportId = `KIN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-    
+    if (createError) {
+      Alert.alert('Error', createError);
+      return;
+    }
+
+    createIncident({
+      type: reportData.type,
+      incidentDate: reportData.incidentDate,
+      incidentTime: reportData.incidentTime,
+      location: reportData.location.address || reportData.location.description ? reportData.location : undefined,
+      description: reportData.description,
+      severity: reportData.severity,
+      supportServices: reportData.supportServices,
+      isAnonymous: reportData.isAnonymous,
+    });
+
     Alert.alert(
       'Report Submitted',
-      `Your report has been submitted successfully.\n\nReport ID: ${reportId}\n\nYou will receive updates on the progress of your case.`,
+      'Your report has been submitted successfully. You will receive updates on the progress of your case.',
       [
         {
           text: 'OK',
@@ -88,6 +113,52 @@ export default function ReportScreen() {
 
   const updateReportData = (key: string, value: any) => {
     setReportData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permission is required to get your current location.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      const formattedAddress = address[0] 
+        ? `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''} ${address[0].postalCode || ''}`.trim()
+        : `${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`;
+
+      updateReportData('location', {
+        address: formattedAddress,
+        coordinates: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        description: reportData.location.description,
+      });
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Unable to get your current location. Please enter it manually.');
+    }
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      updateReportData('incidentDate', selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      updateReportData('incidentTime', selectedTime.toTimeString().split(' ')[0]);
+    }
   };
 
   const toggleSupportService = (serviceId: string) => {
@@ -150,23 +221,74 @@ export default function ReportScreen() {
             </Text>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Date & Time</Text>
-              <TouchableOpacity style={styles.dateInput}>
+              <Text style={styles.inputLabel}>Date</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => setShowDatePicker(true)}
+              >
                 <Calendar color="#6A2CB0" size={20} />
                 <Text style={styles.dateInputText}>
-                  {reportData.date || 'Select date and time'}
+                  {reportData.incidentDate 
+                    ? new Date(reportData.incidentDate).toLocaleDateString()
+                    : 'Select date'
+                  }
                 </Text>
               </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={reportData.incidentDate ? new Date(reportData.incidentDate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Location</Text>
-              <TouchableOpacity style={styles.locationInput}>
-                <MapPin color="#6A2CB0" size={20} />
-                <Text style={styles.locationInputText}>
-                  {reportData.location || 'Add location (optional)'}
+              <Text style={styles.inputLabel}>Time (Optional)</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Calendar color="#6A2CB0" size={20} />
+                <Text style={styles.dateInputText}>
+                  {reportData.incidentTime || 'Select time'}
                 </Text>
               </TouchableOpacity>
+              {showTimePicker && (
+                <DateTimePicker
+                  value={reportData.incidentTime ? new Date(`2000-01-01T${reportData.incidentTime}`) : new Date()}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onTimeChange}
+                />
+              )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Location (Optional)</Text>
+              <View style={styles.locationContainer}>
+                <TouchableOpacity 
+                  style={styles.locationInput}
+                  onPress={getCurrentLocation}
+                >
+                  <MapPin color="#6A2CB0" size={20} />
+                  <Text style={styles.locationInputText}>
+                    {reportData.location.address || 'Use current location'}
+                  </Text>
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.locationDescriptionInput}
+                  value={reportData.location.description}
+                  onChangeText={(value) => updateReportData('location', {
+                    ...reportData.location,
+                    description: value,
+                  })}
+                  placeholder="Or describe the location"
+                  placeholderTextColor="#D8CEE8"
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -346,16 +468,21 @@ export default function ReportScreen() {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            !canProceed() && styles.nextButtonDisabled,
+            (!canProceed() || isCreating) && styles.nextButtonDisabled,
           ]}
           onPress={handleNext}
-          disabled={!canProceed()}
+          disabled={!canProceed() || isCreating}
           testID="next-button"
         >
           <Text style={styles.nextButtonText}>
-            {currentStep === totalSteps ? 'Submit Report' : 'Continue'}
+            {isCreating 
+              ? 'Submitting...' 
+              : currentStep === totalSteps 
+                ? 'Submit Report' 
+                : 'Continue'
+            }
           </Text>
-          <ArrowRight color="#FFFFFF" size={20} />
+          {!isCreating && <ArrowRight color="#FFFFFF" size={20} />}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -502,6 +629,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#341A52',
+  },
+  locationContainer: {
+    gap: 12,
+  },
+  locationDescriptionInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#341A52',
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
   },
   textArea: {
     backgroundColor: '#FFFFFF',

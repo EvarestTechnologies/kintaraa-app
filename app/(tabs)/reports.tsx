@@ -8,32 +8,17 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react-native';
+import { useIncidents } from '@/providers/IncidentProvider';
 
-// Mock data for reports
-const mockReports = [
-  {
-    id: 'KIN-241201001',
-    type: 'Physical Violence',
-    status: 'under_review',
-    date: '2024-12-01',
-    severity: 'high',
-  },
-  {
-    id: 'KIN-241128002',
-    type: 'Emotional Abuse',
-    status: 'completed',
-    date: '2024-11-28',
-    severity: 'medium',
-  },
-  {
-    id: 'KIN-241125003',
-    type: 'Economic Abuse',
-    status: 'in_progress',
-    date: '2024-11-25',
-    severity: 'low',
-  },
-];
+const incidentTypeLabels = {
+  physical: 'Physical Violence',
+  sexual: 'Sexual Violence',
+  emotional: 'Emotional/Psychological Abuse',
+  economic: 'Economic Abuse',
+  online: 'Online Gender-Based Violence',
+  femicide: 'Femicide/Attempted Femicide',
+};
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -41,8 +26,12 @@ const getStatusIcon = (status: string) => {
       return <CheckCircle color="#43A047" size={20} />;
     case 'in_progress':
       return <Clock color="#FF9800" size={20} />;
-    case 'under_review':
+    case 'assigned':
       return <AlertCircle color="#6A2CB0" size={20} />;
+    case 'new':
+      return <FileText color="#49455A" size={20} />;
+    case 'closed':
+      return <CheckCircle color="#757575" size={20} />;
     default:
       return <FileText color="#49455A" size={20} />;
   }
@@ -54,8 +43,12 @@ const getStatusText = (status: string) => {
       return 'Completed';
     case 'in_progress':
       return 'In Progress';
-    case 'under_review':
-      return 'Under Review';
+    case 'assigned':
+      return 'Assigned';
+    case 'new':
+      return 'New';
+    case 'closed':
+      return 'Closed';
     default:
       return 'Unknown';
   }
@@ -75,6 +68,21 @@ const getSeverityColor = (severity: string) => {
 };
 
 export default function ReportsScreen() {
+  const { incidents, isLoading } = useIncidents();
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Reports</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading reports...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -90,7 +98,7 @@ export default function ReportsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {mockReports.length === 0 ? (
+        {incidents.length === 0 ? (
           <View style={styles.emptyState}>
             <FileText color="#D8CEE8" size={64} />
             <Text style={styles.emptyTitle}>No Reports Yet</Text>
@@ -106,38 +114,40 @@ export default function ReportsScreen() {
           </View>
         ) : (
           <View style={styles.reportsList}>
-            {mockReports.map((report) => (
+            {incidents.map((incident) => (
               <TouchableOpacity
-                key={report.id}
+                key={incident.id}
                 style={styles.reportCard}
-                testID={`report-${report.id}`}
+                testID={`report-${incident.id}`}
               >
                 <View style={styles.reportHeader}>
                   <View style={styles.reportInfo}>
-                    <Text style={styles.reportId}>{report.id}</Text>
-                    <Text style={styles.reportType}>{report.type}</Text>
+                    <Text style={styles.reportId}>{incident.caseNumber}</Text>
+                    <Text style={styles.reportType}>
+                      {incidentTypeLabels[incident.type] || incident.type}
+                    </Text>
                   </View>
                   <View
                     style={[
                       styles.severityBadge,
-                      { backgroundColor: getSeverityColor(report.severity) },
+                      { backgroundColor: getSeverityColor(incident.severity || 'medium') },
                     ]}
                   >
                     <Text style={styles.severityText}>
-                      {report.severity.toUpperCase()}
+                      {(incident.severity || 'medium').toUpperCase()}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.reportDetails}>
                   <View style={styles.reportStatus}>
-                    {getStatusIcon(report.status)}
+                    {getStatusIcon(incident.status)}
                     <Text style={styles.statusText}>
-                      {getStatusText(report.status)}
+                      {getStatusText(incident.status)}
                     </Text>
                   </View>
                   <Text style={styles.reportDate}>
-                    {new Date(report.date).toLocaleDateString('en-US', {
+                    {new Date(incident.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -149,10 +159,23 @@ export default function ReportsScreen() {
                   <TouchableOpacity style={styles.actionButton}>
                     <Text style={styles.actionButtonText}>View Details</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionButtonText}>Update</Text>
-                  </TouchableOpacity>
+                  {incident.messages.length > 0 && (
+                    <TouchableOpacity style={styles.messageButton}>
+                      <MessageCircle color="#6A2CB0" size={16} />
+                      <Text style={styles.messageButtonText}>
+                        {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
+
+                {incident.assignedProviderId && (
+                  <View style={styles.providerInfo}>
+                    <Text style={styles.providerText}>
+                      Assigned to case worker
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -316,6 +339,41 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#6A2CB0',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#49455A',
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F0FF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+  },
+  messageButtonText: {
+    color: '#6A2CB0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  providerInfo: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F0FF',
+  },
+  providerText: {
+    fontSize: 12,
+    color: '#43A047',
     fontWeight: '600',
   },
   helpSection: {
