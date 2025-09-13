@@ -45,7 +45,7 @@ const wellbeingActivities = [
     description: 'Track how you\'re feeling today',
     icon: Heart,
     color: '#E24B95',
-    gradient: ['#E24B95', '#F06292'],
+    gradient: ['#E24B95', '#F06292'] as const,
   },
   {
     id: 'sleep',
@@ -53,7 +53,7 @@ const wellbeingActivities = [
     description: 'Log your sleep patterns',
     icon: Moon,
     color: '#6A2CB0',
-    gradient: ['#6A2CB0', '#9C27B0'],
+    gradient: ['#6A2CB0', '#9C27B0'] as const,
   },
   {
     id: 'journal',
@@ -61,7 +61,7 @@ const wellbeingActivities = [
     description: 'Write your thoughts safely',
     icon: BookOpen,
     color: '#26A69A',
-    gradient: ['#26A69A', '#4DB6AC'],
+    gradient: ['#26A69A', '#4DB6AC'] as const,
   },
   {
     id: 'progress',
@@ -69,7 +69,7 @@ const wellbeingActivities = [
     description: 'See your healing journey',
     icon: TrendingUp,
     color: '#F3B52F',
-    gradient: ['#F3B52F', '#FFB74D'],
+    gradient: ['#F3B52F', '#FFB74D'] as const,
   },
 ];
 
