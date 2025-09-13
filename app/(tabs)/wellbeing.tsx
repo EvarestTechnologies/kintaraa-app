@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,13 @@ import {
   Dimensions,
   TextInput,
   Alert,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProvider } from '@/providers/ProviderContext';
+import { useIncidents } from '@/providers/IncidentProvider';
 import {
   Heart,
   Moon,
@@ -26,6 +29,8 @@ import {
   Send,
   User,
   Clock,
+  Search,
+  Filter,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');

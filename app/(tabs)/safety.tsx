@@ -9,7 +9,11 @@ import {
   Alert,
   Switch,
   Linking,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/providers/AuthProvider';
+import { useProvider } from '@/providers/ProviderContext';
 import { useSafety } from '@/providers/SafetyProvider';
 import {
   Shield,
@@ -21,9 +25,20 @@ import {
   Edit,
   Trash2,
   Navigation,
+  BarChart3,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  Calendar,
+  Target,
+  Award,
 } from 'lucide-react-native';
 
+const { width } = Dimensions.get('window');
+
 export default function SafetyScreen() {
+  const { user } = useAuth();
+  const { stats, assignedCases } = useProvider();
   const {
     isEmergencyMode,
     emergencyContacts,
@@ -36,6 +51,189 @@ export default function SafetyScreen() {
   } = useSafety();
 
   const [locationSharing, setLocationSharing] = useState(false);
+
+  // Provider Analytics Dashboard
+  if (user?.role === 'provider') {
+    const monthlyData = [
+      { month: 'Jan', cases: 12, completed: 10 },
+      { month: 'Feb', cases: 15, completed: 13 },
+      { month: 'Mar', cases: 18, completed: 16 },
+      { month: 'Apr', cases: 22, completed: 20 },
+      { month: 'May', cases: 25, completed: 22 },
+      { month: 'Jun', cases: 20, completed: 18 },
+    ];
+
+    const serviceTypes = [
+      { type: 'Medical', count: 45, percentage: 35, color: '#E53935' },
+      { type: 'Legal', count: 32, percentage: 25, color: '#1565C0' },
+      { type: 'Counseling', count: 28, percentage: 22, color: '#4527A0' },
+      { type: 'Shelter', count: 23, percentage: 18, color: '#00695C' },
+    ];
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Analytics</Text>
+          <Text style={styles.subtitle}>Performance insights and metrics</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Key Metrics */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Key Performance Metrics</Text>
+            <View style={styles.metricsGrid}>
+              <View style={styles.metricCard}>
+                <BarChart3 color="#6A2CB0" size={24} />
+                <Text style={styles.metricNumber}>{stats.totalCases}</Text>
+                <Text style={styles.metricLabel}>Total Cases</Text>
+                <Text style={styles.metricChange}>+12% this month</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <CheckCircle color="#43A047" size={24} />
+                <Text style={styles.metricNumber}>{stats.completedCases}</Text>
+                <Text style={styles.metricLabel}>Completed</Text>
+                <Text style={styles.metricChange}>+8% this month</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Clock color="#FF9800" size={24} />
+                <Text style={styles.metricNumber}>{stats.averageResponseTime}min</Text>
+                <Text style={styles.metricLabel}>Avg Response</Text>
+                <Text style={styles.metricChange}>-5min improved</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Award color="#F3B52F" size={24} />
+                <Text style={styles.metricNumber}>{stats.rating.toFixed(1)}</Text>
+                <Text style={styles.metricLabel}>Rating</Text>
+                <Text style={styles.metricChange}>+0.2 this month</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Monthly Trends */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Monthly Case Trends</Text>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <TrendingUp color="#43A047" size={20} />
+                <Text style={styles.chartTitle}>Cases Over Time</Text>
+              </View>
+              <View style={styles.chartContainer}>
+                {monthlyData.map((data, index) => (
+                  <View key={data.month} style={styles.chartBar}>
+                    <View style={styles.barContainer}>
+                      <View 
+                        style={[
+                          styles.bar,
+                          styles.completedBar,
+                          { height: (data.completed / 25) * 80 }
+                        ]}
+                      />
+                      <View 
+                        style={[
+                          styles.bar,
+                          styles.totalBar,
+                          { height: (data.cases / 25) * 80 }
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barLabel}>{data.month}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.chartLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendColor, { backgroundColor: '#6A2CB0' }]} />
+                  <Text style={styles.legendText}>Total Cases</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendColor, { backgroundColor: '#43A047' }]} />
+                  <Text style={styles.legendText}>Completed</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Service Distribution */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Service Type Distribution</Text>
+            <View style={styles.serviceDistribution}>
+              {serviceTypes.map((service, index) => (
+                <View key={service.type} style={styles.serviceItem}>
+                  <View style={styles.serviceHeader}>
+                    <View style={styles.serviceInfo}>
+                      <View style={[styles.serviceColor, { backgroundColor: service.color }]} />
+                      <Text style={styles.serviceName}>{service.type}</Text>
+                    </View>
+                    <Text style={styles.serviceCount}>{service.count}</Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View 
+                      style={[
+                        styles.progressFill,
+                        { 
+                          width: `${service.percentage}%`,
+                          backgroundColor: service.color
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.servicePercentage}>{service.percentage}%</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Performance Goals */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Performance Goals</Text>
+            <View style={styles.goalsContainer}>
+              <View style={styles.goalCard}>
+                <Target color="#6A2CB0" size={24} />
+                <Text style={styles.goalTitle}>Response Time Goal</Text>
+                <Text style={styles.goalTarget}>Under 30 minutes</Text>
+                <View style={styles.goalProgress}>
+                  <View style={[styles.goalProgressFill, { width: '85%' }]} />
+                </View>
+                <Text style={styles.goalStatus}>Current: {stats.averageResponseTime}min (85% of goal)</Text>
+              </View>
+              
+              <View style={styles.goalCard}>
+                <CheckCircle color="#43A047" size={24} />
+                <Text style={styles.goalTitle}>Completion Rate Goal</Text>
+                <Text style={styles.goalTarget}>90% completion rate</Text>
+                <View style={styles.goalProgress}>
+                  <View style={[styles.goalProgressFill, { width: '92%' }]} />
+                </View>
+                <Text style={styles.goalStatus}>Current: 92% (Goal exceeded!)</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Recent Activity */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <View style={styles.activityList}>
+              {assignedCases.slice(0, 5).map((incident) => (
+                <View key={incident.id} style={styles.activityItem}>
+                  <View style={styles.activityIcon}>
+                    <CheckCircle color="#43A047" size={16} />
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle}>
+                      Case {incident.caseNumber} - {incident.status}
+                    </Text>
+                    <Text style={styles.activityTime}>
+                      {new Date(incident.updatedAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   const handleAddEmergencyContact = () => {
     Alert.prompt(
@@ -591,5 +789,257 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#341A52',
     flex: 1,
+  },
+  // Provider Analytics Styles
+  subtitle: {
+    fontSize: 16,
+    color: '#49455A',
+    marginTop: 4,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  metricCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    width: (width - 80) / 2,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  metricNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#341A52',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  metricChange: {
+    fontSize: 10,
+    color: '#43A047',
+    fontWeight: '600',
+  },
+  chartCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  chartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 100,
+    marginBottom: 16,
+  },
+  chartBar: {
+    alignItems: 'center',
+  },
+  barContainer: {
+    position: 'relative',
+    width: 20,
+    height: 80,
+    justifyContent: 'flex-end',
+  },
+  bar: {
+    position: 'absolute',
+    bottom: 0,
+    width: 20,
+    borderRadius: 2,
+  },
+  totalBar: {
+    backgroundColor: '#6A2CB0',
+    opacity: 0.3,
+  },
+  completedBar: {
+    backgroundColor: '#43A047',
+  },
+  barLabel: {
+    fontSize: 10,
+    color: '#49455A',
+    marginTop: 8,
+  },
+  chartLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#49455A',
+  },
+  serviceDistribution: {
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  serviceItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  serviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  serviceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  serviceColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  serviceCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: '#F5F0FF',
+    borderRadius: 3,
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  servicePercentage: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'right',
+  },
+  goalsContainer: {
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  goalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  goalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  goalTarget: {
+    fontSize: 14,
+    color: '#49455A',
+    marginBottom: 12,
+  },
+  goalProgress: {
+    height: 8,
+    backgroundColor: '#F5F0FF',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  goalProgressFill: {
+    height: '100%',
+    backgroundColor: '#6A2CB0',
+    borderRadius: 4,
+  },
+  goalStatus: {
+    fontSize: 12,
+    color: '#43A047',
+    fontWeight: '600',
+  },
+  activityList: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#49455A',
   },
 });
