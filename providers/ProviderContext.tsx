@@ -61,6 +61,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'assigned' as const,
           priority: 'high' as const,
           incidentDate: '2024-12-10',
+          location: {
+            address: '123 Main St, New York, NY 10001',
+            coordinates: { latitude: 40.7128, longitude: -74.0060 },
+            description: 'Residential apartment building'
+          },
           description: 'Domestic violence incident requiring immediate medical attention and legal support',
           severity: 'high' as const,
           supportServices: ['medical', 'legal', 'counseling'],
@@ -89,6 +94,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'in_progress' as const,
           priority: 'medium' as const,
           incidentDate: '2024-12-09',
+          location: {
+            address: '456 Oak Ave, Brooklyn, NY 11201',
+            coordinates: { latitude: 40.6892, longitude: -73.9442 },
+            description: 'Private residence'
+          },
           description: 'Ongoing psychological abuse and threats from partner',
           severity: 'medium' as const,
           supportServices: ['counseling', 'legal'],
@@ -117,6 +127,10 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'completed' as const,
           priority: 'critical' as const,
           incidentDate: '2024-12-08',
+          location: {
+            address: 'Location withheld for safety',
+            description: 'Confidential location'
+          },
           description: 'Sexual assault case requiring comprehensive support services',
           severity: 'high' as const,
           supportServices: ['medical', 'legal', 'counseling', 'police'],
@@ -135,6 +149,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'assigned' as const,
           priority: 'low' as const,
           incidentDate: '2024-12-07',
+          location: {
+            address: '789 Pine St, Queens, NY 11375',
+            coordinates: { latitude: 40.7282, longitude: -73.7949 },
+            description: 'Family home'
+          },
           description: 'Financial abuse and control by spouse, need assistance with financial independence',
           severity: 'low' as const,
           supportServices: ['financial', 'legal', 'counseling'],
@@ -153,6 +172,10 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'in_progress' as const,
           priority: 'medium' as const,
           incidentDate: '2024-12-06',
+          location: {
+            address: 'Online/Digital platforms',
+            description: 'Multiple social media and digital platforms'
+          },
           description: 'Cyberstalking and online harassment, need digital safety support',
           severity: 'medium' as const,
           supportServices: ['legal', 'counseling'],
@@ -181,6 +204,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'completed' as const,
           priority: 'high' as const,
           incidentDate: '2024-12-05',
+          location: {
+            address: '321 Elm St, Manhattan, NY 10003',
+            coordinates: { latitude: 40.7505, longitude: -73.9934 },
+            description: 'Public area near subway station'
+          },
           description: 'Physical assault case with medical documentation',
           severity: 'high' as const,
           supportServices: ['medical', 'legal'],
@@ -199,6 +227,10 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'assigned' as const,
           priority: 'critical' as const,
           incidentDate: '2024-12-04',
+          location: {
+            address: 'Emergency shelter location',
+            description: 'Secure location - details confidential'
+          },
           description: 'Attempted femicide case requiring immediate intervention and protection',
           severity: 'high' as const,
           supportServices: ['medical', 'legal', 'police', 'shelter'],
@@ -227,6 +259,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'in_progress' as const,
           priority: 'low' as const,
           incidentDate: '2024-12-03',
+          location: {
+            address: '555 Business Plaza, Manhattan, NY 10016',
+            coordinates: { latitude: 40.7549, longitude: -73.9840 },
+            description: 'Corporate office building'
+          },
           description: 'Workplace harassment and emotional abuse from supervisor',
           severity: 'low' as const,
           supportServices: ['counseling', 'legal'],
@@ -245,6 +282,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'completed' as const,
           priority: 'medium' as const,
           incidentDate: '2024-12-02',
+          location: {
+            address: '888 Court St, Brooklyn, NY 11201',
+            coordinates: { latitude: 40.6892, longitude: -73.9900 },
+            description: 'Legal aid office'
+          },
           description: 'Economic coercion and financial control resolved through legal intervention',
           severity: 'medium' as const,
           supportServices: ['financial', 'legal'],
@@ -263,6 +305,10 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'assigned' as const,
           priority: 'high' as const,
           incidentDate: '2024-12-01',
+          location: {
+            address: 'Online platforms and social media',
+            description: 'Digital harassment across multiple platforms'
+          },
           description: 'Image-based sexual abuse and revenge porn distribution',
           severity: 'high' as const,
           supportServices: ['legal', 'counseling'],
@@ -281,6 +327,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'in_progress' as const,
           priority: 'critical' as const,
           incidentDate: '2024-11-30',
+          location: {
+            address: '999 Safety Ave, Bronx, NY 10451',
+            coordinates: { latitude: 40.8176, longitude: -73.9182 },
+            description: 'Residential area with ongoing safety concerns'
+          },
           description: 'Severe domestic violence with ongoing threats and stalking behavior',
           severity: 'high' as const,
           supportServices: ['medical', 'legal', 'police', 'shelter'],
@@ -309,6 +360,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           status: 'assigned' as const,
           priority: 'high' as const,
           incidentDate: '2024-11-29',
+          location: {
+            address: 'University Campus, Manhattan, NY 10027',
+            coordinates: { latitude: 40.8075, longitude: -73.9626 },
+            description: 'Educational institution campus'
+          },
           description: 'Sexual harassment in educational institution',
           severity: 'medium' as const,
           supportServices: ['counseling', 'legal'],

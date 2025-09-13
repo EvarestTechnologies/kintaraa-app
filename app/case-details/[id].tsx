@@ -69,10 +69,10 @@ export default function CaseDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { incidents } = useIncidents();
-  const { updateCaseStatus, isUpdating } = useProvider();
+  const { assignedCases, updateCaseStatus, isUpdating } = useProvider();
 
-
-  const incident = incidents.find(inc => inc.id === id);
+  // Check both incidents and assigned cases for providers
+  const incident = incidents.find(inc => inc.id === id) || assignedCases.find(inc => inc.id === id);
 
   if (!incident) {
     return (
@@ -219,18 +219,18 @@ export default function CaseDetailsScreen() {
         </View>
 
         {/* Location */}
-        {incident.location && (
+        {(incident as any).location && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.locationCard}>
               <MapPin color="#E53935" size={20} />
               <View style={styles.locationContent}>
                 <Text style={styles.locationText}>
-                  {incident.location.address || 'Location provided'}
+                  {(incident as any).location.address || 'Location provided'}
                 </Text>
-                {incident.location.description && (
+                {(incident as any).location.description && (
                   <Text style={styles.locationDescription}>
-                    {incident.location.description}
+                    {(incident as any).location.description}
                   </Text>
                 )}
               </View>
