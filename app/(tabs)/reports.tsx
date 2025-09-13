@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase } from 'lucide-react-native';
-import { useIncidents } from '@/providers/IncidentProvider';
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useIncidents, Incident } from '@/providers/IncidentProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProvider } from '@/providers/ProviderContext';
 
@@ -69,30 +69,161 @@ const getSeverityColor = (severity: string) => {
   }
 };
 
+type CaseFilter = 'all' | 'assigned' | 'in_progress' | 'completed';
+
+const CASES_PER_PAGE = 10;
+
 export default function ReportsScreen() {
   const { user } = useAuth();
   const { incidents, isLoading } = useIncidents();
   const { assignedCases, updateCaseStatus } = useProvider();
+  const [currentFilter, setCurrentFilter] = useState<CaseFilter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Always calculate these values at the top level
+  const allCases = assignedCases.length > 0 ? assignedCases : incidents;
+  
+  // Filter cases based on current filter
+  const filteredCases = useMemo(() => {
+    if (user?.role !== 'provider') return [];
+    switch (currentFilter) {
+      case 'assigned':
+        return allCases.filter(c => c.status === 'assigned');
+      case 'in_progress':
+        return allCases.filter(c => c.status === 'in_progress');
+      case 'completed':
+        return allCases.filter(c => c.status === 'completed');
+      default:
+        return allCases;
+    }
+  }, [allCases, currentFilter, user?.role]);
+  
+  // Calculate stats
+  const stats = useMemo(() => ({
+    assigned: allCases.filter(c => c.status === 'assigned').length,
+    inProgress: allCases.filter(c => c.status === 'in_progress').length,
+    completed: allCases.filter(c => c.status === 'completed').length,
+  }), [allCases]);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{user?.role === 'provider' ? 'Case Management' : 'My Reports'}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading {user?.role === 'provider' ? 'cases' : 'reports'}...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Provider case management view
   if (user?.role === 'provider') {
-    const casesToShow = assignedCases.length > 0 ? assignedCases : incidents.slice(0, 5);
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredCases.length / CASES_PER_PAGE);
+    const startIndex = (currentPage - 1) * CASES_PER_PAGE;
+    const endIndex = startIndex + CASES_PER_PAGE;
+    const casesToShow = filteredCases.slice(startIndex, endIndex);
+    
+    const handleFilterChange = (filter: CaseFilter) => {
+      if (filter && typeof filter === 'string') {
+        setCurrentFilter(filter);
+        setCurrentPage(1); // Reset to first page when filter changes
+      }
+    };
+    
+    const handlePageChange = (page: number) => {
+      if (typeof page === 'number' && page > 0) {
+        setCurrentPage(page);
+      }
+    };
+    
+    const renderCaseItem = ({ item: incident }: { item: Incident }) => (
+      <TouchableOpacity
+        key={incident.id}
+        style={styles.providerCaseCard}
+        testID={`case-${incident.id}`}
+        onPress={() => router.push(`/case-details/${incident.id}`)}
+      >
+        <View style={styles.reportHeader}>
+          <View style={styles.reportInfo}>
+            <Text style={styles.reportId}>{incident.caseNumber}</Text>
+            <Text style={styles.reportType}>
+              {incidentTypeLabels[incident.type] || incident.type}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.severityBadge,
+              { backgroundColor: getSeverityColor(incident.severity || 'medium') },
+            ]}
+          >
+            <Text style={styles.severityText}>
+              {(incident.severity || 'medium').toUpperCase()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.reportDetails}>
+          <View style={styles.reportStatus}>
+            {getStatusIcon(incident.status)}
+            <Text style={styles.statusText}>
+              {getStatusText(incident.status)}
+            </Text>
+          </View>
+          <Text style={styles.reportDate}>
+            {new Date(incident.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}
+          </Text>
+        </View>
+
+        {/* Provider Actions */}
+        <View style={styles.providerActions}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              router.push(`/case-details/${incident.id}`);
+            }}
+          >
+            <Text style={styles.actionButtonText}>View Case</Text>
+          </TouchableOpacity>
+          
+          {incident.status !== 'completed' && (
+            <TouchableOpacity 
+              style={styles.updateButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                updateCaseStatus({
+                  incidentId: incident.id,
+                  status: incident.status === 'assigned' ? 'in_progress' : 'completed'
+                });
+              }}
+            >
+              <Text style={styles.updateButtonText}>
+                {incident.status === 'assigned' ? 'Start Case' : 'Complete'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {incident.messages.length > 0 && (
+          <View style={styles.messageInfo}>
+            <MessageCircle color="#6A2CB0" size={16} />
+            <Text style={styles.messageInfoText}>
+              {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
     
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Case Management</Text>
           <View style={styles.headerActions}>
@@ -108,123 +239,140 @@ export default function ReportsScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Case Statistics */}
           <View style={styles.statsSection}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{assignedCases.length}</Text>
-              <Text style={styles.statLabel}>Assigned Cases</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {assignedCases.filter(c => c.status === 'in_progress').length}
-              </Text>
-              <Text style={styles.statLabel}>In Progress</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {assignedCases.filter(c => c.status === 'completed').length}
-              </Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
+            <TouchableOpacity 
+              style={[
+                styles.statItem,
+                currentFilter === 'assigned' && styles.statItemActive
+              ]}
+              onPress={() => handleFilterChange('assigned')}
+            >
+              <Text style={[
+                styles.statNumber,
+                currentFilter === 'assigned' && styles.statNumberActive
+              ]}>{stats.assigned}</Text>
+              <Text style={[
+                styles.statLabel,
+                currentFilter === 'assigned' && styles.statLabelActive
+              ]}>Assigned Cases</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.statItem,
+                currentFilter === 'in_progress' && styles.statItemActive
+              ]}
+              onPress={() => handleFilterChange('in_progress')}
+            >
+              <Text style={[
+                styles.statNumber,
+                currentFilter === 'in_progress' && styles.statNumberActive
+              ]}>{stats.inProgress}</Text>
+              <Text style={[
+                styles.statLabel,
+                currentFilter === 'in_progress' && styles.statLabelActive
+              ]}>In Progress</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.statItem,
+                currentFilter === 'completed' && styles.statItemActive
+              ]}
+              onPress={() => handleFilterChange('completed')}
+            >
+              <Text style={[
+                styles.statNumber,
+                currentFilter === 'completed' && styles.statNumberActive
+              ]}>{stats.completed}</Text>
+              <Text style={[
+                styles.statLabel,
+                currentFilter === 'completed' && styles.statLabelActive
+              ]}>Completed</Text>
+            </TouchableOpacity>
           </View>
+          
+          {/* Filter Indicator */}
+          {currentFilter !== 'all' && (
+            <View style={styles.filterIndicator}>
+              <Text style={styles.filterText}>
+                Showing {currentFilter.replace('_', ' ')} cases ({filteredCases.length})
+              </Text>
+              <TouchableOpacity 
+                style={styles.clearFilterButton}
+                onPress={() => handleFilterChange('all')}
+              >
+                <Text style={styles.clearFilterText}>Show All</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          {casesToShow.length === 0 ? (
+          {filteredCases.length === 0 ? (
             <View style={styles.emptyState}>
               <Briefcase color="#D8CEE8" size={64} />
-              <Text style={styles.emptyTitle}>No Cases Assigned</Text>
+              <Text style={styles.emptyTitle}>
+                {currentFilter === 'all' ? 'No Cases Assigned' : `No ${currentFilter.replace('_', ' ')} Cases`}
+              </Text>
               <Text style={styles.emptyDescription}>
-                You don&apos;t have any cases assigned yet. New cases will appear here when assigned to you.
+                {currentFilter === 'all' 
+                  ? "You don't have any cases assigned yet. New cases will appear here when assigned to you."
+                  : `No cases with ${currentFilter.replace('_', ' ')} status found.`
+                }
               </Text>
             </View>
           ) : (
-            <View style={styles.reportsList}>
-              {casesToShow.map((incident) => (
-                <TouchableOpacity
-                  key={incident.id}
-                  style={styles.providerCaseCard}
-                  testID={`case-${incident.id}`}
-                >
-                  <View style={styles.reportHeader}>
-                    <View style={styles.reportInfo}>
-                      <Text style={styles.reportId}>{incident.caseNumber}</Text>
-                      <Text style={styles.reportType}>
-                        {incidentTypeLabels[incident.type] || incident.type}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.severityBadge,
-                        { backgroundColor: getSeverityColor(incident.severity || 'medium') },
-                      ]}
-                    >
-                      <Text style={styles.severityText}>
-                        {(incident.severity || 'medium').toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.reportDetails}>
-                    <View style={styles.reportStatus}>
-                      {getStatusIcon(incident.status)}
-                      <Text style={styles.statusText}>
-                        {getStatusText(incident.status)}
-                      </Text>
-                    </View>
-                    <Text style={styles.reportDate}>
-                      {new Date(incident.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+            <>
+              <FlatList
+                data={casesToShow}
+                renderItem={renderCaseItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.reportsList}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+              />
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <View style={styles.paginationContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.paginationButton,
+                      currentPage === 1 && styles.paginationButtonDisabled
+                    ]}
+                    onPress={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft color={currentPage === 1 ? '#D8CEE8' : '#6A2CB0'} size={20} />
+                  </TouchableOpacity>
+                  
+                  <View style={styles.paginationInfo}>
+                    <Text style={styles.paginationText}>
+                      Page {currentPage} of {totalPages}
+                    </Text>
+                    <Text style={styles.paginationSubtext}>
+                      {startIndex + 1}-{Math.min(endIndex, filteredCases.length)} of {filteredCases.length} cases
                     </Text>
                   </View>
-
-                  {/* Provider Actions */}
-                  <View style={styles.providerActions}>
-                    <TouchableOpacity 
-                      style={styles.actionButton}
-                      onPress={() => {
-                        // Navigate to case details
-                      }}
-                    >
-                      <Text style={styles.actionButtonText}>View Case</Text>
-                    </TouchableOpacity>
-                    
-                    {incident.status !== 'completed' && (
-                      <TouchableOpacity 
-                        style={styles.updateButton}
-                        onPress={() => {
-                          updateCaseStatus({
-                            incidentId: incident.id,
-                            status: incident.status === 'assigned' ? 'in_progress' : 'completed'
-                          });
-                        }}
-                      >
-                        <Text style={styles.updateButtonText}>
-                          {incident.status === 'assigned' ? 'Start Case' : 'Complete'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {incident.messages.length > 0 && (
-                    <View style={styles.messageInfo}>
-                      <MessageCircle color="#6A2CB0" size={16} />
-                      <Text style={styles.messageInfoText}>
-                        {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.paginationButton,
+                      currentPage === totalPages && styles.paginationButtonDisabled
+                    ]}
+                    onPress={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight color={currentPage === totalPages ? '#D8CEE8' : '#6A2CB0'} size={20} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Default survivor reports view
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Reports</Text>
         <TouchableOpacity
@@ -332,7 +480,7 @@ export default function ReportsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -639,5 +787,76 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6A2CB0',
     fontWeight: '600',
+  },
+  // New styles for dynamic stats and pagination
+  statItemActive: {
+    backgroundColor: '#6A2CB0',
+    borderWidth: 2,
+    borderColor: '#341A52',
+  },
+  statNumberActive: {
+    color: '#FFFFFF',
+  },
+  statLabelActive: {
+    color: '#FFFFFF',
+  },
+  filterIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#F5F0FF',
+    marginHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#341A52',
+    fontWeight: '600',
+  },
+  clearFilterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#6A2CB0',
+    borderRadius: 16,
+  },
+  clearFilterText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginTop: 16,
+  },
+  paginationButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#F5F0FF',
+    borderWidth: 1,
+    borderColor: '#6A2CB0',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#D8CEE8',
+  },
+  paginationInfo: {
+    alignItems: 'center',
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#49455A',
+    marginTop: 2,
   },
 });

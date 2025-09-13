@@ -282,7 +282,7 @@ export default function WellbeingScreen() {
                 testID={`activity-${activity.id}`}
               >
                 <LinearGradient
-                  colors={activity.gradient}
+                  colors={activity.gradient as readonly [string, string, ...string[]]}
                   style={styles.activityGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
