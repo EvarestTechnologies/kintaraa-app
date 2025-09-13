@@ -8,6 +8,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
+import { RecommendationProvider } from "@/providers/RecommendationProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,6 +44,13 @@ function RootLayoutNav() {
         },
         headerTintColor: '#FFFFFF',
       }} />
+      <Stack.Screen name="recommendations" options={{ 
+        title: "AI Recommendations",
+        headerStyle: {
+          backgroundColor: '#F5F0FF',
+        },
+        headerTintColor: '#341A52',
+      }} />
     </Stack>
   );
 }
@@ -59,8 +67,10 @@ export default function RootLayout() {
           <SafetyProvider>
             <IncidentProvider>
               <ProviderContext>
-                <RootLayoutNav />
-                <StatusBar style="auto" />
+                <RecommendationProvider>
+                  <RootLayoutNav />
+                  <StatusBar style="auto" />
+                </RecommendationProvider>
               </ProviderContext>
             </IncidentProvider>
           </SafetyProvider>

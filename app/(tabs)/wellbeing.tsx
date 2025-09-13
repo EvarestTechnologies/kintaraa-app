@@ -31,6 +31,8 @@ import {
   Clock,
   Search,
   Filter,
+  Brain,
+  Zap,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -76,6 +78,14 @@ const wellbeingActivities = [
     color: '#F3B52F',
     gradient: ['#F3B52F', '#FFB74D'] as const,
   },
+  {
+    id: 'recommendations',
+    title: 'AI Recommendations',
+    description: 'Personalized support suggestions',
+    icon: Brain,
+    color: '#9C27B0',
+    gradient: ['#9C27B0', '#E1BEE7'] as const,
+  },
 ];
 
 export default function WellbeingScreen() {
@@ -105,6 +115,24 @@ export default function WellbeingScreen() {
           {/* Active Conversations */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Active Conversations</Text>
+            
+            {/* AI Recommendations Button */}
+            <TouchableOpacity 
+              style={styles.aiRecommendationsButton}
+              onPress={() => router.push('/recommendations')}
+            >
+              <LinearGradient
+                colors={['#9C27B0', '#E1BEE7']}
+                style={styles.aiButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Brain color="#FFFFFF" size={24} />
+                <Text style={styles.aiButtonText}>AI Recommendations</Text>
+                <Zap color="#FFFFFF" size={16} />
+              </LinearGradient>
+            </TouchableOpacity>
+            
             <View style={styles.conversationsList}>
               {assignedCases.filter(c => c.messages.length > 0).map((incident) => (
                 <TouchableOpacity
@@ -285,6 +313,11 @@ export default function WellbeingScreen() {
                 key={activity.id}
                 style={styles.activityCard}
                 testID={`activity-${activity.id}`}
+                onPress={() => {
+                  if (activity.id === 'recommendations') {
+                    router.push('/recommendations');
+                  }
+                }}
               >
                 <LinearGradient
                   colors={activity.gradient as readonly [string, string, ...string[]]}
@@ -726,5 +759,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#49455A',
     lineHeight: 20,
+  },
+  // AI Recommendations Button Styles
+  aiRecommendationsButton: {
+    marginHorizontal: 24,
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  aiButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  aiButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
   },
 });
