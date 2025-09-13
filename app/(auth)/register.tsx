@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth, ProviderType } from '@/providers/AuthProvider';
-import { ArrowLeft, Eye, EyeOff, User, UserCheck, Stethoscope, Scale, Shield, Heart, Users } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, User, UserCheck, Stethoscope, Scale, Shield, Heart, Users, LifeBuoy, Home } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const { register, isRegistering, registerError } = useAuth();
@@ -79,6 +79,8 @@ export default function RegisterScreen() {
     { type: 'police' as ProviderType, label: 'Police', icon: Shield, color: '#EF4444' },
     { type: 'counseling' as ProviderType, label: 'Counseling', icon: Heart, color: '#F59E0B' },
     { type: 'social' as ProviderType, label: 'Social Services', icon: Users, color: '#8B5CF6' },
+    { type: 'gbv_rescue' as ProviderType, label: 'GBV Rescue Center', icon: LifeBuoy, color: '#DC2626' },
+    { type: 'chw' as ProviderType, label: 'Community Health Worker', icon: Home, color: '#059669' },
   ];
 
   return (

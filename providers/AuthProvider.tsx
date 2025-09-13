@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Platform } from 'react-native';
 
-export type ProviderType = 'healthcare' | 'legal' | 'police' | 'counseling' | 'social';
+export type ProviderType = 'healthcare' | 'legal' | 'police' | 'counseling' | 'social' | 'gbv_rescue' | 'chw';
 
 export interface User {
   id: string;
@@ -115,6 +115,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         else if (email.includes('police')) providerType = 'police';
         else if (email.includes('counseling') || email.includes('therapy')) providerType = 'counseling';
         else if (email.includes('social')) providerType = 'social';
+        else if (email.includes('gbv') || email.includes('rescue')) providerType = 'gbv_rescue';
+        else if (email.includes('chw') || email.includes('community')) providerType = 'chw';
         else providerType = 'healthcare';
       }
       

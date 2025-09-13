@@ -15,7 +15,12 @@ import {
   Stethoscope,
   Scale,
   Calendar,
-  Settings
+  Settings,
+  LifeBuoy,
+  Phone,
+  Activity,
+  MapPin,
+  UserPlus
 } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -245,6 +250,88 @@ export default function TabLayout() {
                 options={{
                   title: 'Resources',
                   tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="profile"
+                options={{
+                  title: 'Profile',
+                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+                }}
+              />
+            </Tabs>
+          );
+
+        case 'gbv_rescue':
+          return (
+            <Tabs screenOptions={commonScreenOptions}>
+              <Tabs.Screen
+                name="index"
+                options={{
+                  title: 'Dashboard',
+                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="reports"
+                options={{
+                  title: 'Emergency Cases',
+                  tabBarIcon: ({ color, size }) => <LifeBuoy color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="wellbeing"
+                options={{
+                  title: 'Hotline',
+                  tabBarIcon: ({ color, size }) => <Phone color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="safety"
+                options={{
+                  title: 'Response',
+                  tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="profile"
+                options={{
+                  title: 'Profile',
+                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+                }}
+              />
+            </Tabs>
+          );
+
+        case 'chw':
+          return (
+            <Tabs screenOptions={commonScreenOptions}>
+              <Tabs.Screen
+                name="index"
+                options={{
+                  title: 'Dashboard',
+                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="reports"
+                options={{
+                  title: 'Community Cases',
+                  tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="wellbeing"
+                options={{
+                  title: 'Outreach',
+                  tabBarIcon: ({ color, size }) => <UserPlus color={color} size={size} />,
+                }}
+              />
+              <Tabs.Screen
+                name="safety"
+                options={{
+                  title: 'Locations',
+                  tabBarIcon: ({ color, size }) => <MapPin color={color} size={size} />,
                 }}
               />
               <Tabs.Screen

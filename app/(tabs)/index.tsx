@@ -33,6 +33,11 @@ import {
   FileText,
   UserCheck,
   Activity,
+  LifeBuoy,
+  UserPlus,
+  Home,
+  Siren,
+  Headphones,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -118,6 +123,8 @@ export default function HomeScreen() {
         case 'police': return 'Officer';
         case 'counseling': return 'Counselor';
         case 'social': return 'Social Worker';
+        case 'gbv_rescue': return 'Responder';
+        case 'chw': return 'CHW';
         default: return 'Provider';
       }
     };
@@ -129,6 +136,8 @@ export default function HomeScreen() {
         case 'police': return 'Law Enforcement Dashboard';
         case 'counseling': return 'Counseling Dashboard';
         case 'social': return 'Social Services Dashboard';
+        case 'gbv_rescue': return 'GBV Rescue Center Dashboard';
+        case 'chw': return 'Community Health Worker Dashboard';
         default: return 'Provider Dashboard';
       }
     };
@@ -169,6 +178,20 @@ export default function HomeScreen() {
             { id: 'services', title: 'Services', icon: Heart, color: '#F59E0B' },
             { id: 'resources', title: 'Resources', icon: FileText, color: '#10B981' },
             { id: 'home-visit', title: 'Home Visit', icon: MapPin, color: '#3B82F6' },
+          ];
+        case 'gbv_rescue':
+          return [
+            { id: 'emergency-response', title: 'Emergency Response', icon: Siren, color: '#DC2626' },
+            { id: 'hotline', title: 'Hotline Support', icon: Headphones, color: '#7C3AED' },
+            { id: 'safe-house', title: 'Safe House', icon: Home, color: '#059669' },
+            { id: 'crisis-intervention', title: 'Crisis Intervention', icon: LifeBuoy, color: '#EA580C' },
+          ];
+        case 'chw':
+          return [
+            { id: 'community-outreach', title: 'Community Outreach', icon: UserPlus, color: '#059669' },
+            { id: 'home-visits', title: 'Home Visits', icon: Home, color: '#0891B2' },
+            { id: 'health-education', title: 'Health Education', icon: Heart, color: '#DC2626' },
+            { id: 'referrals', title: 'Referrals', icon: Users, color: '#7C3AED' },
           ];
         default:
           return [
