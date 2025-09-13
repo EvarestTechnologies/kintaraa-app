@@ -5,10 +5,13 @@ import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Platform } from 'react-native';
 
+export type ProviderType = 'healthcare' | 'legal' | 'police' | 'counseling' | 'social';
+
 export interface User {
   id: string;
   email: string;
   role: 'survivor' | 'provider' | 'admin';
+  providerType?: ProviderType;
   firstName: string;
   lastName: string;
   isAnonymous: boolean;
@@ -105,10 +108,21 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       
       // Mock user data - check if provider login
       const isProvider = email.includes('provider') || email.includes('doctor') || email.includes('dr.');
+      let providerType: ProviderType | undefined;
+      
+      if (isProvider) {
+        if (email.includes('legal')) providerType = 'legal';
+        else if (email.includes('police')) providerType = 'police';
+        else if (email.includes('counseling') || email.includes('therapy')) providerType = 'counseling';
+        else if (email.includes('social')) providerType = 'social';
+        else providerType = 'healthcare';
+      }
+      
       const user: User = {
         id: isProvider ? 'provider-1' : '1',
         email,
         role: isProvider ? 'provider' : 'survivor',
+        providerType,
         firstName: isProvider ? 'Sarah' : 'Safe',
         lastName: isProvider ? 'Johnson' : 'User',
         isAnonymous: false,
@@ -141,6 +155,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       lastName: string;
       isAnonymous: boolean;
       role: 'survivor' | 'provider';
+      providerType?: ProviderType;
     }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));

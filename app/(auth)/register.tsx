@@ -12,8 +12,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/providers/AuthProvider';
-import { ArrowLeft, Eye, EyeOff, User, UserCheck } from 'lucide-react-native';
+import { useAuth, ProviderType } from '@/providers/AuthProvider';
+import { ArrowLeft, Eye, EyeOff, User, UserCheck, Stethoscope, Scale, Shield, Heart, Users } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const { register, isRegistering, registerError } = useAuth();
@@ -24,13 +24,14 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
     role: 'survivor' as 'survivor' | 'provider',
+    providerType: undefined as ProviderType | undefined,
     isAnonymous: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = () => {
-    const { firstName, lastName, email, password, confirmPassword, role, isAnonymous } = formData;
+    const { firstName, lastName, email, password, confirmPassword, role, providerType, isAnonymous } = formData;
 
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -52,12 +53,18 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (role === 'provider' && !providerType) {
+      Alert.alert('Error', 'Please select your provider type');
+      return;
+    }
+
     register({
       firstName: isAnonymous ? 'Anonymous' : firstName.trim(),
       lastName: isAnonymous ? 'User' : lastName.trim(),
       email: email.trim(),
       password,
       role,
+      providerType: role === 'provider' ? providerType : undefined,
       isAnonymous,
     });
   };
@@ -65,6 +72,14 @@ export default function RegisterScreen() {
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
+
+  const providerTypes = [
+    { type: 'healthcare' as ProviderType, label: 'Healthcare', icon: Stethoscope, color: '#10B981' },
+    { type: 'legal' as ProviderType, label: 'Legal', icon: Scale, color: '#3B82F6' },
+    { type: 'police' as ProviderType, label: 'Police', icon: Shield, color: '#EF4444' },
+    { type: 'counseling' as ProviderType, label: 'Counseling', icon: Heart, color: '#F59E0B' },
+    { type: 'social' as ProviderType, label: 'Social Services', icon: Users, color: '#8B5CF6' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,6 +148,45 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {formData.role === 'provider' && (
+              <View style={styles.providerTypeSelector}>
+                <Text style={styles.label}>Provider Type:</Text>
+                <View style={styles.providerTypeGrid}>
+                  {providerTypes.map(({ type, label, icon: Icon, color }) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.providerTypeButton,
+                        formData.providerType === type && {
+                          ...styles.providerTypeButtonActive,
+                          borderColor: color,
+                          backgroundColor: color + '10',
+                        },
+                      ]}
+                      onPress={() => updateFormData('providerType', type)}
+                      testID={`provider-type-${type}`}
+                    >
+                      <Icon
+                        color={formData.providerType === type ? color : '#6A2CB0'}
+                        size={24}
+                      />
+                      <Text
+                        style={[
+                          styles.providerTypeText,
+                          formData.providerType === type && {
+                            color: color,
+                            fontWeight: '700',
+                          },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.anonymousToggle}
@@ -451,5 +505,36 @@ const styles = StyleSheet.create({
     color: '#6A2CB0',
     fontSize: 16,
     fontWeight: '600',
+  },
+  providerTypeSelector: {
+    marginBottom: 24,
+  },
+  providerTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  providerTypeButton: {
+    width: '48%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: '#6A2CB0',
+    gap: 8,
+    minHeight: 80,
+  },
+  providerTypeButtonActive: {
+    borderWidth: 2,
+  },
+  providerTypeText: {
+    color: '#6A2CB0',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -27,6 +27,12 @@ import {
   MessageSquare,
   Star,
   TrendingUp,
+  Stethoscope,
+  Scale,
+  Calendar,
+  FileText,
+  UserCheck,
+  Activity,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -101,8 +107,90 @@ export default function HomeScreen() {
     },
   ];
 
+  // Get provider-specific content
+  const getProviderContent = () => {
+    const providerType = user?.providerType;
+    
+    const getProviderTitle = () => {
+      switch (providerType) {
+        case 'healthcare': return 'Dr.';
+        case 'legal': return 'Atty.';
+        case 'police': return 'Officer';
+        case 'counseling': return 'Counselor';
+        case 'social': return 'Social Worker';
+        default: return 'Provider';
+      }
+    };
+
+    const getProviderSubtitle = () => {
+      switch (providerType) {
+        case 'healthcare': return 'Healthcare Dashboard';
+        case 'legal': return 'Legal Services Dashboard';
+        case 'police': return 'Law Enforcement Dashboard';
+        case 'counseling': return 'Counseling Dashboard';
+        case 'social': return 'Social Services Dashboard';
+        default: return 'Provider Dashboard';
+      }
+    };
+
+    const getProviderQuickActions = () => {
+      switch (providerType) {
+        case 'healthcare':
+          return [
+            { id: 'new-patient', title: 'New Patient', icon: UserCheck, color: '#10B981' },
+            { id: 'appointments', title: 'Appointments', icon: Calendar, color: '#3B82F6' },
+            { id: 'records', title: 'Medical Records', icon: FileText, color: '#8B5CF6' },
+            { id: 'emergency', title: 'Emergency', icon: Phone, color: '#E53935' },
+          ];
+        case 'legal':
+          return [
+            { id: 'new-case', title: 'New Case', icon: Scale, color: '#3B82F6' },
+            { id: 'documents', title: 'Documents', icon: FileText, color: '#8B5CF6' },
+            { id: 'court', title: 'Court Schedule', icon: Calendar, color: '#F59E0B' },
+            { id: 'consultation', title: 'Consultation', icon: MessageSquare, color: '#10B981' },
+          ];
+        case 'police':
+          return [
+            { id: 'new-report', title: 'New Report', icon: Shield, color: '#EF4444' },
+            { id: 'evidence', title: 'Evidence', icon: FileText, color: '#8B5CF6' },
+            { id: 'patrol', title: 'Patrol Log', icon: MapPin, color: '#10B981' },
+            { id: 'emergency', title: 'Emergency', icon: Phone, color: '#E53935' },
+          ];
+        case 'counseling':
+          return [
+            { id: 'new-session', title: 'New Session', icon: Heart, color: '#F59E0B' },
+            { id: 'clients', title: 'Client Notes', icon: FileText, color: '#8B5CF6' },
+            { id: 'resources', title: 'Resources', icon: Users, color: '#10B981' },
+            { id: 'crisis', title: 'Crisis Support', icon: Phone, color: '#E53935' },
+          ];
+        case 'social':
+          return [
+            { id: 'new-case', title: 'New Case', icon: Users, color: '#8B5CF6' },
+            { id: 'services', title: 'Services', icon: Heart, color: '#F59E0B' },
+            { id: 'resources', title: 'Resources', icon: FileText, color: '#10B981' },
+            { id: 'home-visit', title: 'Home Visit', icon: MapPin, color: '#3B82F6' },
+          ];
+        default:
+          return [
+            { id: 'cases', title: 'Cases', icon: Briefcase, color: '#6A2CB0' },
+            { id: 'messages', title: 'Messages', icon: MessageSquare, color: '#E24B95' },
+            { id: 'calendar', title: 'Calendar', icon: Calendar, color: '#26A69A' },
+            { id: 'reports', title: 'Reports', icon: FileText, color: '#F3B52F' },
+          ];
+      }
+    };
+
+    return {
+      title: getProviderTitle(),
+      subtitle: getProviderSubtitle(),
+      quickActions: getProviderQuickActions(),
+    };
+  };
+
   // Render provider dashboard if user is a provider
   if (user?.role === 'provider') {
+    const providerContent = getProviderContent();
+    
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -110,9 +198,9 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View>
               <Text style={styles.greeting}>
-                {getGreeting()}, Dr. {user?.firstName}
+                {getGreeting()}, {providerContent.title} {user?.firstName}
               </Text>
-              <Text style={styles.subtitle}>Provider Dashboard</Text>
+              <Text style={styles.subtitle}>{providerContent.subtitle}</Text>
             </View>
             {unreadCount > 0 && (
               <View style={styles.notificationBadge}>
@@ -120,6 +208,30 @@ export default function HomeScreen() {
                 <Text style={styles.notificationText}>{unreadCount}</Text>
               </View>
             )}
+          </View>
+
+          {/* Provider Quick Actions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActions}>
+              {providerContent.quickActions.map((action) => (
+                <TouchableOpacity
+                  key={action.id}
+                  style={styles.quickAction}
+                  testID={`provider-action-${action.id}`}
+                >
+                  <LinearGradient
+                    colors={[action.color, `${action.color}CC`]}
+                    style={styles.quickActionGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <action.icon color="#FFFFFF" size={24} />
+                    <Text style={styles.quickActionText}>{action.title}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* Provider Stats */}
