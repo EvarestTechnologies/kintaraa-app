@@ -6,14 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { useIncidents, Incident } from '@/providers/IncidentProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProvider } from '@/providers/ProviderContext';
 
-const incidentTypeLabels = {
+const incidentTypeLabels: Record<string, string> = {
   physical: 'Physical Violence',
   sexual: 'Sexual Violence',
   emotional: 'Emotional/Psychological Abuse',
@@ -79,24 +81,63 @@ export default function ReportsScreen() {
   const { assignedCases, updateCaseStatus } = useProvider();
   const [currentFilter, setCurrentFilter] = useState<CaseFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
 
   // Always calculate these values at the top level
   const allCases = assignedCases.length > 0 ? assignedCases : incidents;
   
-  // Filter cases based on current filter
+  // Filter and search cases
   const filteredCases = useMemo(() => {
     if (user?.role !== 'provider') return [];
+    
+    let filtered = allCases;
+    
+    // Apply status filter
     switch (currentFilter) {
       case 'assigned':
-        return allCases.filter(c => c.status === 'assigned');
+        filtered = filtered.filter(c => c.status === 'assigned');
+        break;
       case 'in_progress':
-        return allCases.filter(c => c.status === 'in_progress');
+        filtered = filtered.filter(c => c.status === 'in_progress');
+        break;
       case 'completed':
-        return allCases.filter(c => c.status === 'completed');
+        filtered = filtered.filter(c => c.status === 'completed');
+        break;
       default:
-        return allCases;
+        // Show all cases
+        break;
     }
-  }, [allCases, currentFilter, user?.role]);
+    
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.caseNumber.toLowerCase().includes(query) ||
+        c.description?.toLowerCase().includes(query) ||
+        (incidentTypeLabels[c.type as keyof typeof incidentTypeLabels] || c.type).toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply additional filters
+    if (selectedPriority !== 'all') {
+      filtered = filtered.filter(c => c.priority === selectedPriority);
+    }
+    
+    if (selectedSeverity !== 'all') {
+      filtered = filtered.filter(c => c.severity === selectedSeverity);
+    }
+    
+    if (selectedType !== 'all') {
+      filtered = filtered.filter(c => c.type === selectedType);
+    }
+    
+    return filtered;
+  }, [allCases, currentFilter, user?.role, searchQuery, selectedPriority, selectedSeverity, selectedType]);
   
   // Calculate stats
   const stats = useMemo(() => ({
@@ -150,7 +191,7 @@ export default function ReportsScreen() {
           <View style={styles.reportInfo}>
             <Text style={styles.reportId}>{incident.caseNumber}</Text>
             <Text style={styles.reportType}>
-              {incidentTypeLabels[incident.type] || incident.type}
+              {incidentTypeLabels[incident.type as keyof typeof incidentTypeLabels] || incident.type}
             </Text>
           </View>
           <View
@@ -227,10 +268,19 @@ export default function ReportsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Case Management</Text>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity 
+              style={styles.filterButton}
+              onPress={() => setShowFilterModal(true)}
+            >
               <Filter color="#6A2CB0" size={20} />
+              {(selectedPriority !== 'all' || selectedSeverity !== 'all' || selectedType !== 'all') && (
+                <View style={styles.filterIndicatorDot} />
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.searchButton}>
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={() => setShowSearchModal(true)}
+            >
               <Search color="#6A2CB0" size={20} />
             </TouchableOpacity>
           </View>
@@ -366,6 +416,160 @@ export default function ReportsScreen() {
             </>
           )}
         </ScrollView>
+        
+        {/* Search Modal */}
+        <Modal
+          visible={showSearchModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Search Cases</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSearchModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <X color="#49455A" size={24} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by case number, description, or type..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              <TouchableOpacity 
+                style={styles.searchClearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={styles.searchClearText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.modalApplyButton}
+              onPress={() => setShowSearchModal(false)}
+            >
+              <Text style={styles.modalApplyText}>Apply Search</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+        
+        {/* Filter Modal */}
+        <Modal
+          visible={showFilterModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter Cases</Text>
+              <TouchableOpacity 
+                onPress={() => setShowFilterModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <X color="#49455A" size={24} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.filterContent}>
+              {/* Priority Filter */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Priority</Text>
+                <View style={styles.filterOptions}>
+                  {['all', 'low', 'medium', 'high', 'critical'].map((priority) => (
+                    <TouchableOpacity
+                      key={priority}
+                      style={[
+                        styles.filterOption,
+                        selectedPriority === priority && styles.filterOptionSelected
+                      ]}
+                      onPress={() => setSelectedPriority(priority)}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        selectedPriority === priority && styles.filterOptionTextSelected
+                      ]}>
+                        {priority === 'all' ? 'All Priorities' : priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              {/* Severity Filter */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Severity</Text>
+                <View style={styles.filterOptions}>
+                  {['all', 'low', 'medium', 'high'].map((severity) => (
+                    <TouchableOpacity
+                      key={severity}
+                      style={[
+                        styles.filterOption,
+                        selectedSeverity === severity && styles.filterOptionSelected
+                      ]}
+                      onPress={() => setSelectedSeverity(severity)}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        selectedSeverity === severity && styles.filterOptionTextSelected
+                      ]}>
+                        {severity === 'all' ? 'All Severities' : severity.charAt(0).toUpperCase() + severity.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              {/* Type Filter */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Incident Type</Text>
+                <View style={styles.filterOptions}>
+                  {['all', 'physical', 'sexual', 'emotional', 'economic', 'online', 'femicide'].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.filterOption,
+                        selectedType === type && styles.filterOptionSelected
+                      ]}
+                      onPress={() => setSelectedType(type)}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        selectedType === type && styles.filterOptionTextSelected
+                      ]}>
+                        {type === 'all' ? 'All Types' : incidentTypeLabels[type as keyof typeof incidentTypeLabels] || type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.modalClearButton}
+                onPress={() => {
+                  setSelectedPriority('all');
+                  setSelectedSeverity('all');
+                  setSelectedType('all');
+                }}
+              >
+                <Text style={styles.modalClearText}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalApplyButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.modalApplyText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -412,7 +616,7 @@ export default function ReportsScreen() {
                   <View style={styles.reportInfo}>
                     <Text style={styles.reportId}>{incident.caseNumber}</Text>
                     <Text style={styles.reportType}>
-                      {incidentTypeLabels[incident.type] || incident.type}
+                      {incidentTypeLabels[incident.type as keyof typeof incidentTypeLabels] || incident.type}
                     </Text>
                   </View>
                   <View
@@ -858,5 +1062,136 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#49455A',
     marginTop: 2,
+  },
+  // Search and Filter Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D8CEE8',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  searchContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+    marginBottom: 12,
+  },
+  searchClearButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F5F0FF',
+    borderRadius: 8,
+  },
+  searchClearText: {
+    color: '#6A2CB0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#341A52',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+  },
+  filterOptionSelected: {
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#49455A',
+    fontWeight: '500',
+  },
+  filterOptionTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#D8CEE8',
+  },
+  modalClearButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#F5F0FF',
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#6A2CB0',
+  },
+  modalClearText: {
+    color: '#6A2CB0',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalApplyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#6A2CB0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalApplyText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  filterIndicatorDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    backgroundColor: '#E24B95',
+    borderRadius: 4,
   },
 });
