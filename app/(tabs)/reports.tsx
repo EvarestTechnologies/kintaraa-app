@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react-native';
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase } from 'lucide-react-native';
 import { useIncidents } from '@/providers/IncidentProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { useProvider } from '@/providers/ProviderContext';
 
 const incidentTypeLabels = {
   physical: 'Physical Violence',
@@ -68,21 +70,159 @@ const getSeverityColor = (severity: string) => {
 };
 
 export default function ReportsScreen() {
+  const { user } = useAuth();
   const { incidents, isLoading } = useIncidents();
+  const { assignedCases, updateCaseStatus } = useProvider();
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>My Reports</Text>
+          <Text style={styles.title}>{user?.role === 'provider' ? 'Case Management' : 'My Reports'}</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading reports...</Text>
+          <Text style={styles.loadingText}>Loading {user?.role === 'provider' ? 'cases' : 'reports'}...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Provider case management view
+  if (user?.role === 'provider') {
+    const casesToShow = assignedCases.length > 0 ? assignedCases : incidents.slice(0, 5);
+    
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Case Management</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.filterButton}>
+              <Filter color="#6A2CB0" size={20} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.searchButton}>
+              <Search color="#6A2CB0" size={20} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Case Statistics */}
+          <View style={styles.statsSection}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{assignedCases.length}</Text>
+              <Text style={styles.statLabel}>Assigned Cases</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {assignedCases.filter(c => c.status === 'in_progress').length}
+              </Text>
+              <Text style={styles.statLabel}>In Progress</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {assignedCases.filter(c => c.status === 'completed').length}
+              </Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+          </View>
+
+          {casesToShow.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Briefcase color="#D8CEE8" size={64} />
+              <Text style={styles.emptyTitle}>No Cases Assigned</Text>
+              <Text style={styles.emptyDescription}>
+                You don&apos;t have any cases assigned yet. New cases will appear here when assigned to you.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.reportsList}>
+              {casesToShow.map((incident) => (
+                <TouchableOpacity
+                  key={incident.id}
+                  style={styles.providerCaseCard}
+                  testID={`case-${incident.id}`}
+                >
+                  <View style={styles.reportHeader}>
+                    <View style={styles.reportInfo}>
+                      <Text style={styles.reportId}>{incident.caseNumber}</Text>
+                      <Text style={styles.reportType}>
+                        {incidentTypeLabels[incident.type] || incident.type}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.severityBadge,
+                        { backgroundColor: getSeverityColor(incident.severity || 'medium') },
+                      ]}
+                    >
+                      <Text style={styles.severityText}>
+                        {(incident.severity || 'medium').toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.reportDetails}>
+                    <View style={styles.reportStatus}>
+                      {getStatusIcon(incident.status)}
+                      <Text style={styles.statusText}>
+                        {getStatusText(incident.status)}
+                      </Text>
+                    </View>
+                    <Text style={styles.reportDate}>
+                      {new Date(incident.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+
+                  {/* Provider Actions */}
+                  <View style={styles.providerActions}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => {
+                        // Navigate to case details
+                      }}
+                    >
+                      <Text style={styles.actionButtonText}>View Case</Text>
+                    </TouchableOpacity>
+                    
+                    {incident.status !== 'completed' && (
+                      <TouchableOpacity 
+                        style={styles.updateButton}
+                        onPress={() => {
+                          updateCaseStatus({
+                            incidentId: incident.id,
+                            status: incident.status === 'assigned' ? 'in_progress' : 'completed'
+                          });
+                        }}
+                      >
+                        <Text style={styles.updateButtonText}>
+                          {incident.status === 'assigned' ? 'Start Case' : 'Complete'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {incident.messages.length > 0 && (
+                    <View style={styles.messageInfo}>
+                      <MessageCircle color="#6A2CB0" size={16} />
+                      <Text style={styles.messageInfoText}>
+                        {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Default survivor reports view
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -411,6 +551,93 @@ const styles = StyleSheet.create({
   helpButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  // Provider-specific styles
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  filterButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F5F0FF',
+  },
+  searchButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F5F0FF',
+  },
+  statsSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    gap: 16,
+  },
+  statItem: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+  },
+  providerCaseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#6A2CB0',
+  },
+  providerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  updateButton: {
+    flex: 1,
+    backgroundColor: '#43A047',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  messageInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F0FF',
+    gap: 6,
+  },
+  messageInfoText: {
+    fontSize: 12,
+    color: '#6A2CB0',
     fontWeight: '600',
   },
 });

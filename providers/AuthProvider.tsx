@@ -103,13 +103,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         }
       }
       
-      // Mock user data
+      // Mock user data - check if provider login
+      const isProvider = email.includes('provider') || email.includes('doctor') || email.includes('dr.');
       const user: User = {
-        id: '1',
+        id: isProvider ? 'provider-1' : '1',
         email,
-        role: 'survivor',
-        firstName: 'Safe',
-        lastName: 'User',
+        role: isProvider ? 'provider' : 'survivor',
+        firstName: isProvider ? 'Sarah' : 'Safe',
+        lastName: isProvider ? 'Johnson' : 'User',
         isAnonymous: false,
         biometricEnabled: useBiometric,
         emergencyContacts: [],

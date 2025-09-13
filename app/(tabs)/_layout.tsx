@@ -7,11 +7,15 @@ import {
   FileText, 
   Heart, 
   Shield, 
-  User 
+  User,
+  Users,
+  Briefcase,
+  MessageSquare,
+  BarChart3
 } from 'lucide-react-native';
 
 export default function TabLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return null; // Show loading screen
@@ -21,6 +25,69 @@ export default function TabLayout() {
     return <Redirect href="/(auth)/welcome" />;
   }
 
+  // Render different tabs based on user role
+  if (user?.role === 'provider') {
+    return (
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: '#6A2CB0',
+          tabBarInactiveTintColor: '#D8CEE8',
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#F5F0FF',
+            borderTopWidth: 1,
+            paddingTop: 8,
+            paddingBottom: 8,
+            height: 88,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            marginTop: 4,
+          },
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Dashboard',
+            tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="reports"
+          options={{
+            title: 'Cases',
+            tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="wellbeing"
+          options={{
+            title: 'Messages',
+            tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="safety"
+          options={{
+            title: 'Analytics',
+            tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          }}
+        />
+      </Tabs>
+    );
+  }
+
+  // Default survivor tabs
   return (
     <Tabs
       screenOptions={{

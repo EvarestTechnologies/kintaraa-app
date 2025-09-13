@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSafety } from '@/providers/SafetyProvider';
+import { useProvider } from '@/providers/ProviderContext';
 import {
   Plus,
   Shield,
@@ -20,6 +21,12 @@ import {
   Heart,
   Users,
   AlertTriangle,
+  Briefcase,
+  Clock,
+  CheckCircle,
+  MessageSquare,
+  Star,
+  TrendingUp,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -27,6 +34,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const { user } = useAuth();
   const { isEmergencyMode, triggerEmergency } = useSafety();
+  const { stats, pendingAssignments, assignedCases, unreadCount } = useProvider();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -93,6 +101,131 @@ export default function HomeScreen() {
     },
   ];
 
+  // Render provider dashboard if user is a provider
+  if (user?.role === 'provider') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Provider Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>
+                {getGreeting()}, Dr. {user?.firstName}
+              </Text>
+              <Text style={styles.subtitle}>Provider Dashboard</Text>
+            </View>
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <MessageSquare color="#FFFFFF" size={16} />
+                <Text style={styles.notificationText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Provider Stats */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Briefcase color="#6A2CB0" size={24} />
+                <Text style={styles.statNumber}>{stats.totalCases}</Text>
+                <Text style={styles.statLabel}>Total Cases</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Clock color="#FF9800" size={24} />
+                <Text style={styles.statNumber}>{stats.activeCases}</Text>
+                <Text style={styles.statLabel}>Active</Text>
+              </View>
+              <View style={styles.statCard}>
+                <CheckCircle color="#43A047" size={24} />
+                <Text style={styles.statNumber}>{stats.completedCases}</Text>
+                <Text style={styles.statLabel}>Completed</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Star color="#F3B52F" size={24} />
+                <Text style={styles.statNumber}>{stats.rating.toFixed(1)}</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Pending Assignments */}
+          {pendingAssignments.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Pending Assignments ({pendingAssignments.length})</Text>
+              <View style={styles.assignmentsList}>
+                {pendingAssignments.slice(0, 3).map((assignment) => (
+                  <View key={assignment.id} style={styles.assignmentCard}>
+                    <View style={styles.assignmentHeader}>
+                      <Text style={styles.assignmentType}>{assignment.serviceType}</Text>
+                      <View style={[
+                        styles.priorityBadge,
+                        { backgroundColor: assignment.priority === 'high' ? '#E53935' : '#FF9800' }
+                      ]}>
+                        <Text style={styles.priorityText}>{assignment.priority.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.assignmentTime}>
+                      Assigned {new Date(assignment.assignedAt).toLocaleTimeString()}
+                    </Text>
+                    <View style={styles.assignmentActions}>
+                      <TouchableOpacity style={styles.acceptButton}>
+                        <Text style={styles.acceptButtonText}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.declineButton}>
+                        <Text style={styles.declineButtonText}>Decline</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Recent Cases */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Cases</Text>
+            <View style={styles.casesList}>
+              {assignedCases.slice(0, 3).map((incident) => (
+                <TouchableOpacity key={incident.id} style={styles.caseCard}>
+                  <View style={styles.caseHeader}>
+                    <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
+                    <Text style={styles.caseStatus}>{incident.status}</Text>
+                  </View>
+                  <Text style={styles.caseType}>{incident.type}</Text>
+                  <Text style={styles.caseDate}>
+                    {new Date(incident.createdAt).toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Performance Metrics */}
+          <View style={styles.section}>
+            <View style={styles.performanceCard}>
+              <View style={styles.performanceHeader}>
+                <TrendingUp color="#43A047" size={24} />
+                <Text style={styles.performanceTitle}>Performance</Text>
+              </View>
+              <View style={styles.performanceMetrics}>
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>{stats.averageResponseTime}min</Text>
+                  <Text style={styles.metricLabel}>Avg Response</Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>{stats.totalMessages}</Text>
+                  <Text style={styles.metricLabel}>Messages</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Default survivor dashboard
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -394,5 +527,201 @@ const styles = StyleSheet.create({
     color: '#E24B95',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Provider-specific styles
+  notificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E24B95',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  notificationText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  statCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    width: (width - 80) / 2,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#341A52',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+  },
+  assignmentsList: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  assignmentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  assignmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  assignmentType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    textTransform: 'capitalize',
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  priorityText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  assignmentTime: {
+    fontSize: 12,
+    color: '#49455A',
+    marginBottom: 12,
+  },
+  assignmentActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#43A047',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  declineButton: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+  },
+  declineButtonText: {
+    color: '#6A2CB0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  casesList: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  caseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  caseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  caseNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6A2CB0',
+  },
+  caseStatus: {
+    fontSize: 12,
+    color: '#49455A',
+    textTransform: 'capitalize',
+  },
+  caseType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 4,
+    textTransform: 'capitalize',
+  },
+  caseDate: {
+    fontSize: 12,
+    color: '#49455A',
+  },
+  performanceCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  performanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  performanceTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  performanceMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  metric: {
+    alignItems: 'center',
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#49455A',
   },
 });

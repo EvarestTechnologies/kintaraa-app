@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
+import { ProviderContext } from "@/providers/ProviderContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,8 +58,10 @@ export default function RootLayout() {
         <AuthProvider>
           <SafetyProvider>
             <IncidentProvider>
-              <RootLayoutNav />
-              <StatusBar style="auto" />
+              <ProviderContext>
+                <RootLayoutNav />
+                <StatusBar style="auto" />
+              </ProviderContext>
             </IncidentProvider>
           </SafetyProvider>
         </AuthProvider>
