@@ -285,23 +285,29 @@ export default function WellbeingScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How are you feeling today?</Text>
           {!isMoodLoggedToday ? (
-            <View style={styles.moodSelector}>
-              {moodEmojis.map((mood) => (
-                <TouchableOpacity
-                  key={mood.id}
-                  style={[
-                    styles.moodOption,
-                    selectedMood === mood.id && styles.moodOptionSelected,
-                  ]}
-                  onPress={() => handleMoodSelect(mood.id)}
-                  testID={`mood-${mood.id}`}
-                  disabled={isAddingMood}
-                >
-                  <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                  <Text style={styles.moodLabel}>{mood.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <>
+              <Text style={styles.moodPrompt}>Tap on how you're feeling:</Text>
+              <View style={styles.moodSelector}>
+                {moodEmojis.map((mood) => (
+                  <TouchableOpacity
+                    key={mood.id}
+                    style={[
+                      styles.moodOption,
+                      selectedMood === mood.id && styles.moodOptionSelected,
+                    ]}
+                    onPress={() => handleMoodSelect(mood.id)}
+                    testID={`mood-${mood.id}`}
+                    disabled={isAddingMood}
+                  >
+                    <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                    <Text style={styles.moodLabel}>{mood.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {isAddingMood && (
+                <Text style={styles.savingText}>Saving your mood...</Text>
+              )}
+            </>
           ) : (
             <View style={styles.moodLogged}>
               <View style={styles.moodLoggedContent}>
@@ -335,8 +341,14 @@ export default function WellbeingScreen() {
                   if (activity.id === 'recommendations') {
                     router.push('/recommendations');
                   } else if (activity.id === 'mood') {
-                    // Scroll to mood section or show mood history
-                    Alert.alert('Mood Tracker', 'Scroll up to log your mood for today!');
+                    if (isMoodLoggedToday) {
+                      Alert.alert('Mood Logged', `You've already logged your mood today as ${todaysMoodEntry && moodEmojis.find(m => {
+                        const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+                        return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
+                      })?.label}. Come back tomorrow to log again!`);
+                    } else {
+                      Alert.alert('Mood Tracker', 'Scroll up to log your mood for today!');
+                    }
                   } else if (activity.id === 'sleep') {
                     router.push('/sleep-tracker');
                   } else if (activity.id === 'journal') {
@@ -467,10 +479,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 24,
   },
+  moodPrompt: {
+    fontSize: 16,
+    color: '#49455A',
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 24,
+  },
   moodSelector: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 8,
+    marginBottom: 16,
+  },
+  savingText: {
+    fontSize: 14,
+    color: '#6A2CB0',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: 24,
   },
   moodOption: {
     flex: 1,
