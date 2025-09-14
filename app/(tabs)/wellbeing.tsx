@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,14 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
   TextInput,
   Alert,
-  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProvider } from '@/providers/ProviderContext';
-import { useIncidents } from '@/providers/IncidentProvider';
 import { useWellbeing, useMoodTracking } from '@/providers/WellbeingProvider';
 import {
   Heart,
@@ -29,14 +27,9 @@ import {
   MessageSquare,
   Send,
   User,
-  Clock,
-  Search,
-  Filter,
   Brain,
   Zap,
 } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
 
 const moodEmojis = [
   { id: 1, emoji: '😢', label: 'Very Sad', icon: Frown, color: '#E53935' },
@@ -89,16 +82,173 @@ const wellbeingActivities = [
   },
 ];
 
-export default function WellbeingScreen() {
-  const { user } = useAuth();
+// Provider messaging component
+function ProviderMessagingScreen() {
   const { assignedCases } = useProvider();
-  const { stats, isLoading } = useWellbeing();
-  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
-  const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [messageText, setMessageText] = useState('');
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
 
-  const handleMoodSelect = (moodId: number) => {
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.subtitle}>Communicate with survivors</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Active Conversations */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Active Conversations</Text>
+          
+          {/* AI Recommendations Button */}
+          <TouchableOpacity 
+            style={styles.aiRecommendationsButton}
+            onPress={() => router.push('/recommendations')}
+          >
+            <LinearGradient
+              colors={['#9C27B0', '#E1BEE7']}
+              style={styles.aiButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Brain color="#FFFFFF" size={24} />
+              <Text style={styles.aiButtonText}>AI Recommendations</Text>
+              <Zap color="#FFFFFF" size={16} />
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <View style={styles.conversationsList}>
+            {assignedCases.filter(c => c.messages.length > 0).map((incident) => (
+              <TouchableOpacity
+                key={incident.id}
+                style={[
+                  styles.conversationCard,
+                  selectedCase === incident.id && styles.selectedConversation
+                ]}
+                onPress={() => setSelectedCase(incident.id)}
+              >
+                <View style={styles.conversationHeader}>
+                  <View style={styles.avatarContainer}>
+                    <User color="#FFFFFF" size={20} />
+                  </View>
+                  <View style={styles.conversationInfo}>
+                    <Text style={styles.conversationTitle}>
+                      Case {incident.caseNumber}
+                    </Text>
+                    <Text style={styles.conversationType}>
+                      {incident.type} - {incident.status}
+                    </Text>
+                  </View>
+                  <View style={styles.conversationMeta}>
+                    <Text style={styles.messageCount}>
+                      {incident.messages.length}
+                    </Text>
+                    <Text style={styles.lastMessageTime}>
+                      {new Date(incident.messages[incident.messages.length - 1]?.createdAt || incident.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                </View>
+                
+                {incident.messages.length > 0 && (
+                  <Text style={styles.lastMessage} numberOfLines={1}>
+                    {incident.messages[incident.messages.length - 1].content}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            
+            {assignedCases.filter(c => c.messages.length > 0).length === 0 && (
+              <View style={styles.emptyMessages}>
+                <MessageSquare color="#D8CEE8" size={48} />
+                <Text style={styles.emptyTitle}>No Active Conversations</Text>
+                <Text style={styles.emptyDescription}>
+                  Messages with survivors will appear here
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Message Composer */}
+        {selectedCase && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Send Message</Text>
+            <View style={styles.messageComposer}>
+              <TextInput
+                style={styles.messageInput}
+                value={messageText}
+                onChangeText={setMessageText}
+                placeholder="Type your message..."
+                placeholderTextColor="#D8CEE8"
+                multiline
+                numberOfLines={3}
+              />
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={() => {
+                  if (messageText.trim()) {
+                    console.log('Message sent:', messageText);
+                    setMessageText('');
+                  }
+                }}
+              >
+                <Send color="#FFFFFF" size={20} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Quick Responses */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Responses</Text>
+          <View style={styles.quickResponses}>
+            {[
+              'Thank you for reaching out. I am here to help.',
+              'Your safety is our priority. Let us discuss next steps.',
+              'I have reviewed your case and will follow up shortly.',
+              'Please let me know if you need immediate assistance.'
+            ].map((response, index) => (
+              <TouchableOpacity
+                key={`response-${index}`}
+                style={styles.quickResponseButton}
+                onPress={() => {
+                  if (response.trim()) {
+                    setMessageText(response);
+                  }
+                }}
+              >
+                <Text style={styles.quickResponseText}>{response}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Communication Guidelines */}
+        <View style={styles.section}>
+          <View style={styles.guidelinesCard}>
+            <Text style={styles.guidelinesTitle}>Communication Guidelines</Text>
+            <Text style={styles.guidelinesText}>
+              • Always maintain professional boundaries{"\n"}
+              • Respond within 24 hours during business hours{"\n"}
+              • Use trauma-informed language{"\n"}
+              • Respect survivor autonomy and choices{"\n"}
+              • Document all interactions appropriately
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+// Survivor wellbeing component
+function SurvivorWellbeingScreen() {
+  const { width } = useWindowDimensions();
+  const { stats, isLoading } = useWellbeing();
+  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
+  const [selectedMood, setSelectedMood] = useState<number | null>(null);
+
+  const handleMoodSelect = React.useCallback((moodId: number) => {
     setSelectedMood(moodId);
     const selectedMoodData = moodEmojis.find(m => m.id === moodId);
     if (selectedMoodData) {
@@ -119,162 +269,10 @@ export default function WellbeingScreen() {
         notes: `Mood ${actionText}: ${selectedMoodData.label}`
       });
     }
-  };
+  }, [addMoodEntry, isMoodLoggedToday]);
 
-  // Provider messaging interface
-  if (user?.role === 'provider') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Messages</Text>
-          <Text style={styles.subtitle}>Communicate with survivors</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Active Conversations */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Conversations</Text>
-            
-            {/* AI Recommendations Button */}
-            <TouchableOpacity 
-              style={styles.aiRecommendationsButton}
-              onPress={() => router.push('/recommendations')}
-            >
-              <LinearGradient
-                colors={['#9C27B0', '#E1BEE7']}
-                style={styles.aiButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Brain color="#FFFFFF" size={24} />
-                <Text style={styles.aiButtonText}>AI Recommendations</Text>
-                <Zap color="#FFFFFF" size={16} />
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <View style={styles.conversationsList}>
-              {assignedCases.filter(c => c.messages.length > 0).map((incident) => (
-                <TouchableOpacity
-                  key={incident.id}
-                  style={[
-                    styles.conversationCard,
-                    selectedCase === incident.id && styles.selectedConversation
-                  ]}
-                  onPress={() => setSelectedCase(incident.id)}
-                >
-                  <View style={styles.conversationHeader}>
-                    <View style={styles.avatarContainer}>
-                      <User color="#FFFFFF" size={20} />
-                    </View>
-                    <View style={styles.conversationInfo}>
-                      <Text style={styles.conversationTitle}>
-                        Case {incident.caseNumber}
-                      </Text>
-                      <Text style={styles.conversationType}>
-                        {incident.type} - {incident.status}
-                      </Text>
-                    </View>
-                    <View style={styles.conversationMeta}>
-                      <Text style={styles.messageCount}>
-                        {incident.messages.length}
-                      </Text>
-                      <Text style={styles.lastMessageTime}>
-                        {new Date(incident.messages[incident.messages.length - 1]?.createdAt || incident.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {incident.messages.length > 0 && (
-                    <Text style={styles.lastMessage} numberOfLines={1}>
-                      {incident.messages[incident.messages.length - 1].content}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-              
-              {assignedCases.filter(c => c.messages.length > 0).length === 0 && (
-                <View style={styles.emptyMessages}>
-                  <MessageSquare color="#D8CEE8" size={48} />
-                  <Text style={styles.emptyTitle}>No Active Conversations</Text>
-                  <Text style={styles.emptyDescription}>
-                    Messages with survivors will appear here
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Message Composer */}
-          {selectedCase && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Send Message</Text>
-              <View style={styles.messageComposer}>
-                <TextInput
-                  style={styles.messageInput}
-                  value={messageText}
-                  onChangeText={setMessageText}
-                  placeholder="Type your message..."
-                  placeholderTextColor="#D8CEE8"
-                  multiline
-                  numberOfLines={3}
-                />
-                <TouchableOpacity
-                  style={styles.sendButton}
-                  onPress={() => {
-                    if (messageText.trim()) {
-                      Alert.alert('Message Sent', 'Your message has been sent to the survivor.');
-                      setMessageText('');
-                    }
-                  }}
-                >
-                  <Send color="#FFFFFF" size={20} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Quick Responses */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Responses</Text>
-            <View style={styles.quickResponses}>
-              {[
-                'Thank you for reaching out. I&apos;m here to help.',
-                'Your safety is our priority. Let&apos;s discuss next steps.',
-                'I&apos;ve reviewed your case and will follow up shortly.',
-                'Please let me know if you need immediate assistance.'
-              ].map((response, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.quickResponseButton}
-                  onPress={() => setMessageText(response)}
-                >
-                  <Text style={styles.quickResponseText}>{response}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Communication Guidelines */}
-          <View style={styles.section}>
-            <View style={styles.guidelinesCard}>
-              <Text style={styles.guidelinesTitle}>Communication Guidelines</Text>
-              <Text style={styles.guidelinesText}>
-                • Always maintain professional boundaries{"\n"}
-                • Respond within 24 hours during business hours{"\n"}
-                • Use trauma-informed language{"\n"}
-                • Respect survivor autonomy and choices{"\n"}
-                • Document all interactions appropriately
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // Default survivor wellbeing screen
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Wellbeing</Text>
         <TouchableOpacity style={styles.calendarButton}>
@@ -289,7 +287,7 @@ export default function WellbeingScreen() {
           
           {/* Always show mood selector */}
           <Text style={styles.moodPrompt}>
-            {isMoodLoggedToday ? 'Update your mood:' : 'Tap on how you\'re feeling:'}
+            {isMoodLoggedToday ? 'Update your mood:' : 'Tap on how you are feeling:'}
           </Text>
           
           <View style={styles.moodSelector}>
@@ -336,17 +334,17 @@ export default function WellbeingScreen() {
         {/* Wellbeing Activities */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Wellbeing Activities</Text>
-          <View style={styles.activitiesGrid}>
+          <View style={[styles.activitiesGrid, { width: width - 32 }]}>
             {wellbeingActivities.map((activity) => (
               <TouchableOpacity
                 key={activity.id}
-                style={styles.activityCard}
+                style={[styles.activityCard, { width: (width - 48) / 2 }]}
                 testID={`activity-${activity.id}`}
                 onPress={() => {
                   if (activity.id === 'recommendations') {
                     router.push('/recommendations');
                   } else if (activity.id === 'mood') {
-                    Alert.alert('Mood Tracker', 'Scroll up to log or update your mood for today!');
+                    console.log('Mood tracker - scroll up to log mood');
                   } else if (activity.id === 'sleep') {
                     router.push('/sleep-tracker');
                   } else if (activity.id === 'journal') {
@@ -376,7 +374,7 @@ export default function WellbeingScreen() {
         {/* Weekly Summary */}
         <View style={styles.section}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>This Week's Summary</Text>
+            <Text style={styles.summaryTitle}>This Week Summary</Text>
             {isLoading ? (
               <Text style={styles.loadingText}>Loading...</Text>
             ) : (
@@ -429,6 +427,30 @@ export default function WellbeingScreen() {
           </View>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+export default function WellbeingScreen() {
+  const { user } = useAuth();
+  
+  // Always call all hooks at the top level
+  const { assignedCases } = useProvider();
+  const { stats, isLoading } = useWellbeing();
+  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
+
+  // Render different components based on user role
+  if (user?.role === 'provider') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ProviderMessagingScreen />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <SurvivorWellbeingScreen />
     </SafeAreaView>
   );
 }
@@ -590,7 +612,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activityCard: {
-    width: (width - 48) / 2,
     height: 140,
     borderRadius: 16,
     overflow: 'hidden',
