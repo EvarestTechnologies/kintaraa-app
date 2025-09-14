@@ -110,11 +110,13 @@ export default function WellbeingScreen() {
         5: 'very_happy' as const
       };
       
+      const actionText = isMoodLoggedToday ? 'updated' : 'logged';
+      
       addMoodEntry({
         date: new Date().toISOString().split('T')[0],
         mood: moodMap[moodId as keyof typeof moodMap],
         intensity: moodId * 2, // Convert 1-5 to 2-10 scale
-        notes: `Mood logged: ${selectedMoodData.label}`
+        notes: `Mood ${actionText}: ${selectedMoodData.label}`
       });
     }
   };
@@ -284,47 +286,50 @@ export default function WellbeingScreen() {
         {/* Daily Mood Check-in */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-          {!isMoodLoggedToday ? (
-            <>
-              <Text style={styles.moodPrompt}>Tap on how you're feeling:</Text>
-              <View style={styles.moodSelector}>
-                {moodEmojis.map((mood) => (
-                  <TouchableOpacity
-                    key={mood.id}
-                    style={[
-                      styles.moodOption,
-                      selectedMood === mood.id && styles.moodOptionSelected,
-                    ]}
-                    onPress={() => handleMoodSelect(mood.id)}
-                    testID={`mood-${mood.id}`}
-                    disabled={isAddingMood}
-                  >
-                    <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                    <Text style={styles.moodLabel}>{mood.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {isAddingMood && (
-                <Text style={styles.savingText}>Saving your mood...</Text>
-              )}
-            </>
-          ) : (
-            <View style={styles.moodLogged}>
-              <View style={styles.moodLoggedContent}>
-                <Text style={styles.moodLoggedEmoji}>
-                  {todaysMoodEntry && moodEmojis.find(m => {
-                    const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
-                    return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
-                  })?.emoji}
-                </Text>
-                <Text style={styles.moodLoggedText}>
-                  Mood logged for today: {todaysMoodEntry && moodEmojis.find(m => {
-                    const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
-                    return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
-                  })?.label}
-                </Text>
-              </View>
-            </View>
+          
+          {/* Always show mood selector */}
+          <Text style={styles.moodPrompt}>
+            {isMoodLoggedToday ? 'Update your mood:' : 'Tap on how you\'re feeling:'}
+          </Text>
+          
+          <View style={styles.moodSelector}>
+            {moodEmojis.map((mood) => {
+              const isCurrentMood = todaysMoodEntry && (() => {
+                const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+                return moodMap[todaysMoodEntry.mood as keyof typeof moodMap] === mood.id;
+              })();
+              
+              return (
+                <TouchableOpacity
+                  key={mood.id}
+                  style={[
+                    styles.moodOption,
+                    (selectedMood === mood.id || isCurrentMood) && styles.moodOptionSelected,
+                  ]}
+                  onPress={() => handleMoodSelect(mood.id)}
+                  testID={`mood-${mood.id}`}
+                  disabled={isAddingMood}
+                >
+                  <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                  <Text style={styles.moodLabel}>{mood.label}</Text>
+                  {isCurrentMood && (
+                    <View style={styles.currentMoodIndicator}>
+                      <Text style={styles.currentMoodText}>Current</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          
+          {isAddingMood && (
+            <Text style={styles.savingText}>Saving your mood...</Text>
+          )}
+          
+          {isMoodLoggedToday && (
+            <Text style={styles.moodUpdateHint}>
+              You can update your mood anytime during the day
+            </Text>
           )}
         </View>
 
@@ -341,14 +346,7 @@ export default function WellbeingScreen() {
                   if (activity.id === 'recommendations') {
                     router.push('/recommendations');
                   } else if (activity.id === 'mood') {
-                    if (isMoodLoggedToday) {
-                      Alert.alert('Mood Logged', `You've already logged your mood today as ${todaysMoodEntry && moodEmojis.find(m => {
-                        const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
-                        return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
-                      })?.label}. Come back tomorrow to log again!`);
-                    } else {
-                      Alert.alert('Mood Tracker', 'Scroll up to log your mood for today!');
-                    }
+                    Alert.alert('Mood Tracker', 'Scroll up to log or update your mood for today!');
                   } else if (activity.id === 'sleep') {
                     router.push('/sleep-tracker');
                   } else if (activity.id === 'journal') {
@@ -551,6 +549,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#341A52',
     flex: 1,
+  },
+  currentMoodIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#6A2CB0',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  currentMoodText: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  moodUpdateHint: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 24,
+    fontStyle: 'italic',
   },
   changeMoodButton: {
     backgroundColor: '#F5F0FF',
