@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -57,13 +57,13 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
+  React.useEffect(() => {
     SplashScreen.hideAsync();
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={styles.container}>
         <AuthProvider>
           <SafetyProvider>
             <IncidentProvider>
@@ -71,7 +71,7 @@ export default function RootLayout() {
                 <RecommendationProvider>
                   <WellbeingProvider>
                     <RootLayoutNav />
-                    <StatusBar style="auto" />
+                    <StatusBar style={styles.statusBar} />
                   </WellbeingProvider>
                 </RecommendationProvider>
               </ProviderContext>
@@ -82,3 +82,8 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = {
+  container: { flex: 1 },
+  statusBar: "auto" as const,
+};

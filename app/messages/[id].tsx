@@ -45,7 +45,9 @@ export default function MessagesScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Find the incident
-  const incident = incidents.find(inc => inc.id === id) || assignedCases.find(inc => inc.id === id);
+  const incident = React.useMemo(() => {
+    return incidents.find(inc => inc.id === id) || assignedCases.find(inc => inc.id === id);
+  }, [incidents, assignedCases, id]);
 
   useEffect(() => {
     if (incident?.messages) {

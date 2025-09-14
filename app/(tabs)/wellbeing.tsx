@@ -83,8 +83,7 @@ const wellbeingActivities = [
 ];
 
 // Provider messaging component
-function ProviderMessagingScreen() {
-  const { assignedCases } = useProvider();
+function ProviderMessagingScreen({ assignedCases }: { assignedCases: any[] }) {
   const [messageText, setMessageText] = useState('');
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
 
@@ -242,10 +241,22 @@ function ProviderMessagingScreen() {
 }
 
 // Survivor wellbeing component
-function SurvivorWellbeingScreen() {
+function SurvivorWellbeingScreen({ 
+  stats, 
+  isLoading, 
+  addMoodEntry, 
+  isAddingMood, 
+  isMoodLoggedToday, 
+  todaysMoodEntry 
+}: {
+  stats: any;
+  isLoading: boolean;
+  addMoodEntry: (data: any) => void;
+  isAddingMood: boolean;
+  isMoodLoggedToday: boolean;
+  todaysMoodEntry: any;
+}) {
   const { width } = useWindowDimensions();
-  const { stats, isLoading } = useWellbeing();
-  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
 
   const handleMoodSelect = React.useCallback((moodId: number) => {
@@ -434,25 +445,34 @@ function SurvivorWellbeingScreen() {
 export default function WellbeingScreen() {
   const { user } = useAuth();
   
-  // Always call all hooks at the top level
-  const { assignedCases } = useProvider();
-  const { stats, isLoading } = useWellbeing();
-  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
+  // Always call all hooks at the top level - this is critical for React hooks rules
+  const providerData = useProvider();
+  const wellbeingData = useWellbeing();
+  const moodTrackingData = useMoodTracking();
 
   // Render different components based on user role
   if (user?.role === 'provider') {
     return (
       <SafeAreaView style={styles.container}>
-        <ProviderMessagingScreen />
+        <ProviderMessagingScreen 
+          assignedCases={providerData.assignedCases}
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <SurvivorWellbeingScreen />
+      <SurvivorWellbeingScreen 
+        stats={wellbeingData.stats}
+        isLoading={wellbeingData.isLoading}
+        addMoodEntry={moodTrackingData.addMoodEntry}
+        isAddingMood={moodTrackingData.isAddingMood}
+        isMoodLoggedToday={moodTrackingData.isMoodLoggedToday}
+        todaysMoodEntry={moodTrackingData.todaysMoodEntry}
+      />
     </SafeAreaView>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
