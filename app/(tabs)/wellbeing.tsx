@@ -345,11 +345,11 @@ function SurvivorWellbeingScreen({
         {/* Wellbeing Activities */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Wellbeing Activities</Text>
-          <View style={[styles.activitiesGrid, { width: width - 32 }]}>
+          <View style={styles.activitiesGrid}>
             {wellbeingActivities.map((activity) => (
               <TouchableOpacity
                 key={activity.id}
-                style={[styles.activityCard, { width: (width - 48) / 2 }]}
+                style={styles.activityCard}
                 testID={`activity-${activity.id}`}
                 onPress={() => {
                   if (activity.id === 'recommendations') {
@@ -630,11 +630,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 8,
+    justifyContent: 'space-between',
   },
   activityCard: {
+    width: '48%',
     height: 140,
     borderRadius: 16,
     overflow: 'hidden',
+    marginBottom: 8,
   },
   activityGradient: {
     flex: 1,

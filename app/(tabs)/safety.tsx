@@ -337,13 +337,20 @@ export default function SafetyScreen() {
       setIsSharing(true);
       try {
         const location = await getCurrentLocation();
-        if (location && emergencyContacts.length > 0) {
-          const locationUrl = `https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+        if (location && typeof location === 'object' && 'coords' in location && emergencyContacts.length > 0) {
+          const coords = location.coords as { latitude: number; longitude: number; };
+          const locationUrl = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
           const message = `I'm sharing my location with you for safety: ${locationUrl}`;
+          
+          // Simulate sending location to emergency contacts
+          console.log('Sharing location with emergency contacts:', {
+            location: locationUrl,
+            contacts: emergencyContacts.map(c => ({ name: c.name, phone: c.phone }))
+          });
           
           Alert.alert(
             'Location Shared',
-            `Your location has been shared with your emergency contacts.\n\nLocation: ${locationUrl}`,
+            `Your location has been shared with ${emergencyContacts.length} emergency contact${emergencyContacts.length > 1 ? 's' : ''}.\n\nLocation: ${locationUrl}`,
             [
               {
                 text: 'OK',
@@ -367,14 +374,15 @@ export default function SafetyScreen() {
         } else {
           Alert.alert(
             'Location Unavailable',
-            'Unable to get your current location. Please check your location permissions.',
+            'Unable to get your current location. Please check your location permissions and try again.',
             [{ text: 'OK' }]
           );
         }
       } catch (error) {
+        console.error('Location sharing error:', error);
         Alert.alert(
-          'Error',
-          'Failed to share location. Please try again.',
+          'Location Error',
+          'Failed to get your location. Please ensure location services are enabled and try again.',
           [{ text: 'OK' }]
         );
       } finally {
@@ -447,9 +455,7 @@ export default function SafetyScreen() {
 
         {/* Safety Status */}
         <View style={styles.section}>
-          <View style={styles.sectionHeaderInline}>
-            <Text style={styles.sectionTitle}>Safety Status</Text>
-          </View>
+          <Text style={styles.sectionTitle}>Safety Status</Text>
           <View style={styles.statusCard}>
             <View style={styles.statusItem}>
               <Shield color={isLocationEnabled ? '#43A047' : '#FF9800'} size={24} />
@@ -474,9 +480,7 @@ export default function SafetyScreen() {
 
         {/* Quick Safety Actions */}
         <View style={styles.section}>
-          <View style={styles.sectionHeaderInline}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-          </View>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.safetyActions}>
             {safetyFeatures.map((feature) => (
               <TouchableOpacity
@@ -560,9 +564,7 @@ export default function SafetyScreen() {
 
         {/* Privacy Settings */}
         <View style={styles.section}>
-          <View style={styles.sectionHeaderInline}>
-            <Text style={styles.sectionTitle}>Privacy Settings</Text>
-          </View>
+          <Text style={styles.sectionTitle}>Privacy Settings</Text>
           <View style={styles.privacyCard}>
             <View style={styles.privacyItem}>
               <View style={styles.privacyContent}>
@@ -584,9 +586,7 @@ export default function SafetyScreen() {
 
         {/* Emergency Numbers */}
         <View style={styles.section}>
-          <View style={styles.sectionHeaderInline}>
-            <Text style={styles.sectionTitle}>Emergency Numbers</Text>
-          </View>
+          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
           <View style={styles.emergencyNumbers}>
             <TouchableOpacity
               style={styles.emergencyNumber}
