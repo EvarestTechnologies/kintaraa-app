@@ -297,7 +297,10 @@ export default function CaseDetailsScreen() {
                 </View>
               ))}
               {incident.messages.length > 3 && (
-                <TouchableOpacity style={styles.viewAllMessages}>
+                <TouchableOpacity 
+                  style={styles.viewAllMessages}
+                  onPress={() => router.push(`/messages/${incident.id}`)}
+                >
                   <Text style={styles.viewAllMessagesText}>
                     View all {incident.messages.length} messages
                   </Text>
@@ -331,7 +334,10 @@ export default function CaseDetailsScreen() {
                   <Text style={styles.actionButtonText}>Mark Complete</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={[styles.actionButton, styles.messageButton]}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.messageButton]}
+                onPress={() => router.push(`/messages/${incident.id}`)}
+              >
                 <MessageCircle color="#FFFFFF" size={20} />
                 <Text style={styles.actionButtonText}>Send Message</Text>
               </TouchableOpacity>

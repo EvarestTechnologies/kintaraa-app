@@ -654,17 +654,18 @@ export default function ReportsScreen() {
                   >
                     <Text style={styles.actionButtonText}>View Details</Text>
                   </TouchableOpacity>
-                  {incident.messages.length > 0 && (
-                    <TouchableOpacity 
-                      style={styles.messageButton}
-                      onPress={() => router.push(`/case-details/${incident.id}`)}
-                    >
-                      <MessageCircle color="#6A2CB0" size={16} />
-                      <Text style={styles.messageButtonText}>
-                        {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity 
+                    style={styles.messageButton}
+                    onPress={() => router.push(`/messages/${incident.id}`)}
+                  >
+                    <MessageCircle color="#6A2CB0" size={16} />
+                    <Text style={styles.messageButtonText}>
+                      {incident.messages.length > 0 
+                        ? `${incident.messages.length} message${incident.messages.length !== 1 ? 's' : ''}` 
+                        : 'Message'
+                      }
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
                 {incident.assignedProviderId && (
