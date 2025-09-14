@@ -46,8 +46,8 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const { user } = useAuth();
   const { isEmergencyMode, triggerEmergency } = useSafety();
-  const { stats, pendingAssignments, assignedCases, unreadCount } = useProvider();
-  const { incidents, isLoading: incidentsLoading } = useIncidents();
+  const { stats, pendingAssignments, assignedCases, unreadCount, acceptAssignment, declineAssignment, isAccepting, isDeclining } = useProvider();
+  const { incidents } = useIncidents();
   
   // Calculate survivor stats from incidents
   const survivorStats = {
@@ -156,59 +156,263 @@ export default function HomeScreen() {
       switch (providerType) {
         case 'healthcare':
           return [
-            { id: 'new-patient', title: 'New Patient', icon: UserCheck, color: '#10B981' },
-            { id: 'appointments', title: 'Appointments', icon: Calendar, color: '#3B82F6' },
-            { id: 'records', title: 'Medical Records', icon: FileText, color: '#8B5CF6' },
-            { id: 'emergency', title: 'Emergency', icon: Phone, color: '#E53935' },
+            { 
+              id: 'new-patient', 
+              title: 'New Patient', 
+              icon: UserCheck, 
+              color: '#10B981',
+              onPress: () => {
+                console.log('New Patient action pressed');
+                // Navigate to new patient form or show modal
+              }
+            },
+            { 
+              id: 'appointments', 
+              title: 'Appointments', 
+              icon: Calendar, 
+              color: '#3B82F6',
+              onPress: () => {
+                console.log('Appointments action pressed');
+                // Navigate to appointments screen
+              }
+            },
+            { 
+              id: 'records', 
+              title: 'Medical Records', 
+              icon: FileText, 
+              color: '#8B5CF6',
+              onPress: () => {
+                console.log('Medical Records action pressed');
+                // Navigate to medical records screen
+              }
+            },
+            { 
+              id: 'emergency', 
+              title: 'Emergency', 
+              icon: Phone, 
+              color: '#E53935',
+              onPress: () => {
+                console.log('Emergency action pressed');
+                triggerEmergency();
+              }
+            },
           ];
         case 'legal':
           return [
-            { id: 'new-case', title: 'New Case', icon: Scale, color: '#3B82F6' },
-            { id: 'documents', title: 'Documents', icon: FileText, color: '#8B5CF6' },
-            { id: 'court', title: 'Court Schedule', icon: Calendar, color: '#F59E0B' },
-            { id: 'consultation', title: 'Consultation', icon: MessageSquare, color: '#10B981' },
+            { 
+              id: 'new-case', 
+              title: 'New Case', 
+              icon: Scale, 
+              color: '#3B82F6',
+              onPress: () => console.log('New Case action pressed')
+            },
+            { 
+              id: 'documents', 
+              title: 'Documents', 
+              icon: FileText, 
+              color: '#8B5CF6',
+              onPress: () => console.log('Documents action pressed')
+            },
+            { 
+              id: 'court', 
+              title: 'Court Schedule', 
+              icon: Calendar, 
+              color: '#F59E0B',
+              onPress: () => console.log('Court Schedule action pressed')
+            },
+            { 
+              id: 'consultation', 
+              title: 'Consultation', 
+              icon: MessageSquare, 
+              color: '#10B981',
+              onPress: () => console.log('Consultation action pressed')
+            },
           ];
         case 'police':
           return [
-            { id: 'new-report', title: 'New Report', icon: Shield, color: '#EF4444' },
-            { id: 'evidence', title: 'Evidence', icon: FileText, color: '#8B5CF6' },
-            { id: 'patrol', title: 'Patrol Log', icon: MapPin, color: '#10B981' },
-            { id: 'emergency', title: 'Emergency', icon: Phone, color: '#E53935' },
+            { 
+              id: 'new-report', 
+              title: 'New Report', 
+              icon: Shield, 
+              color: '#EF4444',
+              onPress: () => console.log('New Report action pressed')
+            },
+            { 
+              id: 'evidence', 
+              title: 'Evidence', 
+              icon: FileText, 
+              color: '#8B5CF6',
+              onPress: () => console.log('Evidence action pressed')
+            },
+            { 
+              id: 'patrol', 
+              title: 'Patrol Log', 
+              icon: MapPin, 
+              color: '#10B981',
+              onPress: () => console.log('Patrol Log action pressed')
+            },
+            { 
+              id: 'emergency', 
+              title: 'Emergency', 
+              icon: Phone, 
+              color: '#E53935',
+              onPress: () => triggerEmergency()
+            },
           ];
         case 'counseling':
           return [
-            { id: 'new-session', title: 'New Session', icon: Heart, color: '#F59E0B' },
-            { id: 'clients', title: 'Client Notes', icon: FileText, color: '#8B5CF6' },
-            { id: 'resources', title: 'Resources', icon: Users, color: '#10B981' },
-            { id: 'crisis', title: 'Crisis Support', icon: Phone, color: '#E53935' },
+            { 
+              id: 'new-session', 
+              title: 'New Session', 
+              icon: Heart, 
+              color: '#F59E0B',
+              onPress: () => console.log('New Session action pressed')
+            },
+            { 
+              id: 'clients', 
+              title: 'Client Notes', 
+              icon: FileText, 
+              color: '#8B5CF6',
+              onPress: () => console.log('Client Notes action pressed')
+            },
+            { 
+              id: 'resources', 
+              title: 'Resources', 
+              icon: Users, 
+              color: '#10B981',
+              onPress: () => console.log('Resources action pressed')
+            },
+            { 
+              id: 'crisis', 
+              title: 'Crisis Support', 
+              icon: Phone, 
+              color: '#E53935',
+              onPress: () => triggerEmergency()
+            },
           ];
         case 'social':
           return [
-            { id: 'new-case', title: 'New Case', icon: Users, color: '#8B5CF6' },
-            { id: 'services', title: 'Services', icon: Heart, color: '#F59E0B' },
-            { id: 'resources', title: 'Resources', icon: FileText, color: '#10B981' },
-            { id: 'home-visit', title: 'Home Visit', icon: MapPin, color: '#3B82F6' },
+            { 
+              id: 'new-case', 
+              title: 'New Case', 
+              icon: Users, 
+              color: '#8B5CF6',
+              onPress: () => console.log('New Case action pressed')
+            },
+            { 
+              id: 'services', 
+              title: 'Services', 
+              icon: Heart, 
+              color: '#F59E0B',
+              onPress: () => console.log('Services action pressed')
+            },
+            { 
+              id: 'resources', 
+              title: 'Resources', 
+              icon: FileText, 
+              color: '#10B981',
+              onPress: () => console.log('Resources action pressed')
+            },
+            { 
+              id: 'home-visit', 
+              title: 'Home Visit', 
+              icon: MapPin, 
+              color: '#3B82F6',
+              onPress: () => console.log('Home Visit action pressed')
+            },
           ];
         case 'gbv_rescue':
           return [
-            { id: 'emergency-response', title: 'Emergency Response', icon: Siren, color: '#DC2626' },
-            { id: 'hotline', title: 'Hotline Support', icon: Headphones, color: '#7C3AED' },
-            { id: 'safe-house', title: 'Safe House', icon: Home, color: '#059669' },
-            { id: 'crisis-intervention', title: 'Crisis Intervention', icon: LifeBuoy, color: '#EA580C' },
+            { 
+              id: 'emergency-response', 
+              title: 'Emergency Response', 
+              icon: Siren, 
+              color: '#DC2626',
+              onPress: () => console.log('Emergency Response action pressed')
+            },
+            { 
+              id: 'hotline', 
+              title: 'Hotline Support', 
+              icon: Headphones, 
+              color: '#7C3AED',
+              onPress: () => console.log('Hotline Support action pressed')
+            },
+            { 
+              id: 'safe-house', 
+              title: 'Safe House', 
+              icon: Home, 
+              color: '#059669',
+              onPress: () => console.log('Safe House action pressed')
+            },
+            { 
+              id: 'crisis-intervention', 
+              title: 'Crisis Intervention', 
+              icon: LifeBuoy, 
+              color: '#EA580C',
+              onPress: () => console.log('Crisis Intervention action pressed')
+            },
           ];
         case 'chw':
           return [
-            { id: 'community-outreach', title: 'Community Outreach', icon: UserPlus, color: '#059669' },
-            { id: 'home-visits', title: 'Home Visits', icon: Home, color: '#0891B2' },
-            { id: 'health-education', title: 'Health Education', icon: Heart, color: '#DC2626' },
-            { id: 'referrals', title: 'Referrals', icon: Users, color: '#7C3AED' },
+            { 
+              id: 'community-outreach', 
+              title: 'Community Outreach', 
+              icon: UserPlus, 
+              color: '#059669',
+              onPress: () => console.log('Community Outreach action pressed')
+            },
+            { 
+              id: 'home-visits', 
+              title: 'Home Visits', 
+              icon: Home, 
+              color: '#0891B2',
+              onPress: () => console.log('Home Visits action pressed')
+            },
+            { 
+              id: 'health-education', 
+              title: 'Health Education', 
+              icon: Heart, 
+              color: '#DC2626',
+              onPress: () => console.log('Health Education action pressed')
+            },
+            { 
+              id: 'referrals', 
+              title: 'Referrals', 
+              icon: Users, 
+              color: '#7C3AED',
+              onPress: () => console.log('Referrals action pressed')
+            },
           ];
         default:
           return [
-            { id: 'cases', title: 'Cases', icon: Briefcase, color: '#6A2CB0' },
-            { id: 'messages', title: 'Messages', icon: MessageSquare, color: '#E24B95' },
-            { id: 'calendar', title: 'Calendar', icon: Calendar, color: '#26A69A' },
-            { id: 'reports', title: 'Reports', icon: FileText, color: '#F3B52F' },
+            { 
+              id: 'cases', 
+              title: 'Cases', 
+              icon: Briefcase, 
+              color: '#6A2CB0',
+              onPress: () => router.push('/(tabs)/reports')
+            },
+            { 
+              id: 'messages', 
+              title: 'Messages', 
+              icon: MessageSquare, 
+              color: '#E24B95',
+              onPress: () => console.log('Messages action pressed')
+            },
+            { 
+              id: 'calendar', 
+              title: 'Calendar', 
+              icon: Calendar, 
+              color: '#26A69A',
+              onPress: () => console.log('Calendar action pressed')
+            },
+            { 
+              id: 'reports', 
+              title: 'Reports', 
+              icon: FileText, 
+              color: '#F3B52F',
+              onPress: () => console.log('Reports action pressed')
+            },
           ];
       }
     };
@@ -251,6 +455,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={action.id}
                   style={styles.quickAction}
+                  onPress={action.onPress}
                   testID={`provider-action-${action.id}`}
                 >
                   <LinearGradient
@@ -314,11 +519,29 @@ export default function HomeScreen() {
                       Assigned {new Date(assignment.assignedAt).toLocaleTimeString()}
                     </Text>
                     <View style={styles.assignmentActions}>
-                      <TouchableOpacity style={styles.acceptButton}>
-                        <Text style={styles.acceptButtonText}>Accept</Text>
+                      <TouchableOpacity 
+                        style={[styles.acceptButton, isAccepting && styles.buttonDisabled]}
+                        onPress={() => {
+                          console.log('Accepting assignment:', assignment.id);
+                          acceptAssignment(assignment.id);
+                        }}
+                        disabled={isAccepting || isDeclining}
+                      >
+                        <Text style={styles.acceptButtonText}>
+                          {isAccepting ? 'Accepting...' : 'Accept'}
+                        </Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.declineButton}>
-                        <Text style={styles.declineButtonText}>Decline</Text>
+                      <TouchableOpacity 
+                        style={[styles.declineButton, isDeclining && styles.buttonDisabled]}
+                        onPress={() => {
+                          console.log('Declining assignment:', assignment.id);
+                          declineAssignment(assignment.id);
+                        }}
+                        disabled={isAccepting || isDeclining}
+                      >
+                        <Text style={styles.declineButtonText}>
+                          {isDeclining ? 'Declining...' : 'Decline'}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -332,7 +555,14 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Recent Cases</Text>
             <View style={styles.casesList}>
               {assignedCases.slice(0, 3).map((incident) => (
-                <TouchableOpacity key={incident.id} style={styles.caseCard}>
+                <TouchableOpacity 
+                  key={incident.id} 
+                  style={styles.caseCard}
+                  onPress={() => {
+                    console.log('Navigating to case details:', incident.id);
+                    router.push(`/case-details/${incident.id}`);
+                  }}
+                >
                   <View style={styles.caseHeader}>
                     <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
                     <Text style={styles.caseStatus}>{incident.status}</Text>
@@ -872,6 +1102,9 @@ const styles = StyleSheet.create({
     color: '#6A2CB0',
     fontSize: 14,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   casesList: {
     paddingHorizontal: 24,
