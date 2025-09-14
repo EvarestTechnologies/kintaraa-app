@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProvider } from '@/providers/ProviderContext';
 import { useIncidents } from '@/providers/IncidentProvider';
+import { useWellbeing, useMoodTracking } from '@/providers/WellbeingProvider';
 import {
   Heart,
   Moon,
@@ -91,15 +92,31 @@ const wellbeingActivities = [
 export default function WellbeingScreen() {
   const { user } = useAuth();
   const { assignedCases } = useProvider();
+  const { stats, isLoading } = useWellbeing();
+  const { addMoodEntry, isAddingMood, isMoodLoggedToday, todaysMoodEntry } = useMoodTracking();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
-  const [todayMoodLogged, setTodayMoodLogged] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
 
   const handleMoodSelect = (moodId: number) => {
     setSelectedMood(moodId);
-    setTodayMoodLogged(true);
-    // Here you would save the mood to storage/API
+    const selectedMoodData = moodEmojis.find(m => m.id === moodId);
+    if (selectedMoodData) {
+      const moodMap = {
+        1: 'very_sad' as const,
+        2: 'sad' as const,
+        3: 'neutral' as const,
+        4: 'happy' as const,
+        5: 'very_happy' as const
+      };
+      
+      addMoodEntry({
+        date: new Date().toISOString().split('T')[0],
+        mood: moodMap[moodId as keyof typeof moodMap],
+        intensity: moodId * 2, // Convert 1-5 to 2-10 scale
+        notes: `Mood logged: ${selectedMoodData.label}`
+      });
+    }
   };
 
   // Provider messaging interface
@@ -267,7 +284,7 @@ export default function WellbeingScreen() {
         {/* Daily Mood Check-in */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-          {!todayMoodLogged ? (
+          {!isMoodLoggedToday ? (
             <View style={styles.moodSelector}>
               {moodEmojis.map((mood) => (
                 <TouchableOpacity
@@ -278,6 +295,7 @@ export default function WellbeingScreen() {
                   ]}
                   onPress={() => handleMoodSelect(mood.id)}
                   testID={`mood-${mood.id}`}
+                  disabled={isAddingMood}
                 >
                   <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                   <Text style={styles.moodLabel}>{mood.label}</Text>
@@ -288,18 +306,18 @@ export default function WellbeingScreen() {
             <View style={styles.moodLogged}>
               <View style={styles.moodLoggedContent}>
                 <Text style={styles.moodLoggedEmoji}>
-                  {moodEmojis.find(m => m.id === selectedMood)?.emoji}
+                  {todaysMoodEntry && moodEmojis.find(m => {
+                    const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+                    return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
+                  })?.emoji}
                 </Text>
                 <Text style={styles.moodLoggedText}>
-                  Mood logged for today: {moodEmojis.find(m => m.id === selectedMood)?.label}
+                  Mood logged for today: {todaysMoodEntry && moodEmojis.find(m => {
+                    const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+                    return m.id === moodMap[todaysMoodEntry.mood as keyof typeof moodMap];
+                  })?.label}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.changeMoodButton}
-                onPress={() => setTodayMoodLogged(false)}
-              >
-                <Text style={styles.changeMoodButtonText}>Change</Text>
-              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -316,6 +334,15 @@ export default function WellbeingScreen() {
                 onPress={() => {
                   if (activity.id === 'recommendations') {
                     router.push('/recommendations');
+                  } else if (activity.id === 'mood') {
+                    // Scroll to mood section or show mood history
+                    Alert.alert('Mood Tracker', 'Scroll up to log your mood for today!');
+                  } else if (activity.id === 'sleep') {
+                    router.push('/sleep-tracker');
+                  } else if (activity.id === 'journal') {
+                    router.push('/journal');
+                  } else if (activity.id === 'progress') {
+                    router.push('/progress-tracker');
                   }
                 }}
               >
@@ -340,21 +367,28 @@ export default function WellbeingScreen() {
         <View style={styles.section}>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>This Week's Summary</Text>
-            <View style={styles.summaryStats}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>5</Text>
-                <Text style={styles.summaryLabel}>Days Tracked</Text>
+            {isLoading ? (
+              <Text style={styles.loadingText}>Loading...</Text>
+            ) : (
+              <View style={styles.summaryStats}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{stats.currentStreak}</Text>
+                  <Text style={styles.summaryLabel}>Day Streak</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{stats.averageSleep}h</Text>
+                  <Text style={styles.summaryLabel}>Avg Sleep</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryNumber}>{stats.weeklyProgress.journal}</Text>
+                  <Text style={styles.summaryLabel}>Journal Entries</Text>
+                </View>
               </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>7.2h</Text>
-                <Text style={styles.summaryLabel}>Avg Sleep</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>3</Text>
-                <Text style={styles.summaryLabel}>Journal Entries</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.summaryButton}>
+            )}
+            <TouchableOpacity 
+              style={styles.summaryButton}
+              onPress={() => router.push('/progress-tracker')}
+            >
               <Text style={styles.summaryButtonText}>View Full Report</Text>
             </TouchableOpacity>
           </View>
@@ -581,6 +615,12 @@ const styles = StyleSheet.create({
     color: '#6A2CB0',
     fontSize: 14,
     fontWeight: '600',
+  },
+  loadingText: {
+    textAlign: 'center',
+    color: '#49455A',
+    fontSize: 16,
+    paddingVertical: 20,
   },
   copingStrategies: {
     paddingHorizontal: 24,

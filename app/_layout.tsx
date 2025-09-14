@@ -9,6 +9,7 @@ import { SafetyProvider } from "@/providers/SafetyProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
+import { WellbeingProvider } from "@/providers/WellbeingProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,8 +69,10 @@ export default function RootLayout() {
             <IncidentProvider>
               <ProviderContext>
                 <RecommendationProvider>
-                  <RootLayoutNav />
-                  <StatusBar style="auto" />
+                  <WellbeingProvider>
+                    <RootLayoutNav />
+                    <StatusBar style="auto" />
+                  </WellbeingProvider>
                 </RecommendationProvider>
               </ProviderContext>
             </IncidentProvider>
