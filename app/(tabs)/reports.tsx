@@ -619,16 +619,7 @@ export default function ReportsScreen() {
                       {incidentTypeLabels[incident.type as keyof typeof incidentTypeLabels] || incident.type}
                     </Text>
                   </View>
-                  <View
-                    style={[
-                      styles.severityBadge,
-                      { backgroundColor: getSeverityColor(incident.severity || 'medium') },
-                    ]}
-                  >
-                    <Text style={styles.severityText}>
-                      {(incident.severity || 'medium').toUpperCase()}
-                    </Text>
-                  </View>
+                  {/* Survivors should not see priority/severity status */}
                 </View>
 
                 <View style={styles.reportDetails}>
