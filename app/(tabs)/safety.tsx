@@ -10,6 +10,10 @@ import {
   Switch,
   Linking,
   Dimensions,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/providers/AuthProvider';
@@ -52,6 +56,12 @@ export default function SafetyScreen() {
 
   const [locationSharing, setLocationSharing] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [newContact, setNewContact] = useState({
+    name: '',
+    phone: '',
+    relationship: 'Family'
+  });
 
   // Provider Analytics Dashboard
   if (user?.role === 'provider') {
@@ -237,80 +247,30 @@ export default function SafetyScreen() {
   }
 
   const handleAddEmergencyContact = () => {
-    Alert.prompt(
-      'Add Emergency Contact',
-      'Enter contact name:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Next',
-          onPress: (name) => {
-            if (name?.trim()) {
-              Alert.prompt(
-                'Add Emergency Contact',
-                'Enter phone number:',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Next',
-                    onPress: (phone) => {
-                      if (phone?.trim()) {
-                        Alert.alert(
-                          'Select Relationship',
-                          'Choose the relationship:',
-                          [
-                            {
-                              text: 'Family',
-                              onPress: () => addEmergencyContact({
-                                name: name.trim(),
-                                phone: phone.trim(),
-                                relationship: 'Family',
-                                isPrimary: emergencyContacts.length === 0,
-                              })
-                            },
-                            {
-                              text: 'Friend',
-                              onPress: () => addEmergencyContact({
-                                name: name.trim(),
-                                phone: phone.trim(),
-                                relationship: 'Friend',
-                                isPrimary: emergencyContacts.length === 0,
-                              })
-                            },
-                            {
-                              text: 'Partner',
-                              onPress: () => addEmergencyContact({
-                                name: name.trim(),
-                                phone: phone.trim(),
-                                relationship: 'Partner',
-                                isPrimary: emergencyContacts.length === 0,
-                              })
-                            },
-                            {
-                              text: 'Other',
-                              onPress: () => addEmergencyContact({
-                                name: name.trim(),
-                                phone: phone.trim(),
-                                relationship: 'Other',
-                                isPrimary: emergencyContacts.length === 0,
-                              })
-                            },
-                          ]
-                        );
-                      }
-                    },
-                  },
-                ],
-                'plain-text',
-                '',
-                'phone-pad'
-              );
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+    setNewContact({ name: '', phone: '', relationship: 'Family' });
+    setShowAddContactModal(true);
+  };
+
+  const handleSaveContact = () => {
+    if (!newContact.name.trim() || !newContact.phone.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    addEmergencyContact({
+      name: newContact.name.trim(),
+      phone: newContact.phone.trim(),
+      relationship: newContact.relationship,
+      isPrimary: emergencyContacts.length === 0,
+    });
+
+    setShowAddContactModal(false);
+    setNewContact({ name: '', phone: '', relationship: 'Family' });
+  };
+
+  const handleCancelAddContact = () => {
+    setShowAddContactModal(false);
+    setNewContact({ name: '', phone: '', relationship: 'Family' });
   };
 
   const handleRemoveContact = (contactId: string, contactName: string) => {
@@ -455,7 +415,9 @@ export default function SafetyScreen() {
 
         {/* Safety Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Safety Status</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Safety Status</Text>
+          </View>
           <View style={styles.statusCard}>
             <View style={styles.statusItem}>
               <Shield color={isLocationEnabled ? '#43A047' : '#FF9800'} size={24} />
@@ -480,13 +442,15 @@ export default function SafetyScreen() {
 
         {/* Quick Safety Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          </View>
           <View style={styles.safetyActions}>
             {safetyFeatures.map((feature) => (
               <TouchableOpacity
                 key={feature.id}
                 style={[styles.safetyAction, { borderColor: feature.color }]}
-                onPress={feature.action}
+                onPress={feature.id === 'location' ? () => handleLocationSharingToggle(true) : feature.action}
                 testID={`safety-action-${feature.id}`}
               >
                 <View style={[styles.safetyActionIcon, { backgroundColor: feature.color }]}>
@@ -564,7 +528,9 @@ export default function SafetyScreen() {
 
         {/* Privacy Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy Settings</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Privacy Settings</Text>
+          </View>
           <View style={styles.privacyCard}>
             <View style={styles.privacyItem}>
               <View style={styles.privacyContent}>
@@ -586,7 +552,9 @@ export default function SafetyScreen() {
 
         {/* Emergency Numbers */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          </View>
           <View style={styles.emergencyNumbers}>
             <TouchableOpacity
               style={styles.emergencyNumber}
@@ -607,6 +575,91 @@ export default function SafetyScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Add Contact Modal */}
+      <Modal
+        visible={showAddContactModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCancelAddContact}
+      >
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <SafeAreaView style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCancelAddContact}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Add Emergency Contact</Text>
+              <TouchableOpacity onPress={handleSaveContact}>
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Name</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newContact.name}
+                  onChangeText={(text) => setNewContact(prev => ({ ...prev, name: text }))}
+                  placeholder="Enter contact name"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="words"
+                  testID="contact-name-input"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={newContact.phone}
+                  onChangeText={(text) => setNewContact(prev => ({ ...prev, phone: text }))}
+                  placeholder="Enter phone number"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="phone-pad"
+                  testID="contact-phone-input"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Relationship</Text>
+                <View style={styles.relationshipOptions}>
+                  {['Family', 'Friend', 'Partner', 'Other'].map((relationship) => (
+                    <TouchableOpacity
+                      key={relationship}
+                      style={[
+                        styles.relationshipOption,
+                        newContact.relationship === relationship && styles.relationshipOptionSelected
+                      ]}
+                      onPress={() => setNewContact(prev => ({ ...prev, relationship }))}
+                      testID={`relationship-${relationship.toLowerCase()}`}
+                    >
+                      <Text style={[
+                        styles.relationshipOptionText,
+                        newContact.relationship === relationship && styles.relationshipOptionTextSelected
+                      ]}>
+                        {relationship}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formNote}>
+                <Text style={styles.formNoteText}>
+                  {emergencyContacts.length === 0 
+                    ? 'This will be your primary emergency contact.'
+                    : 'This contact will be added to your emergency contact list.'}
+                </Text>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1149,5 +1202,103 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: '#49455A',
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6A2CB0',
+  },
+  modalForm: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  formGroup: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#341A52',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  relationshipOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  relationshipOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  relationshipOptionSelected: {
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
+  },
+  relationshipOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#49455A',
+  },
+  relationshipOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  formNote: {
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  formNoteText: {
+    fontSize: 14,
+    color: '#6366F1',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
