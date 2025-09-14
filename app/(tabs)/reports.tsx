@@ -648,11 +648,17 @@ export default function ReportsScreen() {
                 </View>
 
                 <View style={styles.reportActions}>
-                  <TouchableOpacity style={styles.actionButton}>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => router.push(`/case-details/${incident.id}`)}
+                  >
                     <Text style={styles.actionButtonText}>View Details</Text>
                   </TouchableOpacity>
                   {incident.messages.length > 0 && (
-                    <TouchableOpacity style={styles.messageButton}>
+                    <TouchableOpacity 
+                      style={styles.messageButton}
+                      onPress={() => router.push(`/case-details/${incident.id}`)}
+                    >
                       <MessageCircle color="#6A2CB0" size={16} />
                       <Text style={styles.messageButtonText}>
                         {incident.messages.length} message{incident.messages.length !== 1 ? 's' : ''}
@@ -679,7 +685,10 @@ export default function ReportsScreen() {
           <Text style={styles.helpDescription}>
             Our support team is here to assist you with your reports and connect you with appropriate services.
           </Text>
-          <TouchableOpacity style={styles.helpButton}>
+          <TouchableOpacity 
+            style={styles.helpButton}
+            onPress={() => router.push('/emergency')}
+          >
             <Text style={styles.helpButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
