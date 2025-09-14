@@ -51,6 +51,7 @@ export default function SafetyScreen() {
   } = useSafety();
 
   const [locationSharing, setLocationSharing] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Provider Analytics Dashboard
   if (user?.role === 'provider') {
@@ -251,15 +252,51 @@ export default function SafetyScreen() {
                 [
                   { text: 'Cancel', style: 'cancel' },
                   {
-                    text: 'Add',
+                    text: 'Next',
                     onPress: (phone) => {
                       if (phone?.trim()) {
-                        addEmergencyContact({
-                          name: name.trim(),
-                          phone: phone.trim(),
-                          relationship: 'Friend',
-                          isPrimary: emergencyContacts.length === 0,
-                        });
+                        Alert.alert(
+                          'Select Relationship',
+                          'Choose the relationship:',
+                          [
+                            {
+                              text: 'Family',
+                              onPress: () => addEmergencyContact({
+                                name: name.trim(),
+                                phone: phone.trim(),
+                                relationship: 'Family',
+                                isPrimary: emergencyContacts.length === 0,
+                              })
+                            },
+                            {
+                              text: 'Friend',
+                              onPress: () => addEmergencyContact({
+                                name: name.trim(),
+                                phone: phone.trim(),
+                                relationship: 'Friend',
+                                isPrimary: emergencyContacts.length === 0,
+                              })
+                            },
+                            {
+                              text: 'Partner',
+                              onPress: () => addEmergencyContact({
+                                name: name.trim(),
+                                phone: phone.trim(),
+                                relationship: 'Partner',
+                                isPrimary: emergencyContacts.length === 0,
+                              })
+                            },
+                            {
+                              text: 'Other',
+                              onPress: () => addEmergencyContact({
+                                name: name.trim(),
+                                phone: phone.trim(),
+                                relationship: 'Other',
+                                isPrimary: emergencyContacts.length === 0,
+                              })
+                            },
+                          ]
+                        );
                       }
                     },
                   },
@@ -293,6 +330,64 @@ export default function SafetyScreen() {
 
   const handleCallContact = (phone: string) => {
     Linking.openURL(`tel:${phone}`);
+  };
+
+  const handleLocationSharingToggle = async (value: boolean) => {
+    if (value) {
+      setIsSharing(true);
+      try {
+        const location = await getCurrentLocation();
+        if (location && emergencyContacts.length > 0) {
+          const locationUrl = `https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+          const message = `I'm sharing my location with you for safety: ${locationUrl}`;
+          
+          Alert.alert(
+            'Location Shared',
+            `Your location has been shared with your emergency contacts.\n\nLocation: ${locationUrl}`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setLocationSharing(true);
+                  // Auto-disable after 1 hour for privacy
+                  setTimeout(() => {
+                    setLocationSharing(false);
+                    Alert.alert('Location Sharing Disabled', 'Location sharing has been automatically disabled after 1 hour for your privacy.');
+                  }, 3600000); // 1 hour
+                }
+              }
+            ]
+          );
+        } else if (emergencyContacts.length === 0) {
+          Alert.alert(
+            'No Emergency Contacts',
+            'Please add emergency contacts first to share your location.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert(
+            'Location Unavailable',
+            'Unable to get your current location. Please check your location permissions.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (error) {
+        Alert.alert(
+          'Error',
+          'Failed to share location. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setIsSharing(false);
+      }
+    } else {
+      setLocationSharing(false);
+      Alert.alert(
+        'Location Sharing Disabled',
+        'Your location is no longer being shared.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const safetyFeatures = [
@@ -352,7 +447,9 @@ export default function SafetyScreen() {
 
         {/* Safety Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Safety Status</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Safety Status</Text>
+          </View>
           <View style={styles.statusCard}>
             <View style={styles.statusItem}>
               <Shield color={isLocationEnabled ? '#43A047' : '#FF9800'} size={24} />
@@ -377,7 +474,9 @@ export default function SafetyScreen() {
 
         {/* Quick Safety Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          </View>
           <View style={styles.safetyActions}>
             {safetyFeatures.map((feature) => (
               <TouchableOpacity
@@ -461,7 +560,9 @@ export default function SafetyScreen() {
 
         {/* Privacy Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy Settings</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Privacy Settings</Text>
+          </View>
           <View style={styles.privacyCard}>
             <View style={styles.privacyItem}>
               <View style={styles.privacyContent}>
@@ -472,9 +573,10 @@ export default function SafetyScreen() {
               </View>
               <Switch
                 value={locationSharing}
-                onValueChange={setLocationSharing}
+                onValueChange={handleLocationSharingToggle}
                 trackColor={{ false: '#D8CEE8', true: '#6A2CB0' }}
                 thumbColor={locationSharing ? '#FFFFFF' : '#FFFFFF'}
+                disabled={isSharing}
               />
             </View>
           </View>
@@ -482,7 +584,9 @@ export default function SafetyScreen() {
 
         {/* Emergency Numbers */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          </View>
           <View style={styles.emergencyNumbers}>
             <TouchableOpacity
               style={styles.emergencyNumber}
@@ -576,6 +680,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#341A52',
+  },
+  sectionHeaderInline: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   addButton: {
     width: 36,
