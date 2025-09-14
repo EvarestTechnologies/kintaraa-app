@@ -472,7 +472,7 @@ export default function WellbeingScreen() {
         todaysMoodEntry={moodTrackingData.todaysMoodEntry}
       />
     </SafeAreaView>
-    );
+  );
 }
 
 const styles = StyleSheet.create({
