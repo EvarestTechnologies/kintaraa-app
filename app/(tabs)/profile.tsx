@@ -32,6 +32,15 @@ import {
   Heart,
   FileText,
   MessageCircle,
+  Moon,
+  Sun,
+  Smartphone,
+  Volume2,
+  VolumeX,
+  Languages,
+  Palette,
+  Download,
+  Trash2,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
@@ -41,6 +50,7 @@ export default function ProfileScreen() {
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showAppSettings, setShowAppSettings] = useState(false);
   const [editForm, setEditForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -59,6 +69,16 @@ export default function ProfileScreen() {
     emergencyAlerts: true,
     caseUpdates: true,
     appointmentReminders: true,
+  });
+  const [appSettings, setAppSettings] = useState({
+    theme: 'light' as 'light' | 'dark' | 'system',
+    language: 'en' as 'en' | 'es' | 'fr' | 'sw',
+    soundEnabled: true,
+    hapticsEnabled: true,
+    autoLock: '5min' as 'never' | '1min' | '5min' | '15min' | '30min',
+    dataUsage: 'wifi' as 'always' | 'wifi' | 'never',
+    crashReporting: true,
+    analytics: false,
   });
 
   const handleLogout = () => {
@@ -208,7 +228,7 @@ export default function ProfileScreen() {
           title: 'App Settings',
           icon: Settings,
           subtitle: 'Language, theme, and preferences',
-          onPress: () => Alert.alert('Coming Soon', 'App settings will be available soon.'),
+          onPress: () => setShowAppSettings(true),
         },
       ],
     },
@@ -620,6 +640,302 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* App Settings Modal */}
+      <Modal
+        visible={showAppSettings}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>App Settings</Text>
+            <TouchableOpacity 
+              onPress={() => setShowAppSettings(false)}
+              style={styles.modalCloseButton}
+            >
+              <X color="#49455A" size={24} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.modalContent}>
+            {/* Appearance Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Appearance</Text>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Theme</Text>
+                  <Text style={styles.settingDescription}>
+                    Choose your preferred app theme
+                  </Text>
+                </View>
+                <View style={styles.themeSelector}>
+                  {(['light', 'dark', 'system'] as const).map((theme) => (
+                    <TouchableOpacity
+                      key={theme}
+                      style={[
+                        styles.themeOption,
+                        appSettings.theme === theme && styles.themeOptionSelected,
+                      ]}
+                      onPress={() => setAppSettings(prev => ({ ...prev, theme }))}
+                    >
+                      {theme === 'light' && <Sun color={appSettings.theme === theme ? '#FFFFFF' : '#6A2CB0'} size={16} />}
+                      {theme === 'dark' && <Moon color={appSettings.theme === theme ? '#FFFFFF' : '#6A2CB0'} size={16} />}
+                      {theme === 'system' && <Smartphone color={appSettings.theme === theme ? '#FFFFFF' : '#6A2CB0'} size={16} />}
+                      <Text style={[
+                        styles.themeOptionText,
+                        appSettings.theme === theme && styles.themeOptionTextSelected,
+                      ]}>
+                        {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Language</Text>
+                  <Text style={styles.settingDescription}>
+                    Select your preferred language
+                  </Text>
+                </View>
+                <View style={styles.languageSelector}>
+                  {[
+                    { code: 'en', name: 'English' },
+                    { code: 'es', name: 'Español' },
+                    { code: 'fr', name: 'Français' },
+                    { code: 'sw', name: 'Kiswahili' },
+                  ].map((lang) => (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[
+                        styles.languageOption,
+                        appSettings.language === lang.code && styles.languageOptionSelected,
+                      ]}
+                      onPress={() => setAppSettings(prev => ({ ...prev, language: lang.code as any }))}
+                    >
+                      <Text style={[
+                        styles.languageOptionText,
+                        appSettings.language === lang.code && styles.languageOptionTextSelected,
+                      ]}>
+                        {lang.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            {/* Audio & Haptics Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Audio & Haptics</Text>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <View style={styles.settingTitleRow}>
+                    {appSettings.soundEnabled ? (
+                      <Volume2 color="#6A2CB0" size={20} />
+                    ) : (
+                      <VolumeX color="#6A2CB0" size={20} />
+                    )}
+                    <Text style={styles.settingTitle}>Sound Effects</Text>
+                  </View>
+                  <Text style={styles.settingDescription}>
+                    Play sounds for app interactions
+                  </Text>
+                </View>
+                <Switch
+                  value={appSettings.soundEnabled}
+                  onValueChange={(value) => setAppSettings(prev => ({ ...prev, soundEnabled: value }))}
+                  trackColor={{ false: '#D8CEE8', true: '#6A2CB0' }}
+                  thumbColor={appSettings.soundEnabled ? '#FFFFFF' : '#FFFFFF'}
+                />
+              </View>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Haptic Feedback</Text>
+                  <Text style={styles.settingDescription}>
+                    Feel vibrations for button taps and interactions
+                  </Text>
+                </View>
+                <Switch
+                  value={appSettings.hapticsEnabled}
+                  onValueChange={(value) => setAppSettings(prev => ({ ...prev, hapticsEnabled: value }))}
+                  trackColor={{ false: '#D8CEE8', true: '#6A2CB0' }}
+                  thumbColor={appSettings.hapticsEnabled ? '#FFFFFF' : '#FFFFFF'}
+                />
+              </View>
+            </View>
+
+            {/* Security Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Security</Text>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Auto-Lock</Text>
+                  <Text style={styles.settingDescription}>
+                    Automatically lock the app after inactivity
+                  </Text>
+                </View>
+                <View style={styles.autoLockSelector}>
+                  {[
+                    { value: 'never', label: 'Never' },
+                    { value: '1min', label: '1 min' },
+                    { value: '5min', label: '5 min' },
+                    { value: '15min', label: '15 min' },
+                    { value: '30min', label: '30 min' },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.autoLockOption,
+                        appSettings.autoLock === option.value && styles.autoLockOptionSelected,
+                      ]}
+                      onPress={() => setAppSettings(prev => ({ ...prev, autoLock: option.value as any }))}
+                    >
+                      <Text style={[
+                        styles.autoLockOptionText,
+                        appSettings.autoLock === option.value && styles.autoLockOptionTextSelected,
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            {/* Data & Privacy Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Data & Privacy</Text>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Data Usage</Text>
+                  <Text style={styles.settingDescription}>
+                    Control when the app uses mobile data
+                  </Text>
+                </View>
+                <View style={styles.dataUsageSelector}>
+                  {[
+                    { value: 'always', label: 'Always' },
+                    { value: 'wifi', label: 'Wi-Fi Only' },
+                    { value: 'never', label: 'Never' },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.dataUsageOption,
+                        appSettings.dataUsage === option.value && styles.dataUsageOptionSelected,
+                      ]}
+                      onPress={() => setAppSettings(prev => ({ ...prev, dataUsage: option.value as any }))}
+                    >
+                      <Text style={[
+                        styles.dataUsageOptionText,
+                        appSettings.dataUsage === option.value && styles.dataUsageOptionTextSelected,
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Crash Reporting</Text>
+                  <Text style={styles.settingDescription}>
+                    Help improve the app by sharing crash reports
+                  </Text>
+                </View>
+                <Switch
+                  value={appSettings.crashReporting}
+                  onValueChange={(value) => setAppSettings(prev => ({ ...prev, crashReporting: value }))}
+                  trackColor={{ false: '#D8CEE8', true: '#6A2CB0' }}
+                  thumbColor={appSettings.crashReporting ? '#FFFFFF' : '#FFFFFF'}
+                />
+              </View>
+              
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Analytics</Text>
+                  <Text style={styles.settingDescription}>
+                    Share anonymous usage data to improve the app
+                  </Text>
+                </View>
+                <Switch
+                  value={appSettings.analytics}
+                  onValueChange={(value) => setAppSettings(prev => ({ ...prev, analytics: value }))}
+                  trackColor={{ false: '#D8CEE8', true: '#6A2CB0' }}
+                  thumbColor={appSettings.analytics ? '#FFFFFF' : '#FFFFFF'}
+                />
+              </View>
+            </View>
+
+            {/* Storage Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Storage</Text>
+              
+              <TouchableOpacity style={styles.storageOption}>
+                <View style={styles.storageOptionIcon}>
+                  <Download color="#6A2CB0" size={20} />
+                </View>
+                <View style={styles.storageOptionContent}>
+                  <Text style={styles.storageOptionTitle}>Download Data</Text>
+                  <Text style={styles.storageOptionDescription}>
+                    Export your data for backup or transfer
+                  </Text>
+                </View>
+                <ChevronRight color="#49455A" size={16} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.storageOption}
+                onPress={() => {
+                  Alert.alert(
+                    'Clear Cache',
+                    'This will clear temporary files and may improve app performance. Your personal data will not be affected.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Clear Cache', 
+                        onPress: () => Alert.alert('Success', 'Cache cleared successfully!') 
+                      },
+                    ]
+                  );
+                }}
+              >
+                <View style={styles.storageOptionIcon}>
+                  <Trash2 color="#6A2CB0" size={20} />
+                </View>
+                <View style={styles.storageOptionContent}>
+                  <Text style={styles.storageOptionTitle}>Clear Cache</Text>
+                  <Text style={styles.storageOptionDescription}>
+                    Free up space by clearing temporary files
+                  </Text>
+                </View>
+                <ChevronRight color="#49455A" size={16} />
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+          
+          <View style={styles.modalActions}>
+            <TouchableOpacity 
+              style={styles.modalSaveButton}
+              onPress={() => {
+                setShowAppSettings(false);
+                Alert.alert('Success', 'App settings updated!');
+              }}
+            >
+              <Text style={styles.modalSaveText}>Save Settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -949,5 +1265,157 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#E53935',
     opacity: 0.7,
+  },
+  // App Settings Styles
+  settingsSection: {
+    marginBottom: 32,
+  },
+  settingsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#341A52',
+    marginBottom: 16,
+  },
+  settingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  // Theme Selector
+  themeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6A2CB0',
+    backgroundColor: '#FFFFFF',
+    gap: 6,
+  },
+  themeOptionSelected: {
+    backgroundColor: '#6A2CB0',
+  },
+  themeOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6A2CB0',
+  },
+  themeOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  // Language Selector
+  languageSelector: {
+    gap: 8,
+  },
+  languageOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+    backgroundColor: '#FFFFFF',
+  },
+  languageOptionSelected: {
+    borderColor: '#6A2CB0',
+    backgroundColor: '#F5F0FF',
+  },
+  languageOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#341A52',
+    textAlign: 'center',
+  },
+  languageOptionTextSelected: {
+    color: '#6A2CB0',
+    fontWeight: '600',
+  },
+  // Auto Lock Selector
+  autoLockSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  autoLockOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+    backgroundColor: '#FFFFFF',
+  },
+  autoLockOptionSelected: {
+    borderColor: '#6A2CB0',
+    backgroundColor: '#6A2CB0',
+  },
+  autoLockOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#341A52',
+  },
+  autoLockOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  // Data Usage Selector
+  dataUsageSelector: {
+    gap: 8,
+  },
+  dataUsageOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D8CEE8',
+    backgroundColor: '#FFFFFF',
+  },
+  dataUsageOptionSelected: {
+    borderColor: '#6A2CB0',
+    backgroundColor: '#F5F0FF',
+  },
+  dataUsageOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#341A52',
+    textAlign: 'center',
+  },
+  dataUsageOptionTextSelected: {
+    color: '#6A2CB0',
+    fontWeight: '600',
+  },
+  // Storage Options
+  storageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  storageOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  storageOptionContent: {
+    flex: 1,
+  },
+  storageOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  storageOptionDescription: {
+    fontSize: 14,
+    color: '#49455A',
   },
 });
