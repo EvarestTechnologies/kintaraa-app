@@ -171,16 +171,18 @@ export default function CaseDetailsScreen() {
                 {incident.status.replace('_', ' ').toUpperCase()}
               </Text>
             </View>
-            <View
-              style={[
-                styles.severityBadge,
-                { backgroundColor: getSeverityColor(incident.severity || 'medium') },
-              ]}
-            >
-              <Text style={styles.badgeText}>
-                {(incident.severity || 'medium').toUpperCase()}
-              </Text>
-            </View>
+            {isProvider && (
+              <View
+                style={[
+                  styles.severityBadge,
+                  { backgroundColor: getSeverityColor(incident.severity || 'medium') },
+                ]}
+              >
+                <Text style={styles.badgeText}>
+                  {(incident.severity || 'medium').toUpperCase()}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
