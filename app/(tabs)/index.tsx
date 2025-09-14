@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSafety } from '@/providers/SafetyProvider';
 import { useProvider } from '@/providers/ProviderContext';
+import { useIncidents } from '@/providers/IncidentProvider';
 import {
   Plus,
   Shield,
@@ -46,6 +47,15 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { isEmergencyMode, triggerEmergency } = useSafety();
   const { stats, pendingAssignments, assignedCases, unreadCount } = useProvider();
+  const { incidents, isLoading: incidentsLoading } = useIncidents();
+  
+  // Calculate survivor stats from incidents
+  const survivorStats = {
+    totalCases: incidents.length,
+    activeCases: incidents.filter(i => i.status === 'assigned' || i.status === 'in_progress').length,
+    completedCases: incidents.filter(i => i.status === 'completed').length,
+    newCases: incidents.filter(i => i.status === 'new').length,
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -402,6 +412,90 @@ export default function HomeScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* Case Status Overview */}
+        <View style={styles.section}>
+          <View style={styles.caseOverviewCard}>
+            <View style={styles.caseOverviewHeader}>
+              <Briefcase color="#6A2CB0" size={24} />
+              <Text style={styles.caseOverviewTitle}>My Cases</Text>
+            </View>
+            <View style={styles.caseStats}>
+              <View style={styles.caseStat}>
+                <Text style={styles.caseStatNumber}>{survivorStats.activeCases}</Text>
+                <Text style={styles.caseStatLabel}>Active</Text>
+              </View>
+              <View style={styles.caseStat}>
+                <Text style={styles.caseStatNumber}>{survivorStats.totalCases}</Text>
+                <Text style={styles.caseStatLabel}>Total</Text>
+              </View>
+              <View style={styles.caseStat}>
+                <Text style={styles.caseStatNumber}>{survivorStats.completedCases}</Text>
+                <Text style={styles.caseStatLabel}>Completed</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.viewCasesButton}
+              onPress={() => router.push('/(tabs)/reports')}
+            >
+              <Text style={styles.viewCasesButtonText}>View All Cases</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Updates */}
+        {pendingAssignments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Updates</Text>
+            <View style={styles.updatesContainer}>
+              {pendingAssignments.slice(0, 2).map((update) => (
+                <View key={update.id} style={styles.updateCard}>
+                  <View style={styles.updateHeader}>
+                    <CheckCircle color="#43A047" size={20} />
+                    <Text style={styles.updateTitle}>Case Update</Text>
+                  </View>
+                  <Text style={styles.updateDescription}>
+                    Your {update.serviceType} case has been assigned to a specialist.
+                  </Text>
+                  <Text style={styles.updateTime}>
+                    {new Date(update.assignedAt).toLocaleTimeString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Support Services Widget */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Available Support</Text>
+          <View style={styles.supportGrid}>
+            <TouchableOpacity style={styles.supportCard}>
+              <Stethoscope color="#E24B95" size={24} />
+              <Text style={styles.supportTitle}>Medical Care</Text>
+              <Text style={styles.supportDescription}>24/7 medical support</Text>
+              <Text style={styles.supportAvailable}>3 providers available</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.supportCard}>
+              <Scale color="#3B82F6" size={24} />
+              <Text style={styles.supportTitle}>Legal Aid</Text>
+              <Text style={styles.supportDescription}>Free legal consultation</Text>
+              <Text style={styles.supportAvailable}>2 providers available</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.supportCard}>
+              <Heart color="#F59E0B" size={24} />
+              <Text style={styles.supportTitle}>Counseling</Text>
+              <Text style={styles.supportDescription}>Mental health support</Text>
+              <Text style={styles.supportAvailable}>5 providers available</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.supportCard}>
+              <Shield color="#10B981" size={24} />
+              <Text style={styles.supportTitle}>Safety Planning</Text>
+              <Text style={styles.supportDescription}>Personal safety tools</Text>
+              <Text style={styles.supportAvailable}>Always available</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -858,5 +952,133 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     color: '#49455A',
+  },
+  // Survivor Dashboard Styles
+  caseOverviewCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  caseOverviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  caseOverviewTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  caseStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  caseStat: {
+    alignItems: 'center',
+  },
+  caseStatNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6A2CB0',
+    marginBottom: 4,
+  },
+  caseStatLabel: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+  },
+  viewCasesButton: {
+    backgroundColor: '#F5F0FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewCasesButtonText: {
+    color: '#6A2CB0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  updatesContainer: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  updateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  updateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  updateTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  updateDescription: {
+    fontSize: 14,
+    color: '#49455A',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  updateTime: {
+    fontSize: 12,
+    color: '#43A047',
+    fontWeight: '500',
+  },
+  supportGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  supportCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    width: (width - 56) / 2,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  supportTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#341A52',
+    marginTop: 8,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  supportDescription: {
+    fontSize: 12,
+    color: '#49455A',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  supportAvailable: {
+    fontSize: 10,
+    color: '#43A047',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
