@@ -39,7 +39,7 @@ function StatCard({ title, value, icon, color, subtitle, onPress }: StatCardProp
       activeOpacity={0.7}
     >
       <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-        {React.cloneElement(icon as React.ReactElement, {
+        {React.cloneElement(icon as React.ReactElement<any>, {
           size: 24,
           color: color,
         })}
@@ -66,7 +66,7 @@ function QuickAction({ title, icon, color, onPress }: QuickActionProps) {
       activeOpacity={0.7}
     >
       <View style={[styles.quickActionIcon, { backgroundColor: color + '20' }]}>
-        {React.cloneElement(icon as React.ReactElement, {
+        {React.cloneElement(icon as React.ReactElement<any>, {
           size: 20,
           color: color,
         })}
