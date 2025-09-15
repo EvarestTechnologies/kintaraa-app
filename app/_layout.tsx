@@ -52,6 +52,13 @@ function RootLayoutNav() {
         },
         headerTintColor: '#341A52',
       }} />
+      <Stack.Screen name="integration-test" options={{ 
+        title: "Integration Testing",
+        headerStyle: {
+          backgroundColor: '#F5F0FF',
+        },
+        headerTintColor: '#341A52',
+      }} />
     </Stack>
   );
 }

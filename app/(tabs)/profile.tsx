@@ -41,6 +41,7 @@ import {
   Palette,
   Download,
   Trash2,
+  TestTube,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
@@ -222,6 +223,13 @@ export default function ProfileScreen() {
           icon: HelpCircle,
           subtitle: 'Get help and contact support',
           onPress: () => router.push('/emergency'),
+        },
+        {
+          id: 'integration-test',
+          title: 'Integration Testing',
+          icon: TestTube,
+          subtitle: 'Test dashboard integrations and data flow',
+          onPress: () => router.push('/integration-test'),
         },
         {
           id: 'settings',
