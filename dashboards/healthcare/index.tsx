@@ -2,6 +2,9 @@
 // This file serves as the main entry point for the healthcare dashboard
 
 export { default as DashboardOverview } from './components/DashboardOverview';
+export { default as PatientsList } from './components/PatientsList';
+export { default as AppointmentsList } from './components/AppointmentsList';
+export { default as MedicalRecords } from './components/MedicalRecords';
 
 // Healthcare-specific types and utilities
 export interface HealthcareStats {
