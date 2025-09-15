@@ -6,11 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, StyleSheet } from "react-native";
 import { AuthProvider } from "@/providers/AuthProvider";
-import { SafetyProvider } from "@/providers/SafetyProvider";
-import { IncidentProvider } from "@/providers/IncidentProvider";
-import { ProviderContext } from "@/providers/ProviderContext";
-import { RecommendationProvider } from "@/providers/RecommendationProvider";
-import { WellbeingProvider } from "@/providers/WellbeingProvider";
+
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<

@@ -3,20 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
-import { useSafety } from '@/providers/SafetyProvider';
-import { useProvider } from '@/providers/ProviderContext';
-import { useIncidents } from '@/providers/IncidentProvider';
-import { DashboardOverview as HealthcareDashboard } from '@/dashboards/healthcare';
-import GBVRescueDashboard from '@/dashboards/gbv_rescue';
-import SurvivorDashboard from '@/dashboards/survivor';
 import {
   Plus,
   Shield,
@@ -31,12 +24,10 @@ import {
   MessageSquare,
   Star,
   TrendingUp,
-  Stethoscope,
   Scale,
   Calendar,
   FileText,
   UserCheck,
-  Activity,
   LifeBuoy,
   UserPlus,
   Home,
@@ -44,60 +35,23 @@ import {
   Headphones,
 } from 'lucide-react-native';
 
-const { width } = Dimensions.get('window');
+
 
 export default function HomeScreen() {
   const { user } = useAuth();
   
-  // Safely handle providers that might not be loaded
-  let isEmergencyMode = false;
-  let triggerEmergency = () => console.log('Emergency triggered');
-  let stats = { totalCases: 0, activeCases: 0, completedCases: 0, rating: 0, averageResponseTime: 0, totalMessages: 0 };
-  let pendingAssignments: any[] = [];
-  let assignedCases: any[] = [];
-  let unreadCount = 0;
-  let acceptAssignment = (id: string) => { console.log('Accept assignment:', id); };
-  let declineAssignment = (id: string) => { console.log('Decline assignment:', id); };
-  let isAccepting = false;
-  let isDeclining = false;
-  let incidents: any[] = [];
-  
-  try {
-    const safetyContext = useSafety();
-    isEmergencyMode = safetyContext.isEmergencyMode;
-    triggerEmergency = safetyContext.triggerEmergency;
-  } catch (error) {
-    console.log('Safety provider not available');
-  }
-  
-  try {
-    const providerContext = useProvider();
-    stats = providerContext.stats;
-    pendingAssignments = providerContext.pendingAssignments;
-    assignedCases = providerContext.assignedCases;
-    unreadCount = providerContext.unreadCount;
-    acceptAssignment = providerContext.acceptAssignment || ((id: string) => { console.log('Accept assignment:', id); });
-    declineAssignment = providerContext.declineAssignment || ((id: string) => { console.log('Decline assignment:', id); });
-    isAccepting = providerContext.isAccepting;
-    isDeclining = providerContext.isDeclining;
-  } catch (error) {
-    console.log('Provider context not available');
-  }
-  
-  try {
-    const incidentContext = useIncidents();
-    incidents = incidentContext.incidents;
-  } catch (error) {
-    console.log('Incident provider not available');
-  }
-  
-  // Calculate survivor stats from incidents
-  const survivorStats = {
-    totalCases: incidents.length,
-    activeCases: incidents.filter(i => i.status === 'assigned' || i.status === 'in_progress').length,
-    completedCases: incidents.filter(i => i.status === 'completed').length,
-    newCases: incidents.filter(i => i.status === 'new').length,
-  };
+  // Simplified without provider dependencies for now
+  const isEmergencyMode = false;
+  const triggerEmergency = () => console.log('Emergency triggered');
+  const stats = { totalCases: 0, activeCases: 0, completedCases: 0, rating: 0, averageResponseTime: 0, totalMessages: 0 };
+  const pendingAssignments: any[] = [];
+  const assignedCases: any[] = [];
+  const unreadCount = 0;
+  const acceptAssignment = (id: string) => { console.log('Accept assignment:', id); };
+  const declineAssignment = (id: string) => { console.log('Decline assignment:', id); };
+  const isAccepting = false;
+  const isDeclining = false;
+  const { width } = useWindowDimensions();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -468,215 +422,114 @@ export default function HomeScreen() {
 
   // Render provider dashboard if user is a provider
   if (user?.role === 'provider') {
-    // Use modular dashboard based on provider type
-    if (user.providerType === 'healthcare') {
-      return (
-        <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.greeting}>
-                {getGreeting()}, Dr. {user?.firstName}
-              </Text>
-              <Text style={styles.subtitle}>Healthcare Dashboard</Text>
-            </View>
-            {unreadCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <MessageSquare color="#FFFFFF" size={16} />
-                <Text style={styles.notificationText}>{unreadCount}</Text>
-              </View>
-            )}
-          </View>
-          <HealthcareDashboard />
-        </SafeAreaView>
-      );
-    }
-    
-    if (user.providerType === 'gbv_rescue') {
-      return (
-        <SafeAreaView style={styles.container}>
-          <GBVRescueDashboard />
-        </SafeAreaView>
-      );
-    }
-    
-    const providerContent = getProviderContent();
-    
+    // Simplified provider dashboard for now
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Provider Header */}
           <View style={styles.header}>
             <View>
               <Text style={styles.greeting}>
-                {getGreeting()}, {providerContent.title} {user?.firstName}
+                {getGreeting()}, {user?.firstName}
               </Text>
-              <Text style={styles.subtitle}>{providerContent.subtitle}</Text>
-            </View>
-            {unreadCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <MessageSquare color="#FFFFFF" size={16} />
-                <Text style={styles.notificationText}>{unreadCount}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Provider Quick Actions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActions}>
-              {providerContent.quickActions.map((action) => (
-                <TouchableOpacity
-                  key={action.id}
-                  style={styles.quickAction}
-                  onPress={action.onPress}
-                  testID={`provider-action-${action.id}`}
-                >
-                  <LinearGradient
-                    colors={[action.color, `${action.color}CC`]}
-                    style={styles.quickActionGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <action.icon color="#FFFFFF" size={24} />
-                    <Text style={styles.quickActionText}>{action.title}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
+              <Text style={styles.subtitle}>Provider Dashboard</Text>
             </View>
           </View>
-
-          {/* Provider Stats */}
+          
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Overview</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Briefcase color="#6A2CB0" size={24} />
-                <Text style={styles.statNumber}>{stats.totalCases}</Text>
-                <Text style={styles.statLabel}>Total Cases</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Clock color="#FF9800" size={24} />
-                <Text style={styles.statNumber}>{stats.activeCases}</Text>
-                <Text style={styles.statLabel}>Active</Text>
-              </View>
-              <View style={styles.statCard}>
-                <CheckCircle color="#43A047" size={24} />
-                <Text style={styles.statNumber}>{stats.completedCases}</Text>
-                <Text style={styles.statLabel}>Completed</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Star color="#F3B52F" size={24} />
-                <Text style={styles.statNumber}>{stats.rating.toFixed(1)}</Text>
-                <Text style={styles.statLabel}>Rating</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Pending Assignments */}
-          {pendingAssignments.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Pending Assignments ({pendingAssignments.length})</Text>
-              <View style={styles.assignmentsList}>
-                {pendingAssignments.slice(0, 3).map((assignment) => (
-                  <View key={assignment.id} style={styles.assignmentCard}>
-                    <View style={styles.assignmentHeader}>
-                      <Text style={styles.assignmentType}>{assignment.serviceType}</Text>
-                      <View style={[
-                        styles.priorityBadge,
-                        { backgroundColor: assignment.priority === 'high' ? '#E53935' : '#FF9800' }
-                      ]}>
-                        <Text style={styles.priorityText}>{assignment.priority.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.assignmentTime}>
-                      Assigned {new Date(assignment.assignedAt).toLocaleTimeString()}
-                    </Text>
-                    <View style={styles.assignmentActions}>
-                      <TouchableOpacity 
-                        style={[styles.acceptButton, isAccepting && styles.buttonDisabled]}
-                        onPress={() => {
-                          console.log('Accepting assignment:', assignment.id);
-                          acceptAssignment(assignment.id);
-                        }}
-                        disabled={isAccepting || isDeclining}
-                      >
-                        <Text style={styles.acceptButtonText}>
-                          {isAccepting ? 'Accepting...' : 'Accept'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.declineButton, isDeclining && styles.buttonDisabled]}
-                        onPress={() => {
-                          console.log('Declining assignment:', assignment.id);
-                          declineAssignment(assignment.id);
-                        }}
-                        disabled={isAccepting || isDeclining}
-                      >
-                        <Text style={styles.declineButtonText}>
-                          {isDeclining ? 'Declining...' : 'Decline'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Recent Cases */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Cases</Text>
-            <View style={styles.casesList}>
-              {assignedCases.slice(0, 3).map((incident) => (
-                <TouchableOpacity 
-                  key={incident.id} 
-                  style={styles.caseCard}
-                  onPress={() => {
-                    console.log('Navigating to case details:', incident.id);
-                    router.push(`/case-details/${incident.id}`);
-                  }}
-                >
-                  <View style={styles.caseHeader}>
-                    <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
-                    <Text style={styles.caseStatus}>{incident.status}</Text>
-                  </View>
-                  <Text style={styles.caseType}>{incident.type}</Text>
-                  <Text style={styles.caseDate}>
-                    {new Date(incident.createdAt).toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Performance Metrics */}
-          <View style={styles.section}>
-            <View style={styles.performanceCard}>
-              <View style={styles.performanceHeader}>
-                <TrendingUp color="#43A047" size={24} />
-                <Text style={styles.performanceTitle}>Performance</Text>
-              </View>
-              <View style={styles.performanceMetrics}>
-                <View style={styles.metric}>
-                  <Text style={styles.metricValue}>{stats.averageResponseTime}min</Text>
-                  <Text style={styles.metricLabel}>Avg Response</Text>
-                </View>
-                <View style={styles.metric}>
-                  <Text style={styles.metricValue}>{stats.totalMessages}</Text>
-                  <Text style={styles.metricLabel}>Messages</Text>
-                </View>
-              </View>
+            <Text style={styles.sectionTitle}>Welcome to Kintaraa</Text>
+            <View style={styles.safetyCard}>
+              <Text style={styles.safetyTitle}>Provider Dashboard</Text>
+              <Text style={styles.safetyDescription}>
+                Your provider dashboard is being loaded. Please check back soon.
+              </Text>
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  // Default survivor dashboard - use modular dashboard
+  // Default survivor dashboard - simplified for now
   return (
     <View style={styles.container}>
-      <SurvivorDashboard />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>
+              {getGreeting()}, {user?.firstName || 'Safe User'}
+            </Text>
+            <Text style={styles.subtitle}>You are safe and supported</Text>
+          </View>
+          {isEmergencyMode && (
+            <View style={styles.emergencyBadge}>
+              <AlertTriangle color="#FFFFFF" size={16} />
+              <Text style={styles.emergencyText}>EMERGENCY</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            {quickActions.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.quickAction}
+                onPress={action.onPress}
+                testID={`quick-action-${action.id}`}
+              >
+                <LinearGradient
+                  colors={[action.color, `${action.color}CC`]}
+                  style={styles.quickActionGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <action.icon color="#FFFFFF" size={24} />
+                  <Text style={styles.quickActionText}>{action.title}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Safety Check-in */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Daily Check-in</Text>
+          <View style={styles.checkinCard}>
+            <Heart color="#E24B95" size={32} />
+            <Text style={styles.checkinTitle}>How are you feeling today?</Text>
+            <Text style={styles.checkinDescription}>
+              Take a moment to check in with yourself. Your wellbeing matters.
+            </Text>
+            <TouchableOpacity 
+              style={styles.checkinButton}
+              onPress={() => router.push('/(tabs)/wellbeing')}
+            >
+              <Heart color="#E24B95" size={16} />
+              <Text style={styles.checkinButtonText}>Check In</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Support Resources */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Support Resources</Text>
+          <View style={styles.resources}>
+            {resources.map((resource) => (
+              <TouchableOpacity key={resource.id} style={styles.resourceCard}>
+                <View style={[styles.resourceIcon, { backgroundColor: `${resource.color}20` }]}>
+                  <Users color={resource.color} size={20} />
+                </View>
+                <View style={styles.resourceContent}>
+                  <Text style={styles.resourceTitle}>{resource.title}</Text>
+                  <Text style={styles.resourceDescription}>{resource.description}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -738,7 +591,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quickAction: {
-    width: (width - 48) / 2,
+    width: '48%',
     height: 100,
     borderRadius: 16,
     overflow: 'hidden',
@@ -899,7 +752,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    width: (width - 80) / 2,
+    width: '48%',
     shadowColor: '#341A52',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -1173,7 +1026,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    width: (width - 56) / 2,
+    width: '48%',
     shadowColor: '#341A52',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
