@@ -15,6 +15,7 @@ import { useSafety } from '@/providers/SafetyProvider';
 import { useProvider } from '@/providers/ProviderContext';
 import { useIncidents } from '@/providers/IncidentProvider';
 import { DashboardOverview as HealthcareDashboard } from '@/dashboards/healthcare';
+import GBVRescueDashboard from '@/dashboards/gbv_rescue';
 import {
   Plus,
   Shield,
@@ -446,6 +447,14 @@ export default function HomeScreen() {
             )}
           </View>
           <HealthcareDashboard />
+        </SafeAreaView>
+      );
+    }
+    
+    if (user.providerType === 'gbv_rescue') {
+      return (
+        <SafeAreaView style={styles.container}>
+          <GBVRescueDashboard />
         </SafeAreaView>
       );
     }
