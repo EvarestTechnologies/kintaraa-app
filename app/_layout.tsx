@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, StyleSheet } from "react-native";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { IncidentProvider } from "@/providers/IncidentProvider";
+import { ProviderContext } from "@/providers/ProviderContext";
 
 
 // Error Boundary Component
@@ -134,8 +136,12 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={styles.container}>
           <AuthProvider>
-            <RootLayoutNav />
-            <StatusBar style={styles.statusBar} />
+            <IncidentProvider>
+              <ProviderContext>
+                <RootLayoutNav />
+                <StatusBar style={styles.statusBar} />
+              </ProviderContext>
+            </IncidentProvider>
           </AuthProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
