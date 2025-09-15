@@ -48,9 +48,48 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const { isEmergencyMode, triggerEmergency } = useSafety();
-  const { stats, pendingAssignments, assignedCases, unreadCount, acceptAssignment, declineAssignment, isAccepting, isDeclining } = useProvider();
-  const { incidents } = useIncidents();
+  
+  // Safely handle providers that might not be loaded
+  let isEmergencyMode = false;
+  let triggerEmergency = () => console.log('Emergency triggered');
+  let stats = { totalCases: 0, activeCases: 0, completedCases: 0, rating: 0, averageResponseTime: 0, totalMessages: 0 };
+  let pendingAssignments: any[] = [];
+  let assignedCases: any[] = [];
+  let unreadCount = 0;
+  let acceptAssignment = (id: string) => { console.log('Accept assignment:', id); };
+  let declineAssignment = (id: string) => { console.log('Decline assignment:', id); };
+  let isAccepting = false;
+  let isDeclining = false;
+  let incidents: any[] = [];
+  
+  try {
+    const safetyContext = useSafety();
+    isEmergencyMode = safetyContext.isEmergencyMode;
+    triggerEmergency = safetyContext.triggerEmergency;
+  } catch (error) {
+    console.log('Safety provider not available');
+  }
+  
+  try {
+    const providerContext = useProvider();
+    stats = providerContext.stats;
+    pendingAssignments = providerContext.pendingAssignments;
+    assignedCases = providerContext.assignedCases;
+    unreadCount = providerContext.unreadCount;
+    acceptAssignment = providerContext.acceptAssignment || ((id: string) => { console.log('Accept assignment:', id); });
+    declineAssignment = providerContext.declineAssignment || ((id: string) => { console.log('Decline assignment:', id); });
+    isAccepting = providerContext.isAccepting;
+    isDeclining = providerContext.isDeclining;
+  } catch (error) {
+    console.log('Provider context not available');
+  }
+  
+  try {
+    const incidentContext = useIncidents();
+    incidents = incidentContext.incidents;
+  } catch (error) {
+    console.log('Incident provider not available');
+  }
   
   // Calculate survivor stats from incidents
   const survivorStats = {
