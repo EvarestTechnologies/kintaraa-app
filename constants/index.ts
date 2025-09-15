@@ -27,10 +27,20 @@ import {
   dummySafetyResources 
 } from './SafetyData';
 
+import {
+  mockSocialServicesStats,
+  mockSocialClients,
+  mockSocialServices,
+  mockCommunityResources,
+  mockCommunityPrograms,
+  mockServiceAssessments
+} from './SocialServicesData';
+
 // Export all individual items
 export * from './DummyData';
 export * from './WellbeingData';
 export * from './SafetyData';
+export * from './SocialServicesData';
 
 // Combined export for all dummy data
 export const AllDummyData = {
@@ -54,6 +64,14 @@ export const AllDummyData = {
   safetyPlans: dummySafetyPlans,
   emergencyAlerts: dummyEmergencyAlerts,
   safetyResources: dummySafetyResources,
+  
+  // Social Services data
+  socialServicesStats: mockSocialServicesStats,
+  socialClients: mockSocialClients,
+  socialServices: mockSocialServices,
+  communityResources: mockCommunityResources,
+  communityPrograms: mockCommunityPrograms,
+  serviceAssessments: mockServiceAssessments,
 };
 
 // Utility functions for generating dynamic data
