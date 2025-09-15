@@ -36,6 +36,7 @@ export interface ProviderNotification {
 }
 
 export const [ProviderContext, useProvider] = createContextHook(() => {
+  console.log('ProviderContext initializing...');
   const { user } = useAuth();
   const { incidents, providers } = useIncidents();
   const queryClient = useQueryClient();
@@ -522,7 +523,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
   // Get unread notification count
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
-  return useMemo(() => ({
+  const result = useMemo(() => ({
     providerProfile,
     assignedCases,
     pendingAssignments: pendingAssignmentsQuery.data || [],
@@ -553,6 +554,14 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     declineAssignmentMutation.isPending,
     updateCaseStatusMutation.isPending,
   ]);
+  
+  console.log('ProviderContext returning:', {
+    assignedCasesCount: result.assignedCases.length,
+    hasProviderProfile: !!result.providerProfile,
+    isLoading: result.isLoading
+  });
+  
+  return result;
 });
 
 // Helper hooks

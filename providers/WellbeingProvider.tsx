@@ -41,6 +41,7 @@ export interface WellbeingStats {
 }
 
 export const [WellbeingProvider, useWellbeing] = createContextHook(() => {
+  console.log('WellbeingProvider initializing...');
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
@@ -298,7 +299,7 @@ export const [WellbeingProvider, useWellbeing] = createContextHook(() => {
     return (moodQuery.data || []).find(entry => entry.date === today);
   }, [moodQuery.data]);
 
-  return {
+  const result = {
     // Data
     moodEntries: moodQuery.data || [],
     sleepEntries: sleepQuery.data || [],
@@ -325,6 +326,14 @@ export const [WellbeingProvider, useWellbeing] = createContextHook(() => {
     isAddingSleep: addSleepMutation.isPending,
     isAddingJournal: addJournalMutation.isPending
   };
+  
+  console.log('WellbeingProvider returning:', {
+    moodEntriesCount: result.moodEntries.length,
+    isLoading: result.isLoading,
+    statsAvailable: !!result.stats
+  });
+  
+  return result;
 });
 
 // Helper hooks

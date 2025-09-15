@@ -77,8 +77,14 @@ const CASES_PER_PAGE = 10;
 
 export default function ReportsScreen() {
   const { user } = useAuth();
-  const { incidents, isLoading } = useIncidents();
-  const { assignedCases, updateCaseStatus } = useProvider();
+  const incidentsData = useIncidents();
+  const providerData = useProvider();
+  
+  // Handle potential undefined returns from hooks
+  const incidents = incidentsData?.incidents || [];
+  const isLoading = incidentsData?.isLoading || false;
+  const assignedCases = providerData?.assignedCases || [];
+  const updateCaseStatus = providerData?.updateCaseStatus || (() => {});
   const [currentFilter, setCurrentFilter] = useState<CaseFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,7 +95,7 @@ export default function ReportsScreen() {
   const [selectedType, setSelectedType] = useState<string>('all');
 
   // Always calculate these values at the top level
-  const allCases = assignedCases.length > 0 ? assignedCases : incidents;
+  const allCases = (assignedCases && assignedCases.length > 0) ? assignedCases : incidents;
   
   // Filter and search cases
   const filteredCases = useMemo(() => {

@@ -449,13 +449,30 @@ export default function WellbeingScreen() {
   const providerData = useProvider();
   const wellbeingData = useWellbeing();
   const moodTrackingData = useMoodTracking();
+  
+  // Handle potential undefined returns from hooks
+  const assignedCases = providerData?.assignedCases || [];
+  const stats = wellbeingData?.stats || {
+    currentStreak: 0,
+    totalEntries: 0,
+    averageMood: 0,
+    averageSleep: 0,
+    journalEntries: 0,
+    goalsCompleted: 0,
+    weeklyProgress: { mood: [], sleep: [], journal: 0 }
+  };
+  const isLoading = wellbeingData?.isLoading || false;
+  const addMoodEntry = moodTrackingData?.addMoodEntry || (() => {});
+  const isAddingMood = moodTrackingData?.isAddingMood || false;
+  const isMoodLoggedToday = moodTrackingData?.isMoodLoggedToday || false;
+  const todaysMoodEntry = moodTrackingData?.todaysMoodEntry || null;
 
   // Render different components based on user role
   if (user?.role === 'provider') {
     return (
       <SafeAreaView style={styles.container}>
         <ProviderMessagingScreen 
-          assignedCases={providerData.assignedCases}
+          assignedCases={assignedCases}
         />
       </SafeAreaView>
     );
@@ -464,12 +481,12 @@ export default function WellbeingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <SurvivorWellbeingScreen 
-        stats={wellbeingData.stats}
-        isLoading={wellbeingData.isLoading}
-        addMoodEntry={moodTrackingData.addMoodEntry}
-        isAddingMood={moodTrackingData.isAddingMood}
-        isMoodLoggedToday={moodTrackingData.isMoodLoggedToday}
-        todaysMoodEntry={moodTrackingData.todaysMoodEntry}
+        stats={stats}
+        isLoading={isLoading}
+        addMoodEntry={addMoodEntry}
+        isAddingMood={isAddingMood}
+        isMoodLoggedToday={isMoodLoggedToday}
+        todaysMoodEntry={todaysMoodEntry}
       />
     </SafeAreaView>
   );

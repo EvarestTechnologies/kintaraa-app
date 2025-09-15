@@ -95,6 +95,7 @@ export interface CreateIncidentData {
 }
 
 export const [IncidentProvider, useIncidents] = createContextHook(() => {
+  console.log('IncidentProvider initializing...');
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [realTimeUpdates, setRealTimeUpdates] = useState<Incident[]>([]);
@@ -574,7 +575,7 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     );
   })();
 
-  return {
+  const result = {
     incidents: allIncidents,
     providers: providersQuery.data || [],
     isLoading: incidentsQuery.isLoading || providersQuery.isLoading,
@@ -586,6 +587,14 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     isUpdating: updateIncidentMutation.isPending,
     createError: createIncidentMutation.error?.message,
   };
+  
+  console.log('IncidentProvider returning:', {
+    incidentsCount: result.incidents.length,
+    isLoading: result.isLoading,
+    hasError: !!result.error
+  });
+  
+  return result;
 });
 
 // Helper hooks

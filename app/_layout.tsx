@@ -8,6 +8,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
+import { WellbeingProvider } from "@/providers/WellbeingProvider";
 
 
 // Error Boundary Component
@@ -138,8 +139,10 @@ export default function RootLayout() {
           <AuthProvider>
             <IncidentProvider>
               <ProviderContext>
-                <RootLayoutNav />
-                <StatusBar style={styles.statusBar} />
+                <WellbeingProvider>
+                  <RootLayoutNav />
+                  <StatusBar style={styles.statusBar} />
+                </WellbeingProvider>
               </ProviderContext>
             </IncidentProvider>
           </AuthProvider>
