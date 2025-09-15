@@ -5,6 +5,7 @@ export { default as DashboardOverview } from './components/DashboardOverview';
 export { default as PatientsList } from './components/PatientsList';
 export { default as AppointmentsList } from './components/AppointmentsList';
 export { default as MedicalRecords } from './components/MedicalRecords';
+export { default as ProviderProfile } from './components/ProviderProfile';
 
 // Healthcare-specific types and utilities
 export interface HealthcareStats {
