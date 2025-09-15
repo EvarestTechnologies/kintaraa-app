@@ -14,6 +14,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useSafety } from '@/providers/SafetyProvider';
 import { useProvider } from '@/providers/ProviderContext';
 import { useIncidents } from '@/providers/IncidentProvider';
+import { DashboardOverview as HealthcareDashboard } from '@/dashboards/healthcare';
 import {
   Plus,
   Shield,
@@ -426,6 +427,29 @@ export default function HomeScreen() {
 
   // Render provider dashboard if user is a provider
   if (user?.role === 'provider') {
+    // Use modular dashboard based on provider type
+    if (user.providerType === 'healthcare') {
+      return (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>
+                {getGreeting()}, Dr. {user?.firstName}
+              </Text>
+              <Text style={styles.subtitle}>Healthcare Dashboard</Text>
+            </View>
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <MessageSquare color="#FFFFFF" size={16} />
+                <Text style={styles.notificationText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
+          <HealthcareDashboard />
+        </SafeAreaView>
+      );
+    }
+    
     const providerContent = getProviderContent();
     
     return (
