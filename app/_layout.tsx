@@ -9,6 +9,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
+import { SafetyProvider } from "@/providers/SafetyProvider";
 
 
 // Error Boundary Component
@@ -87,11 +88,12 @@ function RootLayoutNav() {
     }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="emergency" options={{ 
+      <Stack.Screen name="(dashboard)" options={{ headerShown: false }} />
+      <Stack.Screen name="emergency" options={{
         presentation: "modal",
         headerShown: false,
       }} />
-      <Stack.Screen name="report" options={{ 
+      <Stack.Screen name="report" options={{
         presentation: "modal",
         title: "Report Incident",
         headerStyle: {
@@ -99,14 +101,14 @@ function RootLayoutNav() {
         },
         headerTintColor: '#FFFFFF',
       }} />
-      <Stack.Screen name="recommendations" options={{ 
+      <Stack.Screen name="recommendations" options={{
         title: "AI Recommendations",
         headerStyle: {
           backgroundColor: '#F5F0FF',
         },
         headerTintColor: '#341A52',
       }} />
-      <Stack.Screen name="integration-test" options={{ 
+      <Stack.Screen name="integration-test" options={{
         title: "Integration Testing",
         headerStyle: {
           backgroundColor: '#F5F0FF',
@@ -137,14 +139,16 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={styles.container}>
           <AuthProvider>
-            <IncidentProvider>
-              <ProviderContext>
-                <WellbeingProvider>
-                  <RootLayoutNav />
-                  <StatusBar style={styles.statusBar} />
-                </WellbeingProvider>
-              </ProviderContext>
-            </IncidentProvider>
+            <SafetyProvider>
+              <IncidentProvider>
+                <ProviderContext>
+                  <WellbeingProvider>
+                    <RootLayoutNav />
+                    <StatusBar style={styles.statusBar} />
+                  </WellbeingProvider>
+                </ProviderContext>
+              </IncidentProvider>
+            </SafetyProvider>
           </AuthProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

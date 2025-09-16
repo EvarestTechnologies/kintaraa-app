@@ -1,453 +1,94 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Redirect } from 'expo-router';
-import { 
-  Home, 
-  FileText, 
-  Heart, 
-  Shield, 
-  User,
-  Users,
-  Briefcase,
-  MessageSquare,
-  BarChart3,
-  Stethoscope,
-  Scale,
-  Calendar,
-  Settings,
-  LifeBuoy,
-  Phone,
-  Activity,
-  MapPin,
-  UserPlus
-} from 'lucide-react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Shield } from 'lucide-react-native';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
+  console.log('🔄 TabLayout - Auth State:', {
+    isAuthenticated,
+    isLoading,
+    userRole: user?.role,
+    providerType: user?.providerType
+  });
+
   if (isLoading) {
-    return null; // Show loading screen
+    console.log('⏳ TabLayout - Loading, showing loading screen');
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#6A2CB0', '#E24B95']}
+          style={styles.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.loadingContent}>
+            <View style={styles.iconContainer}>
+              <Shield color="#FFFFFF" size={48} />
+            </View>
+            <Text style={styles.title}>Kintaraa</Text>
+            <ActivityIndicator size="large" color="#FFFFFF" style={styles.spinner} />
+            <Text style={styles.loadingText}>Loading your dashboard...</Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
   }
 
   if (!isAuthenticated) {
+    console.log('🚫 TabLayout - Not authenticated, redirecting to welcome');
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  // Render different tabs based on user role and provider type
-  if (user?.role === 'provider') {
-    const getProviderTabs = () => {
-      const commonScreenOptions = {
-        tabBarActiveTintColor: '#6A2CB0',
-        tabBarInactiveTintColor: '#D8CEE8',
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#F5F0FF',
-          borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 88,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
-        },
-      };
-
-      switch (user.providerType) {
-        case 'healthcare':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Patients',
-                  tabBarIcon: ({ color, size }) => <Stethoscope color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Appointments',
-                  tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Records',
-                  tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'legal':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Cases',
-                  tabBarIcon: ({ color, size }) => <Scale color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Documents',
-                  tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Court',
-                  tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'police':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Cases',
-                  tabBarIcon: ({ color, size }) => <Shield color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Evidence',
-                  tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Reports',
-                  tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'counseling':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Clients',
-                  tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Sessions',
-                  tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Resources',
-                  tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'social':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Cases',
-                  tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Services',
-                  tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Resources',
-                  tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'gbv_rescue':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Emergency Cases',
-                  tabBarIcon: ({ color, size }) => <LifeBuoy color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Hotline',
-                  tabBarIcon: ({ color, size }) => <Phone color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Response',
-                  tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        case 'chw':
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Community Cases',
-                  tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Outreach',
-                  tabBarIcon: ({ color, size }) => <UserPlus color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Locations',
-                  tabBarIcon: ({ color, size }) => <MapPin color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-
-        default:
-          // Default provider dashboard
-          return (
-            <Tabs screenOptions={commonScreenOptions}>
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Dashboard',
-                  tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="reports"
-                options={{
-                  title: 'Cases',
-                  tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="wellbeing"
-                options={{
-                  title: 'Messages',
-                  tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="safety"
-                options={{
-                  title: 'Analytics',
-                  tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
-                }}
-              />
-              <Tabs.Screen
-                name="profile"
-                options={{
-                  title: 'Profile',
-                  tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-                }}
-              />
-            </Tabs>
-          );
-      }
-    };
-
-    return getProviderTabs();
+  // All users (providers and survivors) should use the dashboard structure
+  if (user?.role === 'provider' && user?.providerType) {
+    console.log(`🏥 TabLayout - Provider (${user.providerType}), redirecting to dashboard`);
+    return <Redirect href={`/(dashboard)/${user.providerType}`} />;
   }
 
-  // Default survivor tabs
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#6A2CB0',
-        tabBarInactiveTintColor: '#D8CEE8',
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#F5F0FF',
-          borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 88,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="wellbeing"
-        options={{
-          title: 'Wellbeing',
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="safety"
-        options={{
-          title: 'Safety',
-          tabBarIcon: ({ color, size }) => <Shield color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-        }}
-      />
-    </Tabs>
-  );
+  // Default: redirect survivors to survivor dashboard
+  console.log('🛡️ TabLayout - Redirecting to Survivor Dashboard');
+  return <Redirect href="/(dashboard)/survivor" />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  spinner: {
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+});
