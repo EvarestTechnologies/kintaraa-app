@@ -16,10 +16,17 @@ import { useAuth } from '@/providers/AuthProvider';
 import { ArrowLeft, Eye, EyeOff, Fingerprint } from 'lucide-react-native';
 
 export default function LoginScreen() {
-  const { login, isLoggingIn, loginError, biometricAvailable } = useAuth();
+  const { login, isLoggingIn, loginError, biometricAvailable, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Navigate to dashboard after successful login
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     if (!email.trim() || !password.trim()) {

@@ -16,7 +16,7 @@ import { useAuth, ProviderType } from '@/providers/AuthProvider';
 import { ArrowLeft, Eye, EyeOff, User, UserCheck, Stethoscope, Scale, Shield, Heart, Users, LifeBuoy, Home } from 'lucide-react-native';
 
 export default function RegisterScreen() {
-  const { register, isRegistering, registerError } = useAuth();
+  const { register, isRegistering, registerError, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,6 +29,13 @@ export default function RegisterScreen() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Navigate to dashboard after successful registration
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
 
   const handleRegister = () => {
     const { firstName, lastName, email, password, confirmPassword, role, providerType, isAnonymous } = formData;
