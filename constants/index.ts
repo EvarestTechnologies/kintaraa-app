@@ -12,20 +12,28 @@ import {
   dummyNotifications 
 } from './DummyData';
 
-import { 
-  dummyJournalEntries, 
-  dummyCopingStrategies, 
-  dummyWellbeingGoals, 
+import {
+  dummyJournalEntries,
+  dummyCopingStrategies,
+  dummyWellbeingGoals,
   dummyTherapySessions,
   generateDummyMoodEntries
-} from './WellbeingData';
+} from './domains/health/WellbeingData';
 
-import { 
-  dummySafeLocations, 
-  dummySafetyPlans, 
-  dummyEmergencyAlerts, 
-  dummySafetyResources 
-} from './SafetyData';
+import {
+  dummyCHWStats,
+  dummyCHWPatients,
+  dummyHealthEducationSessions,
+  dummyCommunityOutreachEvents,
+  dummyHealthReferrals
+} from './domains/health/CHWData';
+
+import {
+  dummySafeLocations,
+  dummySafetyPlans,
+  dummyEmergencyAlerts,
+  dummySafetyResources
+} from './domains/safety/SafetyData';
 
 import {
   mockSocialServicesStats,
@@ -34,13 +42,14 @@ import {
   mockCommunityResources,
   mockCommunityPrograms,
   mockServiceAssessments
-} from './SocialServicesData';
+} from './domains/social/SocialServicesData';
 
 // Export all individual items
 export * from './DummyData';
-export * from './WellbeingData';
-export * from './SafetyData';
-export * from './SocialServicesData';
+export * from './domains/health/WellbeingData';
+export * from './domains/health/CHWData';
+export * from './domains/safety/SafetyData';
+export * from './domains/social/SocialServicesData';
 
 // Combined export for all dummy data
 export const AllDummyData = {
@@ -53,11 +62,18 @@ export const AllDummyData = {
   statistics: dummyStatistics,
   notifications: dummyNotifications,
   
-  // Wellbeing data
+  // Health & Wellbeing data
   journalEntries: dummyJournalEntries,
   copingStrategies: dummyCopingStrategies,
   wellbeingGoals: dummyWellbeingGoals,
   therapySessions: dummyTherapySessions,
+
+  // Community Health Worker data
+  chwStats: dummyCHWStats,
+  chwPatients: dummyCHWPatients,
+  healthEducationSessions: dummyHealthEducationSessions,
+  communityOutreachEvents: dummyCommunityOutreachEvents,
+  healthReferrals: dummyHealthReferrals,
   
   // Safety data
   safeLocations: dummySafeLocations,
