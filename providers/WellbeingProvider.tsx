@@ -12,7 +12,7 @@ import {
   dummyCopingStrategies,
   dummyWellbeingGoals,
   dummyTherapySessions
-} from '@/constants/WellbeingData';
+} from '@/constants';
 
 export interface SleepEntry {
   id: string;
