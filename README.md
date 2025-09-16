@@ -110,11 +110,14 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 
 3. **Start the development server**
    ```bash
-   # For web development (recommended for testing)
+   # For mobile device development (recommended - works with Expo Go app)
+   npx expo start --tunnel
+
+   # For web development only
    npx expo start --web --offline
 
-   # For mobile development (requires simulator/emulator)
-   npx expo start --offline
+   # For local network development (phone and computer on same WiFi)
+   npx expo start
 
    # Alternative: Try the configured scripts (requires Bun runtime)
    npm run start        # Uses bunx rork (requires Bun)
@@ -122,18 +125,102 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
    ```
 
 4. **Open the app**
-   - **Web**: Automatically opens at `http://localhost:8081` (or custom port if specified)
-   - **iOS**: Press `i` in terminal (requires iOS Simulator)
-   - **Android**: Press `a` in terminal (requires Android Emulator)
-   - **Custom Port**: Use `--port 8085` for consistent development
+
+   ### 📱 **On Your Phone (Recommended)**
+
+   #### Method 1: QR Code in Terminal (Easiest)
+   1. **Install Expo Go app**:
+      - **iOS**: Download from [App Store](https://apps.apple.com/app/expo-go/id982107779)
+      - **Android**: Download from [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+   2. **Start the development server**:
+      ```bash
+      npx expo start
+      ```
+      **The QR code will appear directly in your terminal!** You'll see something like:
+      ```
+      › Metro waiting on exp://[your-ip]:8081
+      › Scan the QR code above with Expo Go (Android) or Camera app (iOS)
+
+      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+      █ ▄▄▄▄▄ █▀█ █▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀ █ ▄▄▄▄▄ █
+      (QR code pattern...)
+
+      › Press s │ switch to Expo Go
+      › Press a │ open Android
+      ```
+
+      **Note**: If you don't see the QR code immediately, wait a moment for Metro to finish bundling.
+
+   3. **Connect your phone**:
+      - Open **Expo Go** app on your phone
+      - **Scan the QR code** from your terminal
+      - The app will download and open on your phone
+
+   #### Method 2: Manual Connection (If QR code doesn't work)
+   1. **Both devices on same WiFi**: Make sure your phone and computer are connected to the same WiFi network
+   2. **Get the connection URL**: Look for `exp://` URL in your terminal output
+   3. **Enter manually in Expo Go**:
+      - Open Expo Go app
+      - Tap "Enter URL manually"
+      - Type the `exp://` URL from your terminal
+      - Tap "Connect"
+
+   #### Method 3: Tunnel Mode (For different networks)
+   ```bash
+   npx expo start --tunnel
+   ```
+   - Works across different networks
+   - May show fetch errors but tunnel still works
+   - QR code appears in terminal, not browser
+
+   ### 💻 **On Computer**
+   - **Web**: Opens at `http://localhost:8081` (or specified port)
+   - **iOS Simulator**: Press `i` in terminal (requires Xcode)
+   - **Android Emulator**: Press `a` in terminal (requires Android Studio)
+
+   ### 🔧 **Development Options**
+   - **Custom Port**: Add `--port 8085` for consistent development
+   - **Tunnel Mode**: Add `--tunnel` for external device access
+   - **Offline Mode**: Add `--offline` to bypass network dependency checks
 
 ### 🚨 **Important Setup Notes**
 
 - **React 19 Compatibility**: The app uses React 19, but some dependencies expect React 18. Use `--force` flag during installation.
-- **Offline Mode**: Use `--offline` flag to bypass network dependency checks if you encounter fetch errors.
+- **Mobile Development**: For phone testing, use `npx expo start --tunnel` (not `--offline`) to enable device connections.
+- **Expo Go Required**: Install Expo Go app on your phone to run the development version.
+- **Network Requirements**: Tunnel mode works across different networks; local mode requires same WiFi.
 - **Bun vs NPM**: The package.json scripts are configured for Bun runtime. If you don't have Bun installed, use the `npx expo` commands directly.
 - **TypeScript**: Ensure `@types/react-native` is installed for proper TypeScript support.
-- **Development Server**: The app runs on `http://localhost:8081` by default, or custom port when specified (e.g., `--port 8085`).
+
+### 🔧 **Troubleshooting Mobile Connection**
+
+**If you don't see the QR code:**
+1. **Check your terminal**: The QR code appears in your terminal window, not in a browser
+2. **Make sure server started**: Look for "Metro waiting on exp://..." message
+3. **Clear cache and restart**: `rm -rf .expo && npx expo start`
+
+**If the QR code doesn't work:**
+1. **Check WiFi**: Both devices must be on same WiFi network (for `npx expo start`)
+2. **Try tunnel mode**: Use `npx expo start --tunnel` for cross-network connection
+3. **Manual connection**: Copy the `exp://` URL from terminal and enter it manually in Expo Go
+4. **Restart Expo Go**: Close and reopen the Expo Go app
+5. **Alternative URL formats**:
+   - If `exp://192.168.x.x:8081` doesn't work
+   - Try `http://192.168.x.x:8081` in Expo Go
+
+**If you see fetch errors:**
+- These are dependency validation warnings and can be ignored
+- The tunnel/server will still work despite the errors
+- Look for "Metro waiting" or "Tunnel ready" messages to confirm it's working
+
+**Complete reset if nothing works:**
+```bash
+# Kill all processes and start fresh
+pkill -f expo
+rm -rf .expo node_modules/.cache
+npx expo start
+```
 
 ### 🧪 Test Accounts
 
