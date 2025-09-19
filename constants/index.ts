@@ -1,3 +1,6 @@
+// App Configuration
+export * from './config';
+
 // Comprehensive Dummy Data Index
 // This file exports all dummy data for easy importing throughout the app
 

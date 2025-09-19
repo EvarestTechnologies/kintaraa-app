@@ -70,6 +70,7 @@ export default function RegisterScreen() {
       lastName: isAnonymous ? 'User' : lastName.trim(),
       email: email.trim(),
       password,
+      confirmPassword,
       role,
       providerType: role === 'provider' ? providerType : undefined,
       isAnonymous,
