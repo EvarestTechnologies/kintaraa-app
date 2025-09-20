@@ -551,7 +551,34 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
           responseTime: 60
         }
       ];
-      
+
+      // Add current user as a provider if they have provider role
+      if (user?.role === 'provider') {
+        const currentUserProvider: ServiceProvider = {
+          id: `provider-${user.id}`,
+          userId: user.id,
+          name: user.fullName || 'Healthcare Provider',
+          organization: user.providerType || 'Healthcare Center',
+          services: ['medical', 'counseling'], // Default services for healthcare providers
+          location: {
+            latitude: 40.7128,
+            longitude: -74.0060,
+            address: 'Healthcare Facility' // Default address
+          },
+          availability: {
+            isAvailable: true,
+            workingHours: { start: '09:00', end: '17:00' },
+            capacity: 10
+          },
+          verified: true,
+          rating: 4.5,
+          responseTime: 45
+        };
+
+        // Add current user provider to the beginning of the array
+        mockProviders.unshift(currentUserProvider);
+      }
+
       return mockProviders;
     },
   });
