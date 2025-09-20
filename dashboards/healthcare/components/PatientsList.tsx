@@ -25,6 +25,7 @@ import {
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
 import type { Patient } from '../index';
+import RegisterPatientModal from './RegisterPatientModal';
 
 type PatientStatus = 'active' | 'recovering' | 'stable' | 'critical';
 type FilterType = 'all' | 'active' | 'recovering' | 'stable' | 'critical';
@@ -68,6 +69,18 @@ export default function PatientsList() {
     }));
   }, [assignedCases]);
 
+  // Calculate patient stats
+  const patientStats = useMemo(() => {
+    return {
+      total: patients.length,
+      active: patients.filter(p => p.status === 'active').length,
+      recovering: patients.filter(p => p.status === 'recovering').length,
+      stable: patients.filter(p => p.status === 'stable').length,
+      critical: patients.filter(p => p.status === 'critical').length,
+      withAppointments: patients.filter(p => p.nextAppointment).length,
+    };
+  }, [patients]);
+
   // Filter and search patients
   const filteredPatients = useMemo(() => {
     let filtered = patients;
@@ -95,12 +108,10 @@ export default function PatientsList() {
     router.push(`/case-details/${patient.caseId}`);
   };
 
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+
   const handleAddPatient = () => {
-    Alert.alert(
-      'Add New Patient',
-      'Patient registration functionality will be implemented in the next phase.',
-      [{ text: 'OK' }]
-    );
+    setShowRegisterModal(true);
   };
 
   const handleCallPatient = (patient: Patient) => {
@@ -179,6 +190,42 @@ export default function PatientsList() {
             ))}
           </ScrollView>
         )}
+      </View>
+
+      {/* Patient Overview Stats */}
+      <View style={styles.statsSection}>
+        <View style={styles.statsCard}>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <User color="#6A2CB0" size={24} />
+              <Text style={styles.statNumber}>{patientStats.total}</Text>
+              <Text style={styles.statLabel}>Total Patients</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Activity color="#10B981" size={24} />
+              <Text style={styles.statNumber}>{patientStats.active}</Text>
+              <Text style={styles.statLabel}>Active</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Clock color="#F59E0B" size={24} />
+              <Text style={styles.statNumber}>{patientStats.recovering}</Text>
+              <Text style={styles.statLabel}>Recovering</Text>
+            </View>
+            <View style={styles.statItem}>
+              <AlertCircle color="#EF4444" size={24} />
+              <Text style={styles.statNumber}>{patientStats.critical}</Text>
+              <Text style={styles.statLabel}>Critical</Text>
+            </View>
+          </View>
+          <View style={styles.statsSecondary}>
+            <View style={styles.secondaryStatItem}>
+              <CheckCircle color="#3B82F6" size={16} />
+              <Text style={styles.secondaryStatText}>
+                {patientStats.stable} Stable • {patientStats.withAppointments} Scheduled
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Patients List */}
@@ -276,6 +323,17 @@ export default function PatientsList() {
           ))
         )}
       </ScrollView>
+
+      {/* Register Patient Modal */}
+      <RegisterPatientModal
+        visible={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSuccess={() => {
+          setShowRegisterModal(false);
+          // The patient will automatically appear in the list since it's added to incidents
+          console.log('Patient registered successfully in patients list');
+        }}
+      />
     </View>
   );
 }
@@ -332,6 +390,55 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     marginTop: 16,
+  },
+  statsSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  statsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  statsSecondary: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  secondaryStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  secondaryStatText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   filtersContent: {
     paddingHorizontal: 24,
