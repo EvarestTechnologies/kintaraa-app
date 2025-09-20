@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.kintaraa-mobile-app-gbv",
+      "bundleIdentifier": "app.rork.kintaraa",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allow $(PRODUCT_NAME) to use Face ID.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
@@ -33,7 +33,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.kintaraa-mobile-app-gbv",
+      "package": "app.rork.kintaraa",
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
