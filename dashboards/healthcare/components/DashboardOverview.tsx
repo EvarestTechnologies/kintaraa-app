@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
+import RegisterPatientModal from './RegisterPatientModal';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ interface HealthcareStats {
 
 export default function DashboardOverview() {
   const { stats, assignedCases, pendingAssignments } = useProvider();
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   // Calculate healthcare-specific stats
   const healthcareStats: HealthcareStats = {
@@ -58,8 +60,7 @@ export default function DashboardOverview() {
       icon: Users,
       color: '#10B981',
       onPress: () => {
-        console.log('Navigate to new patient registration');
-        // TODO: Navigate to patient registration
+        setShowRegisterModal(true);
       },
     },
     {
@@ -69,8 +70,7 @@ export default function DashboardOverview() {
       icon: Calendar,
       color: '#3B82F6',
       onPress: () => {
-        console.log('Navigate to appointments');
-        router.push('/(tabs)/wellbeing'); // Appointments tab
+        router.push('/(dashboard)/healthcare/appointments');
       },
     },
     {
@@ -80,8 +80,7 @@ export default function DashboardOverview() {
       icon: FileText,
       color: '#8B5CF6',
       onPress: () => {
-        console.log('Navigate to medical records');
-        router.push('/(tabs)/safety'); // Records tab
+        router.push('/(dashboard)/healthcare/records');
       },
     },
     {
@@ -91,8 +90,7 @@ export default function DashboardOverview() {
       icon: AlertTriangle,
       color: '#EF4444',
       onPress: () => {
-        console.log('Navigate to emergency cases');
-        router.push('/(tabs)/reports'); // Cases tab with emergency filter
+        router.push('/(dashboard)/healthcare/patients');
       },
     },
   ];
@@ -151,7 +149,7 @@ export default function DashboardOverview() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <action.icon color="#FFFFFF" size={28} />
+                <action.icon color="#FFFFFF" size={24} />
                 <View style={styles.quickActionText}>
                   <Text style={styles.quickActionTitle}>{action.title}</Text>
                   <Text style={styles.quickActionSubtitle}>{action.subtitle}</Text>
@@ -200,7 +198,7 @@ export default function DashboardOverview() {
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.emergencyAlert}
-            onPress={() => router.push('/(tabs)/reports')}
+            onPress={() => router.push('/(dashboard)/healthcare/patients')}
           >
             <View style={styles.emergencyHeader}>
               <AlertTriangle color="#EF4444" size={24} />
@@ -249,6 +247,16 @@ export default function DashboardOverview() {
           </View>
         </View>
       </View>
+
+      {/* Register Patient Modal */}
+      <RegisterPatientModal
+        visible={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSuccess={() => {
+          // Refresh data or show success message
+          console.log('Patient registered successfully');
+        }}
+      />
     </ScrollView>
   );
 }
@@ -269,35 +277,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 8,
   },
   quickActionCard: {
-    height: 80,
+    width: (width - 48) / 2,
+    height: 100,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 8,
   },
   quickActionGradient: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    gap: 16,
+    justifyContent: 'center',
+    gap: 8,
   },
   quickActionText: {
-    flex: 1,
+    alignItems: 'center',
   },
   quickActionTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
     marginBottom: 2,
   },
   quickActionSubtitle: {
     color: '#FFFFFF',
-    fontSize: 12,
-    opacity: 0.9,
+    fontSize: 10,
+    opacity: 0.8,
+    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
