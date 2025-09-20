@@ -10,6 +10,7 @@ import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
+import { RecommendationProvider } from "@/providers/RecommendationProvider";
 
 
 // Error Boundary Component
@@ -143,8 +144,10 @@ export default function RootLayout() {
               <IncidentProvider>
                 <ProviderContext>
                   <WellbeingProvider>
-                    <RootLayoutNav />
-                    <StatusBar style={styles.statusBar} />
+                    <RecommendationProvider>
+                      <RootLayoutNav />
+                      <StatusBar style={styles.statusBar} />
+                    </RecommendationProvider>
                   </WellbeingProvider>
                 </ProviderContext>
               </IncidentProvider>
