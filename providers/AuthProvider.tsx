@@ -51,6 +51,7 @@ const convertApiUserToAppUser = (apiUser: ApiUser): User => ({
   id: apiUser.id,
   email: apiUser.email,
   role: apiUser.role,
+  providerType: apiUser.provider_type as ProviderType, // Map provider_type from backend
   firstName: apiUser.first_name,
   lastName: apiUser.last_name,
   fullName: apiUser.full_name,
@@ -214,6 +215,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         first_name: userData.firstName,
         last_name: userData.lastName,
         role: userData.role,
+        provider_type: userData.providerType,
         is_anonymous: userData.isAnonymous,
       };
       
