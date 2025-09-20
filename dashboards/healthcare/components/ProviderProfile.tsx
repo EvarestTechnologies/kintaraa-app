@@ -27,10 +27,12 @@ import {
   FileText,
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { router } from 'expo-router';
 
 export default function ProviderProfile() {
   const { stats, providerProfile } = useProvider();
+  const { logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [availabilityStatus, setAvailabilityStatus] = useState<boolean>(true);
 
@@ -69,7 +71,7 @@ export default function ProviderProfile() {
           style: 'destructive',
           onPress: () => {
             console.log('Logging out...');
-            router.replace('/(auth)/welcome');
+            logout();
           }
         },
       ]

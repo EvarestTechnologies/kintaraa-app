@@ -139,7 +139,12 @@ export class AuthService {
       console.warn('Backend logout failed:', error);
     } finally {
       // Always clear local auth data
-      await this.clearAuthData();
+      try {
+        const keys = Object.values(STORAGE_KEYS);
+        await AsyncStorage.multiRemove(keys);
+      } catch (error) {
+        console.error('Failed to clear auth data:', error);
+      }
     }
   }
 
@@ -334,17 +339,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * Clear all authentication data
-   */
-  private static async clearAuthData(): Promise<void> {
-    try {
-      const keys = Object.values(STORAGE_KEYS);
-      await AsyncStorage.multiRemove(keys);
-    } catch (error) {
-      console.error('Failed to clear auth data:', error);
-    }
-  }
+ 
 
   /**
    * Get stored authentication data
