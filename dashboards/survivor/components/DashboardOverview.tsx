@@ -66,14 +66,14 @@ export function DashboardOverview() {
       title: 'Safety Tools',
       icon: Shield,
       color: '#26A69A',
-      onPress: () => router.push('/(tabs)/safety'),
+      onPress: () => router.push('/(dashboard)/survivor/safety'),
     },
     {
       id: 'wellbeing',
       title: 'Wellbeing Check',
       icon: Heart,
       color: '#F3B52F',
-      onPress: () => router.push('/(tabs)/wellbeing'),
+      onPress: () => router.push('/(dashboard)/survivor/wellbeing'),
     },
   ];
 
@@ -213,7 +213,7 @@ export function DashboardOverview() {
           </View>
           <TouchableOpacity
             style={styles.viewAllButton}
-            onPress={() => router.push('/(tabs)/reports')}
+            onPress={() => router.push('/(dashboard)/survivor/reports')}
           >
             <Text style={styles.viewAllButtonText}>View All Cases</Text>
           </TouchableOpacity>
@@ -270,7 +270,7 @@ export function DashboardOverview() {
           </Text>
           <TouchableOpacity
             style={styles.checkinButton}
-            onPress={() => router.push('/(tabs)/wellbeing')}
+            onPress={() => router.push('/(dashboard)/survivor/wellbeing')}
           >
             <Text style={styles.checkinButtonText}>Start Check-in</Text>
           </TouchableOpacity>
@@ -289,7 +289,7 @@ export function DashboardOverview() {
           </Text>
           <TouchableOpacity
             style={styles.safetyButton}
-            onPress={() => router.push('/(tabs)/safety')}
+            onPress={() => router.push('/(dashboard)/survivor/safety')}
           >
             <Text style={styles.safetyButtonText}>Review Safety Settings</Text>
           </TouchableOpacity>
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
     marginBottom: 16,
   },
   statCard: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    width: (width - 88) / 2,
+    width: (width - 96) / 2,
   },
   statNumber: {
     fontSize: 24,
