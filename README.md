@@ -2,9 +2,9 @@
 
 > **A comprehensive React Native application connecting GBV survivors with specialized service providers through intelligent, role-based interfaces.**
 
-[![React Native](https://img.shields.io/badge/React%20Native-0.79.1-blue.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-53.0.4-black.svg)](https://expo.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.81.4-blue.svg)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-54.0.0-black.svg)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## 📱 About Kintaraa
@@ -51,8 +51,8 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 {
   "framework": "React Native + Expo",
   "language": "TypeScript (Strict Mode)",
-  "navigation": "Expo Router v5 (File-based)",
-  "state": "React Query + Zustand + Context API",
+  "navigation": "Expo Router v6 (File-based)",
+  "state": "React Query + Context API",
   "styling": "NativeWind (Tailwind CSS)",
   "auth": "Expo Local Authentication (Biometric)",
   "storage": "AsyncStorage (Local Persistence)"
@@ -112,9 +112,6 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
    ```bash
    # Install with force flag to resolve React 19 compatibility issues
    npm install --force
-
-   # Install required TypeScript dependencies
-   npm install --save-dev @types/react-native --force
    ```
 
 3. **Start the development server**
@@ -206,12 +203,13 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 
 ### 🚨 **Important Setup Notes**
 
+- **Expo SDK 54**: The app uses Expo SDK 54. Ensure your Expo Go app is updated to SDK 54 or later.
 - **React 19 Compatibility**: The app uses React 19, but some dependencies expect React 18. Use `--force` flag during installation.
 - **Mobile Development**: For phone testing, use `npx expo start --tunnel` (not `--offline`) to enable device connections.
 - **Expo Go Required**: Install Expo Go app on your phone to run the development version.
 - **Network Requirements**: Tunnel mode works across different networks; local mode requires same WiFi.
 - **Bun vs NPM**: The package.json scripts are configured for Bun runtime. If you don't have Bun installed, use the `npx expo` commands directly.
-- **TypeScript**: Ensure `@types/react-native` is installed for proper TypeScript support.
+- **TypeScript**: Types are now included with React Native; no need for separate @types/react-native.
 
 ### 🔧 **Troubleshooting Mobile Connection**
 
@@ -236,6 +234,12 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 - These are dependency validation warnings and can be ignored
 - The tunnel/server will still work despite the errors
 - Look for "Metro waiting" or "Tunnel ready" messages to confirm it's working
+
+**SDK Compatibility Issues:**
+
+- **Expo Go Version**: Ensure your Expo Go app is SDK 54 compatible
+- **Clear Expo Cache**: `rm -rf .expo node_modules/.cache` then restart
+- **Check SDK Version**: Run `npx expo-doctor` to verify compatibility
 
 **Complete reset if nothing works:**
 
@@ -574,6 +578,16 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 📝 Recent Updates
 
+### September 20, 2025 - Expo SDK 54 Upgrade
+
+- ✅ **Expo SDK Update**: Upgraded from SDK 53 to SDK 54 for Expo Go compatibility
+- ✅ **React Native Update**: Updated to React Native 0.81.4
+- ✅ **Package Updates**: All Expo packages updated to SDK 54 compatible versions
+- ✅ **Expo Router**: Updated to v6 with enhanced features
+- ✅ **Bundle Identifiers**: Fixed Android/iOS bundle IDs to valid format
+- ✅ **Dependencies Cleanup**: Removed unnecessary @types/react-native package
+- ✅ **Lock Files**: Cleaned up multiple lock files for consistency
+
 ### September 16, 2025 - File Structure Optimization
 
 - ✅ **File Cleanup**: Removed unnecessary development markdown files
@@ -591,6 +605,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-_Last updated: September 16, 2025_
-_Version: 1.0.1_
-_React Native: 0.79.5 | Expo: 53.0.4 | TypeScript: 5.8.3_
+_Last updated: September 20, 2025_
+_Version: 1.0.2_
+_React Native: 0.81.4 | Expo: 54.0.0 | TypeScript: 5.9.2_
