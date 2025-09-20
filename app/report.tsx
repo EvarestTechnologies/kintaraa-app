@@ -166,7 +166,7 @@ export default function ReportScreen() {
       [
         {
           text: 'OK',
-          onPress: () => router.replace('/(tabs)/reports'),
+          onPress: () => router.replace('/(dashboard)/survivor/reports'),
         },
       ]
     );
