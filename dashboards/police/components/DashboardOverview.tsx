@@ -1,8 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Shield, FileText, Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
-import type { PoliceStats } from '../index';
+import NewCaseModal from './NewCaseModal';
+import NewEvidenceModal from './NewEvidenceModal';
+import NewReportModal from './NewReportModal';
+import type { PoliceStats, PoliceCase } from '../index';
 
 const mockPoliceStats: PoliceStats = {
   totalCases: 156,
@@ -13,8 +17,84 @@ const mockPoliceStats: PoliceStats = {
   averageResponseTime: 8.5
 };
 
+const mockCases: PoliceCase[] = [
+  {
+    id: '1',
+    caseNumber: 'DV-2025-001',
+    incidentType: 'domestic_violence',
+    status: 'open',
+    priority: 'high',
+    reportedDate: '2025-01-15',
+    incidentDate: '2025-01-15',
+    location: '123 Main St, Springfield',
+    reportingOfficer: 'Officer Smith',
+    assignedDetective: 'Officer Johnson',
+    victimName: 'Jane Doe',
+    victimId: 'V001',
+    suspectName: 'John Doe',
+    description: 'Domestic violence incident reported',
+    lastActivity: '2025-01-16',
+    evidenceCount: 3,
+    witnessCount: 2
+  },
+  {
+    id: '2',
+    caseNumber: 'SA-2025-003',
+    incidentType: 'sexual_assault',
+    status: 'under_investigation',
+    priority: 'urgent',
+    reportedDate: '2025-01-14',
+    incidentDate: '2025-01-14',
+    location: 'Downtown Area',
+    reportingOfficer: 'Hotline Officer',
+    assignedDetective: 'Detective Brown',
+    victimName: 'Anonymous',
+    victimId: 'V002',
+    description: 'Sexual assault case under investigation',
+    lastActivity: '2025-01-16',
+    evidenceCount: 5,
+    witnessCount: 1
+  }
+];
+
 const DashboardOverview: React.FC = () => {
   const stats = mockPoliceStats;
+  const router = useRouter();
+
+  // Modal states
+  const [showNewCaseModal, setShowNewCaseModal] = useState(false);
+  const [showNewEvidenceModal, setShowNewEvidenceModal] = useState(false);
+  const [showNewReportModal, setShowNewReportModal] = useState(false);
+
+  // Quick action handlers
+  const handleNewCase = () => {
+    setShowNewCaseModal(true);
+  };
+
+  const handleAddEvidence = () => {
+    setShowNewEvidenceModal(true);
+  };
+
+  const handleGenerateReport = () => {
+    setShowNewReportModal(true);
+  };
+
+  const handleEmergencyAlert = () => {
+    Alert.alert(
+      'Emergency Alert',
+      'Are you sure you want to send an emergency alert?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Alert',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Alert Sent', 'Emergency alert has been sent to all units.');
+          }
+        }
+      ]
+    );
+  };
 
   const StatCard: React.FC<{
     title: string;
@@ -52,7 +132,7 @@ const DashboardOverview: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Police Dashboard</Text>
@@ -107,25 +187,25 @@ const DashboardOverview: React.FC = () => {
             title="New Case"
             icon={<Shield color="white" />}
             color="#3B82F6"
-            onPress={() => console.log('New Case')}
+            onPress={handleNewCase}
           />
           <QuickAction
             title="Add Evidence"
             icon={<FileText color="white" />}
             color="#8B5CF6"
-            onPress={() => console.log('Add Evidence')}
+            onPress={handleAddEvidence}
           />
           <QuickAction
             title="Generate Report"
             icon={<FileText color="white" />}
             color="#10B981"
-            onPress={() => console.log('Generate Report')}
+            onPress={handleGenerateReport}
           />
           <QuickAction
             title="Emergency Alert"
             icon={<AlertTriangle color="white" />}
             color="#DC2626"
-            onPress={() => console.log('Emergency Alert')}
+            onPress={handleEmergencyAlert}
           />
         </View>
       </View>
@@ -163,6 +243,36 @@ const DashboardOverview: React.FC = () => {
         </View>
       </View>
       </ScrollView>
+
+      {/* Modals */}
+      <NewCaseModal
+        visible={showNewCaseModal}
+        onClose={() => setShowNewCaseModal(false)}
+        onSuccess={(newCase) => {
+          setShowNewCaseModal(false);
+          Alert.alert('Success', 'New case created successfully!');
+        }}
+      />
+
+      <NewEvidenceModal
+        visible={showNewEvidenceModal}
+        onClose={() => setShowNewEvidenceModal(false)}
+        onSuccess={(newEvidence) => {
+          setShowNewEvidenceModal(false);
+          Alert.alert('Success', 'Evidence added successfully!');
+        }}
+        cases={mockCases}
+      />
+
+      <NewReportModal
+        visible={showNewReportModal}
+        onClose={() => setShowNewReportModal(false)}
+        onSuccess={(newReport) => {
+          setShowNewReportModal(false);
+          Alert.alert('Success', 'Report generated successfully!');
+        }}
+        cases={mockCases}
+      />
     </SafeAreaView>
   );
 };
