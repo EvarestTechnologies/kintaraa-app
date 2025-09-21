@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, Shield, AlertTriangle, Clock, CheckCircle } from 'lucide-react-native';
 import type { PoliceCase } from '../index';
+import NewCaseModal from './NewCaseModal';
+import FilterCasesModal, { type CaseFilters } from './FilterCasesModal';
 
 const mockPoliceCases: PoliceCase[] = [
   {
@@ -63,17 +66,79 @@ const mockPoliceCases: PoliceCase[] = [
 const CasesList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [cases] = useState<PoliceCase[]>(mockPoliceCases);
+  const [cases, setCases] = useState<PoliceCase[]>(mockPoliceCases);
+  const [showNewCaseModal, setShowNewCaseModal] = useState<boolean>(false);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [activeFilters, setActiveFilters] = useState<CaseFilters>({
+    status: [],
+    incidentType: [],
+    priority: [],
+    dateRange: { startDate: null, endDate: null },
+    assignedDetective: '',
+    reportingOfficer: '',
+    location: '',
+  });
 
   const filteredCases = cases.filter(caseItem => {
+    // Search filter
     const matchesSearch = caseItem.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          caseItem.victimName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          caseItem.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = selectedFilter === 'all' || caseItem.status === selectedFilter;
-    
-    return matchesSearch && matchesFilter;
+
+    // Basic tab filter (for backward compatibility)
+    const matchesBasicFilter = selectedFilter === 'all' || caseItem.status === selectedFilter;
+
+    // Advanced filters
+    const matchesStatus = activeFilters.status.length === 0 || activeFilters.status.includes(caseItem.status);
+    const matchesIncidentType = activeFilters.incidentType.length === 0 || activeFilters.incidentType.includes(caseItem.incidentType);
+    const matchesPriority = activeFilters.priority.length === 0 || activeFilters.priority.includes(caseItem.priority);
+
+    // Date range filter
+    let matchesDateRange = true;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) {
+      const caseDate = new Date(caseItem.incidentDate);
+      if (activeFilters.dateRange.startDate) {
+        matchesDateRange = matchesDateRange && caseDate >= new Date(activeFilters.dateRange.startDate);
+      }
+      if (activeFilters.dateRange.endDate) {
+        matchesDateRange = matchesDateRange && caseDate <= new Date(activeFilters.dateRange.endDate);
+      }
+    }
+
+    // Text filters
+    const matchesDetective = !activeFilters.assignedDetective ||
+      (caseItem.assignedDetective && caseItem.assignedDetective.toLowerCase().includes(activeFilters.assignedDetective.toLowerCase()));
+    const matchesOfficer = !activeFilters.reportingOfficer ||
+      caseItem.reportingOfficer.toLowerCase().includes(activeFilters.reportingOfficer.toLowerCase());
+    const matchesLocation = !activeFilters.location ||
+      caseItem.location.toLowerCase().includes(activeFilters.location.toLowerCase());
+
+    return matchesSearch && matchesBasicFilter && matchesStatus && matchesIncidentType &&
+           matchesPriority && matchesDateRange && matchesDetective && matchesOfficer && matchesLocation;
   });
+
+  const hasActiveFilters = (): boolean => {
+    return activeFilters.status.length > 0 ||
+           activeFilters.incidentType.length > 0 ||
+           activeFilters.priority.length > 0 ||
+           activeFilters.dateRange.startDate !== null ||
+           activeFilters.dateRange.endDate !== null ||
+           activeFilters.assignedDetective !== '' ||
+           activeFilters.reportingOfficer !== '' ||
+           activeFilters.location !== '';
+  };
+
+  const getActiveFiltersCount = (): number => {
+    let count = 0;
+    count += activeFilters.status.length;
+    count += activeFilters.incidentType.length;
+    count += activeFilters.priority.length;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) count += 1;
+    if (activeFilters.assignedDetective) count += 1;
+    if (activeFilters.reportingOfficer) count += 1;
+    if (activeFilters.location) count += 1;
+    return count;
+  };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -162,10 +227,14 @@ const CasesList: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Police Cases</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowNewCaseModal(true)}
+        >
           <Plus color="white" />
         </TouchableOpacity>
       </View>
@@ -180,8 +249,16 @@ const CasesList: React.FC = () => {
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter color="#64748B" />
+        <TouchableOpacity
+          style={[styles.filterButton, hasActiveFilters() && styles.filterButtonActive]}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Filter color={hasActiveFilters() ? "#1E40AF" : "#64748B"} />
+          {hasActiveFilters() && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -216,11 +293,36 @@ const CasesList: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      <NewCaseModal
+        visible={showNewCaseModal}
+        onClose={() => setShowNewCaseModal(false)}
+        onSuccess={(newCase) => {
+          setCases(prev => [newCase, ...prev]);
+          setShowNewCaseModal(false);
+        }}
+      />
+
+      <FilterCasesModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApplyFilters={(filters) => {
+          setActiveFilters(filters);
+          setShowFilterModal(false);
+        }}
+        currentFilters={activeFilters}
+        cases={cases}
+      />
     </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -274,6 +376,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  filterButtonActive: {
+    backgroundColor: '#DBEAFE',
+    borderWidth: 1,
+    borderColor: '#1E40AF',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   filterTabs: {
     flexDirection: 'row',
