@@ -23,6 +23,8 @@ import {
   Pause,
 } from 'lucide-react-native';
 import type { CourtHearing } from '../index';
+import ScheduleHearingModal from './ScheduleHearingModal';
+import CalendarView from './CalendarView';
 
 type ViewType = 'list' | 'calendar';
 type FilterType = 'all' | 'today' | 'week' | 'month' | 'scheduled' | 'confirmed';
@@ -196,9 +198,10 @@ function HearingCard({ hearing, onPress, onEdit, onDelete }: HearingCardProps) {
 export default function CourtSchedule() {
   const [viewType, setViewType] = useState<ViewType>('list');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  // Mock court hearings data
-  const mockHearings: CourtHearing[] = useMemo(() => [
+  // Mock court hearings data - now as state to allow adding new hearings
+  const [hearings, setHearings] = useState<CourtHearing[]>([
     {
       id: '1',
       caseId: 'case-1',
@@ -280,10 +283,10 @@ export default function CourtSchedule() {
       notes: 'Child custody modification appeal hearing.',
       attendees: ['Amanda Davis', 'Ex-Spouse', 'Child Advocate'],
     },
-  ], []);
+  ]);
 
   const filteredHearings = useMemo(() => {
-    let filtered = mockHearings;
+    let filtered = hearings;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -324,7 +327,7 @@ export default function CourtSchedule() {
     });
 
     return filtered;
-  }, [mockHearings, activeFilter]);
+  }, [hearings, activeFilter]);
 
   const handleHearingPress = (hearing: CourtHearing) => {
     console.log('Opening hearing details for:', hearing.caseName);
@@ -342,8 +345,15 @@ export default function CourtSchedule() {
   };
 
   const handleNewHearing = () => {
-    console.log('Creating new hearing');
-    // Navigate to hearing creation
+    setShowScheduleModal(true);
+  };
+
+  const handleScheduleHearing = (hearingData: any) => {
+    const newHearing: CourtHearing = {
+      ...hearingData,
+      id: `hearing-${Date.now()}`,
+    };
+    setHearings(prevHearings => [...prevHearings, newHearing]);
   };
 
   const getFilterCount = (filter: FilterType) => {
@@ -353,18 +363,18 @@ export default function CourtSchedule() {
     const monthFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     switch (filter) {
-      case 'all': return mockHearings.length;
-      case 'today': return mockHearings.filter(h => new Date(h.date).toDateString() === today.toDateString()).length;
-      case 'week': return mockHearings.filter(h => {
+      case 'all': return hearings.length;
+      case 'today': return hearings.filter(h => new Date(h.date).toDateString() === today.toDateString()).length;
+      case 'week': return hearings.filter(h => {
         const hearingDate = new Date(h.date);
         return hearingDate >= today && hearingDate <= weekFromNow;
       }).length;
-      case 'month': return mockHearings.filter(h => {
+      case 'month': return hearings.filter(h => {
         const hearingDate = new Date(h.date);
         return hearingDate >= today && hearingDate <= monthFromNow;
       }).length;
-      case 'scheduled': return mockHearings.filter(h => h.status === 'scheduled').length;
-      case 'confirmed': return mockHearings.filter(h => h.status === 'confirmed').length;
+      case 'scheduled': return hearings.filter(h => h.status === 'scheduled').length;
+      case 'confirmed': return hearings.filter(h => h.status === 'confirmed').length;
       default: return 0;
     }
   };
@@ -409,54 +419,74 @@ export default function CourtSchedule() {
       </View>
 
       {/* Filter Options */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-        {(['all', 'today', 'week', 'month', 'scheduled', 'confirmed'] as FilterType[]).map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterChip,
-              activeFilter === filter && styles.filterChipActive,
-            ]}
-            onPress={() => setActiveFilter(filter)}
-          >
-            <Text
+      <View style={styles.filtersContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {(['all', 'today', 'week', 'month', 'scheduled', 'confirmed'] as FilterType[]).map((filter) => (
+            <TouchableOpacity
+              key={filter}
               style={[
-                styles.filterChipText,
-                activeFilter === filter && styles.filterChipTextActive,
+                styles.filterChip,
+                activeFilter === filter && styles.filterChipActive,
               ]}
+              onPress={() => setActiveFilter(filter)}
             >
-              {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-              {` (${getFilterCount(filter)})`}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  activeFilter === filter && styles.filterChipTextActive,
+                ]}
+              >
+                {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {` (${getFilterCount(filter)})`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-      {/* Hearings List */}
-      <FlatList
-        data={filteredHearings}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <HearingCard
-            hearing={item}
-            onPress={handleHearingPress}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        )}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Calendar size={48} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No hearings found</Text>
-            <Text style={styles.emptySubtitle}>
-              {activeFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Start by scheduling your first court hearing'}
-            </Text>
-          </View>
-        }
+      {/* Content - List or Calendar View */}
+      <View style={{ flex: 1 }}>
+        {viewType === 'list' ? (
+          <FlatList
+          data={filteredHearings}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <HearingCard
+              hearing={item}
+              onPress={handleHearingPress}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          )}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Calendar size={48} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>No hearings found</Text>
+              <Text style={styles.emptySubtitle}>
+                {activeFilter !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'Start by scheduling your first court hearing'}
+              </Text>
+            </View>
+          }
+        />
+      ) : (
+        <CalendarView
+          hearings={filteredHearings}
+          onHearingPress={handleHearingPress}
+          onEditHearing={handleEdit}
+          onDeleteHearing={handleDelete}
+        />
+      )}
+      </View>
+
+      {/* Schedule Hearing Modal */}
+      <ScheduleHearingModal
+        visible={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSchedule={handleScheduleHearing}
       />
     </SafeAreaView>
   );
@@ -539,16 +569,27 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 0,
   },
+  filterScroll: {
+    alignItems: 'center',
+  },
+  // contentContainer: {
+  //   flex: 1,
+  //   paddingTop: 0,
+  // },
   filterChip: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterChipActive: {
     backgroundColor: '#3B82F6',
@@ -564,6 +605,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 20,
   },
   hearingCard: {
