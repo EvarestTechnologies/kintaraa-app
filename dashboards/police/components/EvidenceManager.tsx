@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, FileText, Camera, Video, Mic, Shield, Eye, Lock } from 'lucide-react-native';
-import type { Evidence } from '../index';
+import type { Evidence, PoliceCase } from '../index';
+import NewEvidenceModal from './NewEvidenceModal';
+import FilterEvidenceModal, { type EvidenceFilters } from './FilterEvidenceModal';
 
 const mockEvidence: Evidence[] = [
   {
@@ -86,20 +89,135 @@ const mockEvidence: Evidence[] = [
   }
 ];
 
+// Mock cases data for the new evidence modal
+const mockCases: PoliceCase[] = [
+  {
+    id: '1',
+    caseNumber: 'DV-2025-001',
+    incidentType: 'domestic_violence',
+    status: 'under_investigation',
+    priority: 'high',
+    reportedDate: '2025-01-15',
+    incidentDate: '2025-01-14',
+    location: '123 Main St, Downtown',
+    reportingOfficer: 'Officer Johnson',
+    assignedDetective: 'Det. Smith',
+    victimName: 'Sarah Wilson',
+    victimId: 'victim_001',
+    suspectName: 'John Wilson',
+    description: 'Domestic violence incident with physical assault',
+    lastActivity: '2025-01-15T10:30:00Z',
+    evidenceCount: 3,
+    witnessCount: 2
+  },
+  {
+    id: '2',
+    caseNumber: 'SA-2025-003',
+    incidentType: 'sexual_assault',
+    status: 'open',
+    priority: 'urgent',
+    reportedDate: '2025-01-14',
+    incidentDate: '2025-01-13',
+    location: 'University Campus',
+    reportingOfficer: 'Officer Davis',
+    assignedDetective: 'Det. Brown',
+    victimName: 'Anonymous',
+    victimId: 'victim_002',
+    description: 'Sexual assault reported on university campus',
+    lastActivity: '2025-01-14T16:45:00Z',
+    evidenceCount: 5,
+    witnessCount: 1
+  }
+];
+
 const EvidenceManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [evidence] = useState<Evidence[]>(mockEvidence);
+  const [evidence, setEvidence] = useState<Evidence[]>(mockEvidence);
+  const [showNewEvidenceModal, setShowNewEvidenceModal] = useState<boolean>(false);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [activeFilters, setActiveFilters] = useState<EvidenceFilters>({
+    type: [],
+    status: [],
+    dateRange: { startDate: null, endDate: null },
+    caseNumber: '',
+    collectedBy: '',
+    location: '',
+    tags: '',
+    confidentialOnly: false,
+    hasForensicResults: false,
+  });
 
   const filteredEvidence = evidence.filter(item => {
+    // Search filter
     const matchesSearch = item.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesFilter = selectedFilter === 'all' || item.type === selectedFilter;
-    
-    return matchesSearch && matchesFilter;
+
+    // Basic tab filter (for backward compatibility)
+    const matchesBasicFilter = selectedFilter === 'all' || item.type === selectedFilter;
+
+    // Advanced filters
+    const matchesType = activeFilters.type.length === 0 || activeFilters.type.includes(item.type);
+    const matchesStatus = activeFilters.status.length === 0 || activeFilters.status.includes(item.status);
+
+    // Date range filter
+    let matchesDateRange = true;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) {
+      const evidenceDate = new Date(item.collectedDate);
+      if (activeFilters.dateRange.startDate) {
+        matchesDateRange = matchesDateRange && evidenceDate >= new Date(activeFilters.dateRange.startDate);
+      }
+      if (activeFilters.dateRange.endDate) {
+        matchesDateRange = matchesDateRange && evidenceDate <= new Date(activeFilters.dateRange.endDate);
+      }
+    }
+
+    // Text filters
+    const matchesCaseNumber = !activeFilters.caseNumber ||
+      item.caseNumber.toLowerCase().includes(activeFilters.caseNumber.toLowerCase());
+    const matchesCollectedBy = !activeFilters.collectedBy ||
+      item.collectedBy.toLowerCase().includes(activeFilters.collectedBy.toLowerCase());
+    const matchesLocation = !activeFilters.location ||
+      item.location.toLowerCase().includes(activeFilters.location.toLowerCase());
+    const matchesTags = !activeFilters.tags ||
+      item.tags.some(tag => tag.toLowerCase().includes(activeFilters.tags.toLowerCase()));
+
+    // Boolean filters
+    const matchesConfidential = !activeFilters.confidentialOnly || item.confidential;
+    const matchesForensicResults = !activeFilters.hasForensicResults || !!item.forensicResults;
+
+    return matchesSearch && matchesBasicFilter && matchesType && matchesStatus &&
+           matchesDateRange && matchesCaseNumber && matchesCollectedBy && matchesLocation &&
+           matchesTags && matchesConfidential && matchesForensicResults;
   });
+
+  const hasActiveFilters = (): boolean => {
+    return activeFilters.type.length > 0 ||
+           activeFilters.status.length > 0 ||
+           activeFilters.dateRange.startDate !== null ||
+           activeFilters.dateRange.endDate !== null ||
+           activeFilters.caseNumber !== '' ||
+           activeFilters.collectedBy !== '' ||
+           activeFilters.location !== '' ||
+           activeFilters.tags !== '' ||
+           activeFilters.confidentialOnly ||
+           activeFilters.hasForensicResults;
+  };
+
+  const getActiveFiltersCount = (): number => {
+    let count = 0;
+    count += activeFilters.type.length;
+    count += activeFilters.status.length;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) count += 1;
+    if (activeFilters.caseNumber) count += 1;
+    if (activeFilters.collectedBy) count += 1;
+    if (activeFilters.location) count += 1;
+    if (activeFilters.tags) count += 1;
+    if (activeFilters.confidentialOnly) count += 1;
+    if (activeFilters.hasForensicResults) count += 1;
+    return count;
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -191,10 +309,14 @@ const EvidenceManager: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Evidence Manager</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowNewEvidenceModal(true)}
+        >
           <Plus color="white" />
         </TouchableOpacity>
       </View>
@@ -209,8 +331,16 @@ const EvidenceManager: React.FC = () => {
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter color="#64748B" />
+        <TouchableOpacity
+          style={[styles.filterButton, hasActiveFilters() && styles.filterButtonActive]}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Filter color={hasActiveFilters() ? "#8B5CF6" : "#64748B"} />
+          {hasActiveFilters() && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -245,11 +375,37 @@ const EvidenceManager: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+
+      <NewEvidenceModal
+        visible={showNewEvidenceModal}
+        onClose={() => setShowNewEvidenceModal(false)}
+        onSuccess={(newEvidence) => {
+          setEvidence(prev => [newEvidence, ...prev]);
+          setShowNewEvidenceModal(false);
+        }}
+        cases={mockCases}
+      />
+
+      <FilterEvidenceModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApplyFilters={(filters) => {
+          setActiveFilters(filters);
+          setShowFilterModal(false);
+        }}
+        currentFilters={activeFilters}
+        evidence={evidence}
+      />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -303,6 +459,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  filterButtonActive: {
+    backgroundColor: '#F3E8FF',
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   filterTabs: {
     flexDirection: 'row',
