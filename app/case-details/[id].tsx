@@ -8,6 +8,7 @@ import {
   Alert,
   Platform,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -133,6 +134,47 @@ export default function CaseDetailsScreen() {
         ]
       );
     }
+  };
+
+  const handleContactSurvivor = () => {
+    // For demo purposes, show contact options
+    // In a real app, you would have the survivor's contact information stored
+    Alert.alert(
+      'Contact Survivor',
+      'How would you like to contact the survivor?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          onPress: () => {
+            // In a real app, you would use the survivor's phone number
+            // For demo, show that the feature is working
+            Alert.alert(
+              'Contact Information',
+              'This would initiate a call to the survivor. In a production app, this would use the survivor\'s actual phone number.',
+              [
+                { text: 'OK' },
+                {
+                  text: 'Emergency Hotline',
+                  onPress: () => {
+                    // Dial emergency hotline as backup
+                    Linking.openURL('tel:1195'); // Kenya GBV hotline
+                  }
+                }
+              ]
+            );
+          }
+        },
+        {
+          text: 'SMS',
+          onPress: () => {
+            // Open SMS app - in production, you would use the survivor's actual phone number
+            // For demo, using a placeholder number
+            Linking.openURL('sms:+254700000000?body=Hello, this is regarding your case. Please let us know if you need any assistance.');
+          }
+        }
+      ]
+    );
   };
 
   const isProvider = user?.role === 'provider';
@@ -346,7 +388,10 @@ export default function CaseDetailsScreen() {
                 <MessageCircle color="#FFFFFF" size={20} />
                 <Text style={styles.actionButtonText}>Send Message</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, styles.callButton]}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.callButton]}
+                onPress={handleContactSurvivor}
+              >
                 <Phone color="#FFFFFF" size={20} />
                 <Text style={styles.actionButtonText}>Contact Survivor</Text>
               </TouchableOpacity>

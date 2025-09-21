@@ -57,6 +57,7 @@ export default function ConsultationForm({
   const [showToiletDropdown, setShowToiletDropdown] = useState(false);
   const [showPepDropdown, setShowPepDropdown] = useState(false);
   const [showEcpDropdown, setShowEcpDropdown] = useState(false);
+  const [showFollowUpTypeDropdown, setShowFollowUpTypeDropdown] = useState(false);
 
   // Dropdown options
   const genderOptions = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
@@ -86,6 +87,15 @@ export default function ConsultationForm({
     'No - Not indicated (>120 hours)',
     'No - Already pregnant',
     'No - Not available'
+  ];
+  const followUpTypeOptions = [
+    'Phone call',
+    'In-person visit',
+    'Video consultation',
+    'Home visit',
+    'Text message',
+    'Email',
+    'No follow-up needed'
   ];
 
   const [formData, setFormData] = useState({
@@ -289,7 +299,7 @@ export default function ConsultationForm({
     required: boolean = false
   ) => (
     <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label} {required && '*'}</Text>
+      {label && <Text style={styles.label}>{label} {required && '*'}</Text>}
       <TouchableOpacity
         style={styles.dropdownButton}
         onPress={() => setVisible(!isVisible)}
@@ -537,31 +547,32 @@ export default function ConsultationForm({
           </View>
         )}
 
-        <View style={styles.row}>
-          {formData.violenceForm === 'Sexual Violence' && (
-            <View style={styles.halfInput}>
-              {renderDropdown(
-                'Condom Used?',
-                formData.condomUsed,
-                yesNoUnknownOptions,
-                (value) => updateField('condomUsed', value),
-                'Select option',
-                showCondomDropdown,
-                setShowCondomDropdown
-              )}
-            </View>
-          )}
-          <View style={formData.violenceForm === 'Sexual Violence' ? styles.halfInput : styles.inputGroup}>
+        {formData.violenceForm === 'Sexual Violence' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Condom Used?</Text>
             {renderDropdown(
-              'Police Reported?',
-              formData.policeReported,
-              yesNoOptions,
-              (value) => updateField('policeReported', value),
+              '',
+              formData.condomUsed,
+              yesNoUnknownOptions,
+              (value) => updateField('condomUsed', value),
               'Select option',
-              showPoliceDropdown,
-              setShowPoliceDropdown
+              showCondomDropdown,
+              setShowCondomDropdown
             )}
           </View>
+        )}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Police Reported?</Text>
+          {renderDropdown(
+            '',
+            formData.policeReported,
+            yesNoOptions,
+            (value) => updateField('policeReported', value),
+            'Select option',
+            showPoliceDropdown,
+            setShowPoliceDropdown
+          )}
         </View>
 
         <View style={styles.inputGroup}>
@@ -1047,13 +1058,15 @@ export default function ConsultationForm({
           </View>
           <View style={styles.halfInput}>
             <Text style={styles.label}>Follow-up Type</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.followUpType}
-              onChangeText={(value) => updateField('followUpType', value)}
-              placeholder="Phone/In-person"
-              placeholderTextColor="#9CA3AF"
-            />
+            {renderDropdown(
+              '',
+              formData.followUpType,
+              followUpTypeOptions,
+              (value) => updateField('followUpType', value),
+              'Select follow-up type',
+              showFollowUpTypeDropdown,
+              setShowFollowUpTypeDropdown
+            )}
           </View>
         </View>
       </View>
