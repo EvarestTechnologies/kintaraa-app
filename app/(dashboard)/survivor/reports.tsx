@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Plus, FileText, Clock, CheckCircle, AlertCircle, MessageCircle, Filter, Search, Briefcase, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { useIncidents, Incident } from '@/providers/IncidentProvider';
@@ -154,14 +155,16 @@ export default function ReportsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{user?.role === 'provider' ? 'Case Management' : 'My Reports'}</Text>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{user?.role === 'provider' ? 'Case Management' : 'My Reports'}</Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading {user?.role === 'provider' ? 'cases' : 'reports'}...</Text>
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading {user?.role === 'provider' ? 'cases' : 'reports'}...</Text>
-        </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -270,7 +273,8 @@ export default function ReportsScreen() {
     );
     
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Case Management</Text>
           <View style={styles.headerActions}>
@@ -577,12 +581,14 @@ export default function ReportsScreen() {
           </View>
         </Modal>
       </View>
+      </SafeAreaView>
     );
   }
 
   // Default survivor reports view
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Reports</Text>
         <TouchableOpacity
@@ -692,10 +698,15 @@ export default function ReportsScreen() {
         </View>
       </ScrollView>
     </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F0FF',
