@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, FileText, Eye, Edit, CheckCircle, Clock, AlertTriangle } from 'lucide-react-native';
-import type { PoliceReport } from '../index';
+import type { PoliceReport, PoliceCase } from '../index';
+import NewReportModal from './NewReportModal';
+import FilterReportsModal, { type ReportFilters } from './FilterReportsModal';
 
 const mockReports: PoliceReport[] = [
   {
@@ -71,20 +74,139 @@ const mockReports: PoliceReport[] = [
   }
 ];
 
+// Mock cases data for the new report modal
+const mockCases: PoliceCase[] = [
+  {
+    id: '1',
+    caseNumber: 'DV-2025-001',
+    incidentType: 'domestic_violence',
+    status: 'under_investigation',
+    priority: 'high',
+    reportedDate: '2025-01-15',
+    incidentDate: '2025-01-14',
+    location: '123 Main St, Downtown',
+    reportingOfficer: 'Officer Johnson',
+    assignedDetective: 'Det. Smith',
+    victimName: 'Sarah Wilson',
+    victimId: 'victim_001',
+    suspectName: 'John Wilson',
+    description: 'Domestic violence incident with physical assault',
+    lastActivity: '2025-01-15T10:30:00Z',
+    evidenceCount: 3,
+    witnessCount: 2
+  },
+  {
+    id: '2',
+    caseNumber: 'SA-2025-003',
+    incidentType: 'sexual_assault',
+    status: 'open',
+    priority: 'urgent',
+    reportedDate: '2025-01-14',
+    incidentDate: '2025-01-13',
+    location: 'University Campus',
+    reportingOfficer: 'Officer Davis',
+    assignedDetective: 'Det. Brown',
+    victimName: 'Anonymous',
+    victimId: 'victim_002',
+    description: 'Sexual assault reported on university campus',
+    lastActivity: '2025-01-14T16:45:00Z',
+    evidenceCount: 5,
+    witnessCount: 1
+  }
+];
+
 const ReportsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [reports] = useState<PoliceReport[]>(mockReports);
+  const [reports, setReports] = useState<PoliceReport[]>(mockReports);
+  const [showNewReportModal, setShowNewReportModal] = useState<boolean>(false);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [activeFilters, setActiveFilters] = useState<ReportFilters>({
+    type: [],
+    status: [],
+    priority: [],
+    dateRange: { startDate: null, endDate: null },
+    createdBy: '',
+    location: '',
+    caseNumber: '',
+    involvedParties: '',
+    hasAttachments: false,
+    supervisorReviewOnly: false,
+  });
 
   const filteredReports = reports.filter(report => {
+    // Search filter
     const matchesSearch = report.reportNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          report.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = selectedFilter === 'all' || report.status === selectedFilter;
-    
-    return matchesSearch && matchesFilter;
+
+    // Basic tab filter (for backward compatibility)
+    const matchesBasicFilter = selectedFilter === 'all' || report.status === selectedFilter;
+
+    // Advanced filters
+    const matchesType = activeFilters.type.length === 0 || activeFilters.type.includes(report.type);
+    const matchesStatus = activeFilters.status.length === 0 || activeFilters.status.includes(report.status);
+    const matchesPriority = activeFilters.priority.length === 0 || activeFilters.priority.includes(report.priority);
+
+    // Date range filter
+    let matchesDateRange = true;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) {
+      const reportDate = new Date(report.createdDate);
+      if (activeFilters.dateRange.startDate) {
+        matchesDateRange = matchesDateRange && reportDate >= new Date(activeFilters.dateRange.startDate);
+      }
+      if (activeFilters.dateRange.endDate) {
+        matchesDateRange = matchesDateRange && reportDate <= new Date(activeFilters.dateRange.endDate);
+      }
+    }
+
+    // Text filters
+    const matchesCreatedBy = !activeFilters.createdBy ||
+      report.createdBy.toLowerCase().includes(activeFilters.createdBy.toLowerCase());
+    const matchesLocation = !activeFilters.location ||
+      report.location.toLowerCase().includes(activeFilters.location.toLowerCase());
+    const matchesCaseNumber = !activeFilters.caseNumber ||
+      report.caseId.toLowerCase().includes(activeFilters.caseNumber.toLowerCase());
+    const matchesInvolvedParties = !activeFilters.involvedParties ||
+      report.involvedParties.some(party => party.toLowerCase().includes(activeFilters.involvedParties.toLowerCase()));
+
+    // Boolean filters
+    const matchesAttachments = !activeFilters.hasAttachments || (report.attachments && report.attachments.length > 0);
+    const matchesSupervisorReview = !activeFilters.supervisorReviewOnly || report.supervisorReview;
+
+    return matchesSearch && matchesBasicFilter && matchesType && matchesStatus &&
+           matchesPriority && matchesDateRange && matchesCreatedBy && matchesLocation &&
+           matchesCaseNumber && matchesInvolvedParties && matchesAttachments && matchesSupervisorReview;
   });
+
+  const hasActiveFilters = (): boolean => {
+    return activeFilters.type.length > 0 ||
+           activeFilters.status.length > 0 ||
+           activeFilters.priority.length > 0 ||
+           activeFilters.dateRange.startDate !== null ||
+           activeFilters.dateRange.endDate !== null ||
+           activeFilters.createdBy !== '' ||
+           activeFilters.location !== '' ||
+           activeFilters.caseNumber !== '' ||
+           activeFilters.involvedParties !== '' ||
+           activeFilters.hasAttachments ||
+           activeFilters.supervisorReviewOnly;
+  };
+
+  const getActiveFiltersCount = (): number => {
+    let count = 0;
+    count += activeFilters.type.length;
+    count += activeFilters.status.length;
+    count += activeFilters.priority.length;
+    if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) count += 1;
+    if (activeFilters.createdBy) count += 1;
+    if (activeFilters.location) count += 1;
+    if (activeFilters.caseNumber) count += 1;
+    if (activeFilters.involvedParties) count += 1;
+    if (activeFilters.hasAttachments) count += 1;
+    if (activeFilters.supervisorReviewOnly) count += 1;
+    return count;
+  };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -233,10 +355,14 @@ const ReportsList: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Police Reports</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowNewReportModal(true)}
+        >
           <Plus color="white" />
         </TouchableOpacity>
       </View>
@@ -251,8 +377,16 @@ const ReportsList: React.FC = () => {
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter color="#64748B" />
+        <TouchableOpacity
+          style={[styles.filterButton, hasActiveFilters() && styles.filterButtonActive]}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Filter color={hasActiveFilters() ? "#10B981" : "#64748B"} />
+          {hasActiveFilters() && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -287,11 +421,37 @@ const ReportsList: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+
+      <NewReportModal
+        visible={showNewReportModal}
+        onClose={() => setShowNewReportModal(false)}
+        onSuccess={(newReport) => {
+          setReports(prev => [newReport, ...prev]);
+          setShowNewReportModal(false);
+        }}
+        cases={mockCases}
+      />
+
+      <FilterReportsModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onApplyFilters={(filters) => {
+          setActiveFilters(filters);
+          setShowFilterModal(false);
+        }}
+        currentFilters={activeFilters}
+        reports={reports}
+      />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -345,6 +505,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  filterButtonActive: {
+    backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   filterTabs: {
     flexDirection: 'row',
