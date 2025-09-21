@@ -8,6 +8,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import EditProfileModal from './EditProfileModal';
 import {
   Settings,
   Bell,
@@ -35,6 +36,7 @@ export default function ProviderProfile() {
   const { logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [availabilityStatus, setAvailabilityStatus] = useState<boolean>(true);
+  const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
 
   // Mock provider data
   const providerData = {
@@ -53,11 +55,12 @@ export default function ProviderProfile() {
   };
 
   const handleEditProfile = () => {
-    Alert.alert(
-      'Edit Profile',
-      'Profile editing functionality will be implemented in the next phase.',
-      [{ text: 'OK' }]
-    );
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditSuccess = () => {
+    // Optionally refresh provider data or show success message
+    console.log('Profile updated successfully');
   };
 
   const handleLogout = () => {
@@ -313,6 +316,13 @@ export default function ProviderProfile() {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        onSuccess={handleEditSuccess}
+      />
     </ScrollView>
   );
 }

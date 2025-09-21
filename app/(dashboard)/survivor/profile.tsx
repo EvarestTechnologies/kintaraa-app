@@ -41,12 +41,11 @@ import {
   Palette,
   Download,
   Trash2,
-  TestTube,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 export default function ProfileScreen() {
-  const { user, logout, updateUser, biometricAvailable } = useAuth();
+  const { user, logout, updateProfile, biometricAvailable } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
@@ -102,23 +101,43 @@ export default function ProfileScreen() {
       return;
     }
 
-    updateUser({ biometricEnabled: !user?.biometricEnabled });
+    // TODO: Implement biometric toggle API
+    Alert.alert(
+      'Feature Coming Soon',
+      'Biometric settings will be implemented in the next update.',
+      [{ text: 'OK' }]
+    );
   };
 
   const handleSaveProfile = () => {
-    updateUser({
+    // Only update supported fields (firstName, lastName)
+    updateProfile({
       firstName: editForm.firstName,
       lastName: editForm.lastName,
-      email: editForm.email,
     });
+
+    // TODO: Implement email update API
+    if (editForm.email !== user?.email) {
+      Alert.alert(
+        'Note',
+        'Email updates will be implemented in the next update. Name changes have been saved.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert('Success', 'Profile updated successfully!');
+    }
+
     setShowEditProfile(false);
-    Alert.alert('Success', 'Profile updated successfully!');
   };
 
   const handleSavePrivacySettings = () => {
-    updateUser({ isAnonymous: privacySettings.isAnonymous });
+    // TODO: Implement privacy settings API
+    Alert.alert(
+      'Feature Coming Soon',
+      'Privacy settings updates will be implemented in the next update.',
+      [{ text: 'OK' }]
+    );
     setShowPrivacySettings(false);
-    Alert.alert('Success', 'Privacy settings updated!');
   };
 
   const handleChangePassword = () => {
@@ -223,13 +242,6 @@ export default function ProfileScreen() {
           icon: HelpCircle,
           subtitle: 'Get help and contact support',
           onPress: () => router.push('/emergency'),
-        },
-        {
-          id: 'integration-test',
-          title: 'Integration Testing',
-          icon: TestTube,
-          subtitle: 'Test dashboard integrations and data flow',
-          onPress: () => router.push('/integration-test'),
         },
         {
           id: 'settings',

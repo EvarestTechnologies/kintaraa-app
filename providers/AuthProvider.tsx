@@ -343,7 +343,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     login: loginMutation.mutate,
     register: registerMutation.mutate,
     logout: logoutMutation.mutate,
-    updateUser: updateUserMutation.mutate,
+    updateProfile: updateUserMutation.mutate,
     enableBiometric: enableBiometricMutation.mutate,
     disableBiometric: disableBiometricMutation.mutate,
     
@@ -351,7 +351,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
-    isUpdatingUser: updateUserMutation.isPending,
+    isUpdatingProfile: updateUserMutation.isPending,
     isEnablingBiometric: enableBiometricMutation.isPending,
     isDisablingBiometric: disableBiometricMutation.isPending,
     
