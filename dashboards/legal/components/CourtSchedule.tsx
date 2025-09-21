@@ -574,10 +574,6 @@ const styles = StyleSheet.create({
   filterScroll: {
     alignItems: 'center',
   },
-  // contentContainer: {
-  //   flex: 1,
-  //   paddingTop: 0,
-  // },
   filterChip: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,

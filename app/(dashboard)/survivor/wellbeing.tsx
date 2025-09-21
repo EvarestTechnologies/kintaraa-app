@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   TextInput,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +30,9 @@ import {
   User,
   Brain,
   Zap,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from 'lucide-react-native';
 
 const moodEmojis = [
@@ -81,6 +85,187 @@ const wellbeingActivities = [
     gradient: ['#9C27B0', '#E1BEE7'] as const,
   },
 ];
+
+// Mood Calendar Component
+function MoodCalendarModal({
+  visible,
+  onClose,
+  moodEntries = []
+}: {
+  visible: boolean;
+  onClose: () => void;
+  moodEntries?: any[];
+}) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const { width } = useWindowDimensions();
+
+  // Get calendar data for current month
+  const getCalendarData = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+
+    // Add all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateString = date.toISOString().split('T')[0];
+      const moodEntry = moodEntries.find(entry => entry.date === dateString);
+
+      days.push({
+        day,
+        date,
+        dateString,
+        mood: moodEntry?.mood,
+        intensity: moodEntry?.intensity,
+        emoji: moodEntry ? moodEmojis.find(m => {
+          const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+          return moodMap[moodEntry.mood as keyof typeof moodMap] === m.id;
+        })?.emoji : null
+      });
+    }
+
+    return days;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setMonth(prev.getMonth() - 1);
+      } else {
+        newDate.setMonth(prev.getMonth() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const days = getCalendarData();
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.calendarContainer}>
+        {/* Header */}
+        <View style={styles.calendarHeader}>
+          <TouchableOpacity style={styles.calendarCloseButton} onPress={onClose}>
+            <X color="#6B7280" size={24} />
+          </TouchableOpacity>
+          <Text style={styles.calendarTitle}>Mood Calendar</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Month Navigation */}
+        <View style={styles.monthNavigation}>
+          <TouchableOpacity
+            style={styles.monthButton}
+            onPress={() => navigateMonth('prev')}
+          >
+            <ChevronLeft color="#6A2CB0" size={24} />
+          </TouchableOpacity>
+
+          <Text style={styles.monthYear}>
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </Text>
+
+          <TouchableOpacity
+            style={styles.monthButton}
+            onPress={() => navigateMonth('next')}
+          >
+            <ChevronRight color="#6A2CB0" size={24} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Calendar Grid */}
+        <ScrollView style={styles.calendarScrollView}>
+          {/* Day Names Header */}
+          <View style={styles.dayNamesRow}>
+            {dayNames.map((dayName) => (
+              <View key={dayName} style={styles.dayNameCell}>
+                <Text style={styles.dayNameText}>{dayName}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Calendar Days */}
+          <View style={styles.calendarGrid}>
+            {Array.from({ length: Math.ceil(days.length / 7) }, (_, rowIndex) => (
+              <View key={rowIndex} style={styles.calendarRow}>
+                {days.slice(rowIndex * 7, (rowIndex + 1) * 7).map((dayData, colIndex) => (
+                  <View
+                    key={`${rowIndex}-${colIndex}`}
+                    style={styles.calendarCell}
+                  >
+                    {dayData && (
+                      <TouchableOpacity
+                        style={[
+                          styles.dayButton,
+                          dayData.mood && styles.dayButtonWithMood,
+                        ]}
+                        onPress={() => {
+                          if (dayData.mood) {
+                            Alert.alert(
+                              `${dayData.date.toLocaleDateString()}`,
+                              `Mood: ${dayData.emoji} ${moodEmojis.find(m => {
+                                const moodMap = { very_sad: 1, sad: 2, neutral: 3, happy: 4, very_happy: 5 };
+                                return moodMap[dayData.mood as keyof typeof moodMap] === m.id;
+                              })?.label}\nIntensity: ${dayData.intensity}/10`
+                            );
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.dayText,
+                          dayData.mood && styles.dayTextWithMood
+                        ]}>
+                          {dayData.day}
+                        </Text>
+                        {dayData.emoji && (
+                          <Text style={styles.dayEmoji}>{dayData.emoji}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+
+          {/* Mood Legend */}
+          <View style={styles.moodLegend}>
+            <Text style={styles.legendTitle}>Mood Legend</Text>
+            <View style={styles.legendItems}>
+              {moodEmojis.map((mood) => (
+                <View key={mood.id} style={styles.legendItem}>
+                  <Text style={styles.legendEmoji}>{mood.emoji}</Text>
+                  <Text style={styles.legendLabel}>{mood.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
 
 // Provider messaging component
 function ProviderMessagingScreen({ assignedCases }: { assignedCases: any[] }) {
@@ -241,13 +426,14 @@ function ProviderMessagingScreen({ assignedCases }: { assignedCases: any[] }) {
 }
 
 // Survivor wellbeing component
-function SurvivorWellbeingScreen({ 
-  stats, 
-  isLoading, 
-  addMoodEntry, 
-  isAddingMood, 
-  isMoodLoggedToday, 
-  todaysMoodEntry 
+function SurvivorWellbeingScreen({
+  stats,
+  isLoading,
+  addMoodEntry,
+  isAddingMood,
+  isMoodLoggedToday,
+  todaysMoodEntry,
+  moodEntries
 }: {
   stats: any;
   isLoading: boolean;
@@ -255,9 +441,11 @@ function SurvivorWellbeingScreen({
   isAddingMood: boolean;
   isMoodLoggedToday: boolean;
   todaysMoodEntry: any;
+  moodEntries?: any[];
 }) {
   const { width } = useWindowDimensions();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const handleMoodSelect = React.useCallback((moodId: number) => {
     setSelectedMood(moodId);
@@ -286,7 +474,10 @@ function SurvivorWellbeingScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Wellbeing</Text>
-        <TouchableOpacity style={styles.calendarButton}>
+        <TouchableOpacity
+          style={styles.calendarButton}
+          onPress={() => setShowCalendar(true)}
+        >
           <Calendar color="#6A2CB0" size={24} />
         </TouchableOpacity>
       </View>
@@ -438,6 +629,13 @@ function SurvivorWellbeingScreen({
           </View>
         </View>
       </ScrollView>
+
+      {/* Mood Calendar Modal */}
+      <MoodCalendarModal
+        visible={showCalendar}
+        onClose={() => setShowCalendar(false)}
+        moodEntries={moodEntries || []}
+      />
     </View>
   );
 }
@@ -466,6 +664,7 @@ export default function WellbeingScreen() {
   const isAddingMood = moodTrackingData?.isAddingMood || false;
   const isMoodLoggedToday = moodTrackingData?.isMoodLoggedToday || false;
   const todaysMoodEntry = moodTrackingData?.todaysMoodEntry || null;
+  const moodEntries = moodTrackingData?.moodEntries || [];
 
   // Render different components based on user role
   if (user?.role === 'provider') {
@@ -480,13 +679,14 @@ export default function WellbeingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SurvivorWellbeingScreen 
+      <SurvivorWellbeingScreen
         stats={stats}
         isLoading={isLoading}
         addMoodEntry={addMoodEntry}
         isAddingMood={isAddingMood}
         isMoodLoggedToday={isMoodLoggedToday}
         todaysMoodEntry={todaysMoodEntry}
+        moodEntries={moodEntries}
       />
     </SafeAreaView>
   );
@@ -933,6 +1133,155 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     flex: 1,
+    textAlign: 'center',
+  },
+  // Mood Calendar Modal Styles
+  calendarContainer: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  calendarCloseButton: {
+    padding: 8,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  placeholder: {
+    width: 40,
+  },
+  monthNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  monthButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#F5F0FF',
+  },
+  monthYear: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#341A52',
+  },
+  calendarScrollView: {
+    flex: 1,
+    backgroundColor: '#F5F0FF',
+  },
+  dayNamesRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dayNameCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dayNameText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#49455A',
+  },
+  calendarGrid: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  calendarRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  calendarCell: {
+    flex: 1,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  dayButton: {
+    width: '90%',
+    height: '90%',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  dayButtonWithMood: {
+    backgroundColor: '#F5F0FF',
+    borderWidth: 2,
+    borderColor: '#6A2CB0',
+  },
+  dayText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#341A52',
+  },
+  dayTextWithMood: {
+    color: '#6A2CB0',
+  },
+  dayEmoji: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  moodLegend: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginVertical: 20,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#341A52',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  legendTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#341A52',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  legendItems: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  legendItem: {
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  legendEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  legendLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#49455A',
     textAlign: 'center',
   },
 });
