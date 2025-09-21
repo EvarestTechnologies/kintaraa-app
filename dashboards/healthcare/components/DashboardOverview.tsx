@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
-import RegisterPatientModal from './RegisterPatientModal';
+import ConsultationForm from '@/components/healthcare/ConsultationForm';
 
 const { width } = Dimensions.get('window');
 
@@ -38,7 +39,7 @@ interface HealthcareStats {
 
 export default function DashboardOverview() {
   const { stats, assignedCases, pendingAssignments } = useProvider();
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showConsultationForm, setShowConsultationForm] = useState(false);
 
   // Calculate healthcare-specific stats
   const healthcareStats: HealthcareStats = {
@@ -61,7 +62,7 @@ export default function DashboardOverview() {
       icon: Users,
       color: '#10B981',
       onPress: () => {
-        setShowRegisterModal(true);
+        setShowConsultationForm(true);
       },
     },
     {
@@ -250,15 +251,22 @@ export default function DashboardOverview() {
         </View>
       </View>
 
-      {/* Register Patient Modal */}
-      <RegisterPatientModal
-        visible={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onSuccess={() => {
-          // Refresh data or show success message
-          console.log('Patient registered successfully');
-        }}
-      />
+      {/* Consultation Form Modal */}
+      <Modal
+        visible={showConsultationForm}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <ConsultationForm
+          caseId="new-patient-dashboard"
+          patientName="New Patient"
+          onClose={() => setShowConsultationForm(false)}
+          onComplete={() => {
+            setShowConsultationForm(false);
+            console.log('New patient consultation completed from dashboard');
+          }}
+        />
+      </Modal>
       </ScrollView>
     </SafeAreaView>
   );

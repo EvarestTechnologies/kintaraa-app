@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -26,7 +27,7 @@ import {
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
 import type { Patient } from '../index';
-import RegisterPatientModal from './RegisterPatientModal';
+import ConsultationForm from '@/components/healthcare/ConsultationForm';
 
 type PatientStatus = 'active' | 'recovering' | 'stable' | 'critical';
 type FilterType = 'all' | 'active' | 'recovering' | 'stable' | 'critical';
@@ -109,10 +110,10 @@ export default function PatientsList() {
     router.push(`/case-details/${patient.caseId}`);
   };
 
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showConsultationForm, setShowConsultationForm] = useState(false);
 
   const handleAddPatient = () => {
-    setShowRegisterModal(true);
+    setShowConsultationForm(true);
   };
 
   const handleCallPatient = (patient: Patient) => {
@@ -325,16 +326,24 @@ export default function PatientsList() {
         )}
       </ScrollView>
 
-      {/* Register Patient Modal */}
-      <RegisterPatientModal
-        visible={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onSuccess={() => {
-          setShowRegisterModal(false);
-          // The patient will automatically appear in the list since it's added to incidents
-          console.log('Patient registered successfully in patients list');
-        }}
-      />
+      {/* Consultation Form Modal */}
+      {showConsultationForm && (
+        <Modal
+          visible={showConsultationForm}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          <ConsultationForm
+            caseId="new-patient"
+            patientName="New Patient"
+            onClose={() => setShowConsultationForm(false)}
+            onComplete={() => {
+              setShowConsultationForm(false);
+              console.log('Consultation completed for new patient');
+            }}
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }

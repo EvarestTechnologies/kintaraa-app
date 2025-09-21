@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -25,6 +26,7 @@ import {
 import { useIncidents } from '@/providers/IncidentProvider';
 import { useProvider } from '@/providers/ProviderContext';
 import { useAuth } from '@/providers/AuthProvider';
+import ConsultationForm from '@/components/healthcare/ConsultationForm';
 
 const incidentTypeLabels = {
   physical: 'Physical Violence',
@@ -70,6 +72,7 @@ export default function CaseDetailsScreen() {
   const { user } = useAuth();
   const { incidents } = useIncidents();
   const { assignedCases, updateCaseStatus, isUpdating } = useProvider();
+  const [showConsultation, setShowConsultation] = useState(false);
 
   // Check both incidents and assigned cases for providers
   const incident = incidents.find(inc => inc.id === id) || assignedCases.find(inc => inc.id === id);
@@ -320,7 +323,7 @@ export default function CaseDetailsScreen() {
               {incident.status === 'assigned' && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.startButton]}
-                  onPress={() => handleStatusUpdate('in_progress')}
+                  onPress={() => setShowConsultation(true)}
                   disabled={isUpdating}
                 >
                   <Text style={styles.actionButtonText}>Start Case</Text>
@@ -351,6 +354,23 @@ export default function CaseDetailsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Consultation Modal */}
+      <Modal
+        visible={showConsultation}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <ConsultationForm
+          caseId={incident.id}
+          patientName={'Patient'}
+          onClose={() => setShowConsultation(false)}
+          onComplete={() => {
+            setShowConsultation(false);
+            handleStatusUpdate('in_progress');
+          }}
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
