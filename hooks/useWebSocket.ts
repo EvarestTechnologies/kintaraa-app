@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
-import { API_CONFIG } from '@/constants/ApiConfig';
+import { API_CONFIG } from '@/constants/domains/config/ApiConfig';
 
 export interface WebSocketMessage {
   type: 'incident_update' | 'new_message' | 'case_assignment' | 'provider_status';

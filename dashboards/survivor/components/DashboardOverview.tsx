@@ -306,7 +306,10 @@ export function DashboardOverview() {
           <Text style={styles.resourcesDescription}>
             Access educational materials, self-help guides, and recovery resources.
           </Text>
-          <TouchableOpacity style={styles.resourcesButton}>
+          <TouchableOpacity
+            style={styles.resourcesButton}
+            onPress={() => router.push('/learning-resources')}
+          >
             <Text style={styles.resourcesButtonText}>Browse Resources</Text>
           </TouchableOpacity>
         </View>
