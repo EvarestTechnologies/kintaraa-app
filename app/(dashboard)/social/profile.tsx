@@ -5,8 +5,8 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogOut, Users } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 

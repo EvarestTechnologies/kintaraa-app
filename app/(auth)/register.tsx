@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth, ProviderType } from '@/providers/AuthProvider';
 import { ArrowLeft, Eye, EyeOff, User, UserCheck, Stethoscope, Scale, Shield, Heart, Users, LifeBuoy, Home } from 'lucide-react-native';

@@ -5,6 +5,7 @@ import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, StyleSheet } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
@@ -136,26 +137,28 @@ export default function RootLayout() {
 
   // Temporarily simplify to test basic functionality
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={styles.container}>
-          <AuthProvider>
-            <SafetyProvider>
-              <IncidentProvider>
-                <ProviderContext>
-                  <WellbeingProvider>
-                    <RecommendationProvider>
-                      <RootLayoutNav />
-                      <StatusBar style={styles.statusBar} />
-                    </RecommendationProvider>
-                  </WellbeingProvider>
-                </ProviderContext>
-              </IncidentProvider>
-            </SafetyProvider>
-          </AuthProvider>
-        </GestureHandlerRootView>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={styles.container}>
+            <AuthProvider>
+              <SafetyProvider>
+                <IncidentProvider>
+                  <ProviderContext>
+                    <WellbeingProvider>
+                      <RecommendationProvider>
+                        <RootLayoutNav />
+                        <StatusBar style={styles.statusBar} />
+                      </RecommendationProvider>
+                    </WellbeingProvider>
+                  </ProviderContext>
+                </IncidentProvider>
+              </SafetyProvider>
+            </AuthProvider>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
