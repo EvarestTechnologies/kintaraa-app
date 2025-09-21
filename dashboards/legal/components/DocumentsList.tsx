@@ -9,6 +9,7 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
   Filter,
@@ -322,7 +323,7 @@ export default function DocumentsList() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -438,7 +439,7 @@ export default function DocumentsList() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Stethoscope,
@@ -131,7 +132,8 @@ export default function DashboardOverview() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -257,7 +259,8 @@ export default function DashboardOverview() {
           console.log('Patient registered successfully');
         }}
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -265,6 +268,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F0FF',
+  },
+  scrollContent: {
+    flex: 1,
   },
   section: {
     marginBottom: 24,

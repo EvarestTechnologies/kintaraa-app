@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
   Filter,
@@ -256,7 +257,7 @@ export default function CasesList() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Legal Cases</Text>
@@ -357,7 +358,7 @@ export default function CasesList() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

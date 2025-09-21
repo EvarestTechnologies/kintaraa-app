@@ -8,6 +8,7 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Calendar,
   Clock,
@@ -369,7 +370,7 @@ export default function CourtSchedule() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -457,7 +458,7 @@ export default function CourtSchedule() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

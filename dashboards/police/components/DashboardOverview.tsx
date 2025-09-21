@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, FileText, Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
 import type { PoliceStats } from '../index';
 
@@ -51,7 +52,8 @@ const DashboardOverview: React.FC = () => {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Police Dashboard</Text>
         <Text style={styles.subtitle}>Case Management & Evidence Tracking</Text>
@@ -160,7 +162,8 @@ const DashboardOverview: React.FC = () => {
           </View>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -168,6 +171,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    flex: 1,
   },
   header: {
     padding: 20,

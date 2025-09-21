@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
   Filter,
@@ -131,7 +132,7 @@ export default function PatientsList() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -334,7 +335,7 @@ export default function PatientsList() {
           console.log('Patient registered successfully in patients list');
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

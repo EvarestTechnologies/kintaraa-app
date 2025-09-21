@@ -8,6 +8,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import EditProfileModal from './EditProfileModal';
 import {
   Settings,
@@ -159,7 +160,8 @@ export default function ProviderProfile() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
@@ -323,7 +325,8 @@ export default function ProviderProfile() {
         onClose={() => setIsEditModalVisible(false)}
         onSuccess={handleEditSuccess}
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -331,6 +334,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F0FF',
+  },
+  scrollContent: {
+    flex: 1,
   },
   profileHeader: {
     backgroundColor: '#FFFFFF',
