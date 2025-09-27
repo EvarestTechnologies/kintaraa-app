@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Users, 
   Calendar, 
@@ -17,28 +18,85 @@ const DashboardOverview: React.FC = () => {
   const { assignedCases } = useProvider();
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
 
-  // Calculate counseling-specific stats
+  // Helper function to get date range based on selected period
+  const getDateRange = (period: 'today' | 'week' | 'month') => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (period) {
+      case 'today':
+        return {
+          start: today,
+          end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+        };
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6); // End of week (Saturday)
+        weekEnd.setHours(23, 59, 59, 999);
+        return { start: weekStart, end: weekEnd };
+      case 'month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        monthEnd.setHours(23, 59, 59, 999);
+        return { start: monthStart, end: monthEnd };
+      default:
+        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1) };
+    }
+  };
+
+  // Calculate counseling-specific stats based on selected period
   const counselingStats: CounselingStats = useMemo(() => {
-    const counselingCases = assignedCases.filter(c => 
+    const counselingCases = assignedCases.filter(c =>
       c.supportServices.includes('counseling')
     );
-    
-    const today = new Date().toDateString();
-    const todayCases = counselingCases.filter(c => 
-      new Date(c.createdAt).toDateString() === today
-    );
+
+    const { start: periodStart, end: periodEnd } = getDateRange(selectedPeriod);
+
+    // Filter sessions by selected period based on last update date
+    const periodSessions = counselingCases.filter(c => {
+      const sessionDate = new Date(c.updatedAt);
+      return sessionDate >= periodStart && sessionDate <= periodEnd;
+    });
+
+    // Filter completed cases by selected period
+    const periodCompletedSessions = counselingCases.filter(c => {
+      if (c.status !== 'completed') return false;
+      const completedDate = new Date(c.updatedAt);
+      return completedDate >= periodStart && completedDate <= periodEnd;
+    });
 
     return {
-      totalClients: counselingCases.length,
-      todaySessions: todayCases.length,
-      activeTreatmentPlans: counselingCases.filter(c => 
+      totalClients: counselingCases.length, // Always show total
+      todaySessions: periodSessions.length,
+      activeTreatmentPlans: counselingCases.filter(c =>
         ['assigned', 'in_progress'].includes(c.status)
-      ).length,
-      completedSessions: counselingCases.filter(c => c.status === 'completed').length,
-      pendingAssessments: counselingCases.filter(c => c.status === 'assigned').length,
-      averageSessionDuration: 60, // Mock data
+      ).length, // Always show current active plans
+      completedSessions: periodCompletedSessions.length,
+      pendingAssessments: counselingCases.filter(c => c.status === 'assigned').length, // Always show current pending
+      averageSessionDuration: 60, // Mock data - could be calculated from period data
     };
-  }, [assignedCases]);
+  }, [assignedCases, selectedPeriod]);
+
+  // Helper functions to get period-specific labels
+  const getPeriodLabel = (period: 'today' | 'week' | 'month') => {
+    switch (period) {
+      case 'today': return "Today's";
+      case 'week': return "This Week's";
+      case 'month': return "This Month's";
+      default: return "Today's";
+    }
+  };
+
+  const getCompletedLabel = (period: 'today' | 'week' | 'month') => {
+    switch (period) {
+      case 'today': return "Completed Today";
+      case 'week': return "Completed This Week";
+      case 'month': return "Completed This Month";
+      default: return "Completed Today";
+    }
+  };
 
   const StatCard: React.FC<{
     title: string;
@@ -79,7 +137,8 @@ const DashboardOverview: React.FC = () => {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Counseling Dashboard</Text>
@@ -90,6 +149,11 @@ const DashboardOverview: React.FC = () => {
 
       {/* Period Selector */}
       <View style={styles.periodSelector}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.periodSelectorContent}
+        >
         {(['today', 'week', 'month'] as const).map((period) => (
           <TouchableOpacity
             key={period}
@@ -107,6 +171,7 @@ const DashboardOverview: React.FC = () => {
             </Text>
           </TouchableOpacity>
         ))}
+        </ScrollView>
       </View>
 
       {/* Stats Grid */}
@@ -119,7 +184,7 @@ const DashboardOverview: React.FC = () => {
           trend="+12%"
         />
         <StatCard
-          title="Today's Sessions"
+          title={`${getPeriodLabel(selectedPeriod)} Sessions`}
           value={counselingStats.todaySessions}
           icon={<Calendar size={20} />}
           color="#10B981"
@@ -132,7 +197,7 @@ const DashboardOverview: React.FC = () => {
           color="#F59E0B"
         />
         <StatCard
-          title="Completed Sessions"
+          title={getCompletedLabel(selectedPeriod)}
           value={counselingStats.completedSessions}
           icon={<CheckCircle size={20} />}
           color="#8B5CF6"
@@ -212,7 +277,8 @@ const DashboardOverview: React.FC = () => {
           ))}
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -236,27 +302,29 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   periodSelector: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 4,
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+    marginBottom: 16,
   },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  periodSelectorContent: {
     alignItems: 'center',
   },
-  periodButtonActive: {
+  periodButton: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  periodButtonActive: {
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   periodButtonText: {
     fontSize: 14,
@@ -264,7 +332,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   periodButtonTextActive: {
-    color: '#111827',
+    color: '#FFFFFF',
   },
   statsGrid: {
     flexDirection: 'row',
