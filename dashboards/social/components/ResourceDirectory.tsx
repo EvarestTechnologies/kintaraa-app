@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, MapPin, Phone, Mail, Globe, Clock, Users, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { CommunityResource } from '../index';
 
@@ -113,7 +114,7 @@ const ResourceDirectory: React.FC<ResourceDirectoryProps> = ({ resources, onReso
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Resource Directory</Text>
@@ -348,7 +349,7 @@ const ResourceDirectory: React.FC<ResourceDirectoryProps> = ({ resources, onReso
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
