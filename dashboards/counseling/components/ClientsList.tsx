@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Users, Phone, Mail, AlertCircle, Calendar } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import type { Client } from '../index';
@@ -8,6 +9,7 @@ const ClientsList: React.FC = () => {
   const { assignedCases } = useProvider();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'high_risk' | 'completed'>('all');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Convert incidents to clients for counseling
   const clients: Client[] = useMemo(() => {
@@ -153,7 +155,7 @@ const ClientsList: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Clients</Text>
@@ -174,13 +176,22 @@ const ClientsList: React.FC = () => {
             placeholderTextColor="#9CA3AF"
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={20} color="#6B7280" />
+        <TouchableOpacity
+          style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Filter size={20} color={showFilters ? '#FFFFFF' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
       {/* Filter Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
         {[
           { key: 'all', label: 'All Clients', count: clients.length },
           { key: 'active', label: 'Active', count: clients.filter(c => c.status === 'active').length },
@@ -203,7 +214,9 @@ const ClientsList: React.FC = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+          </ScrollView>
+        </View>
+      )}
 
       {/* Clients List */}
       <ScrollView style={styles.clientsList} showsVerticalScrollIndicator={false}>
@@ -221,7 +234,7 @@ const ClientsList: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -247,7 +260,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 8,
     alignItems: 'center',
   },
   searchInputContainer: {
@@ -281,19 +294,32 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  filterTabs: {
+  filterButtonActive: {
+    backgroundColor: '#3B82F6',
+  },
+  filtersContainer: {
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingBottom: 0,
+  },
+  filterScroll: {
+    alignItems: 'center',
   },
   filterTab: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   filterTabText: {
     fontSize: 14,
@@ -306,6 +332,7 @@ const styles = StyleSheet.create({
   clientsList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 8,
   },
   clientCard: {
     backgroundColor: '#FFFFFF',
