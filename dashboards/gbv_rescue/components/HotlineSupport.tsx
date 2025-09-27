@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { Headphones, Phone, Clock, User, MessageCircle, Search, Filter, CheckCircle } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { Headphones, Phone, Clock, User, MessageCircle, Search, Filter, CheckCircle, X, Send, UserCheck, AlertTriangle, Shield, FileText, Calendar } from 'lucide-react-native';
 
 interface HotlineCall {
   id: string;
@@ -14,14 +14,44 @@ interface HotlineCall {
   notes?: string;
   assignedCounselor?: string;
   followUpRequired: boolean;
+  callType?: 'crisis' | 'information' | 'support' | 'referral';
+  riskLevel?: 'high' | 'medium' | 'low';
+  resourcesProvided?: string[];
+  transferHistory?: Array<{
+    from: string;
+    to: string;
+    timestamp: string;
+    reason: string;
+  }>;
+  safetyPlan?: {
+    created: boolean;
+    planDetails?: string;
+  };
 }
 
 export default function HotlineSupport() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [selectedCall, setSelectedCall] = useState<HotlineCall | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [showNotesModal, setShowNotesModal] = useState<boolean>(false);
+  const [showAnswerModal, setShowAnswerModal] = useState<boolean>(false);
+  const [hotlineCalls, setHotlineCalls] = useState<HotlineCall[]>([]);
+  const [activeCallTimers, setActiveCallTimers] = useState<{[key: string]: number}>({});
+  const [callNotes, setCallNotes] = useState<string>('');
 
-  // Mock hotline calls data
-  const hotlineCalls: HotlineCall[] = [
+  const availableCounselors = [
+    { id: 'sarah', name: 'Sarah Johnson', specialization: 'Crisis Intervention', status: 'available' },
+    { id: 'michael', name: 'Michael Chen', specialization: 'Trauma Counseling', status: 'busy' },
+    { id: 'emily', name: 'Emily Rodriguez', specialization: 'Legal Support', status: 'available' },
+    { id: 'david', name: 'David Kim', specialization: 'Youth Services', status: 'available' },
+    { id: 'maria', name: 'Maria Santos', specialization: 'Bilingual Support', status: 'busy' }
+  ];
+
+  // Initialize hotline calls data
+  useEffect(() => {
+    const initialCalls: HotlineCall[] = [
     {
       id: 'call-1',
       callId: 'HOT-241210001',
@@ -77,9 +107,35 @@ export default function HotlineSupport() {
       duration: 15,
       notes: 'Information request about legal resources.',
       assignedCounselor: 'Emily Rodriguez',
-      followUpRequired: false
+      followUpRequired: false,
+      callType: 'information',
+      riskLevel: 'low',
+      resourcesProvided: ['Legal Resources Directory'],
+      transferHistory: [],
+      safetyPlan: { created: false }
     }
-  ];
+    ];
+    setHotlineCalls(initialCalls);
+  }, []);
+
+  // Call timer management
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const activeCalls = hotlineCalls.filter(call => call.status === 'active');
+      const timers: {[key: string]: number} = {};
+
+      activeCalls.forEach(call => {
+        const startTime = new Date(call.startTime).getTime();
+        const currentTime = new Date().getTime();
+        const duration = Math.floor((currentTime - startTime) / 1000 / 60); // minutes
+        timers[call.id] = duration;
+      });
+
+      setActiveCallTimers(timers);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [hotlineCalls]);
 
   const filteredCalls = hotlineCalls.filter(call => {
     const matchesSearch = call.callId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,25 +165,108 @@ export default function HotlineSupport() {
     }
   };
 
-  const handleAnswerCall = (callId: string) => {
-    console.log('Answering call:', callId);
+  const handleAnswerCall = (call: HotlineCall) => {
+    setSelectedCall(call);
+    setShowAnswerModal(true);
   };
 
-  const handleTransferCall = (callId: string) => {
+  const handleTransferCall = (call: HotlineCall) => {
+    setSelectedCall(call);
+    setShowTransferModal(true);
+  };
+
+  const handleAddNotes = (call: HotlineCall) => {
+    setSelectedCall(call);
+    setCallNotes(call.notes || '');
+    setShowNotesModal(true);
+  };
+
+  const answerCall = () => {
+    if (!selectedCall) return;
+
+    setHotlineCalls(prev => prev.map(call =>
+      call.id === selectedCall.id
+        ? {
+            ...call,
+            status: 'active' as const,
+            assignedCounselor: 'Current Operator',
+            startTime: new Date().toISOString()
+          }
+        : call
+    ));
+
+    setShowAnswerModal(false);
+    setSelectedCall(null);
+
     Alert.alert(
-      'Transfer Call',
-      'Select a counselor to transfer this call to:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sarah Johnson', onPress: () => console.log('Transferred to Sarah Johnson') },
-        { text: 'Michael Chen', onPress: () => console.log('Transferred to Michael Chen') },
-        { text: 'Emily Rodriguez', onPress: () => console.log('Transferred to Emily Rodriguez') }
-      ]
+      'Call Connected',
+      `You are now connected to ${selectedCall.callerName}. Call timer started.`,
+      [{ text: 'OK' }]
     );
   };
 
-  const handleAddNotes = (callId: string) => {
-    console.log('Adding notes for call:', callId);
+  const transferCall = (counselorId: string) => {
+    if (!selectedCall) return;
+
+    const counselor = availableCounselors.find(c => c.id === counselorId);
+    if (!counselor) return;
+
+    setHotlineCalls(prev => prev.map(call =>
+      call.id === selectedCall.id
+        ? {
+            ...call,
+            assignedCounselor: counselor.name,
+            transferHistory: [
+              ...(call.transferHistory || []),
+              {
+                from: call.assignedCounselor || 'Current Operator',
+                to: counselor.name,
+                timestamp: new Date().toISOString(),
+                reason: `Transferred to ${counselor.specialization} specialist`
+              }
+            ]
+          }
+        : call
+    ));
+
+    setShowTransferModal(false);
+    setSelectedCall(null);
+
+    Alert.alert(
+      'Call Transferred',
+      `Call successfully transferred to ${counselor.name} (${counselor.specialization})`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const saveNotes = () => {
+    if (!selectedCall) return;
+
+    setHotlineCalls(prev => prev.map(call =>
+      call.id === selectedCall.id
+        ? { ...call, notes: callNotes }
+        : call
+    ));
+
+    setShowNotesModal(false);
+    setSelectedCall(null);
+    setCallNotes('');
+
+    Alert.alert('Notes Saved', 'Call notes have been saved successfully.', [{ text: 'OK' }]);
+  };
+
+  const completeCall = (callId: string) => {
+    setHotlineCalls(prev => prev.map(call =>
+      call.id === callId
+        ? {
+            ...call,
+            status: 'completed' as const,
+            duration: activeCallTimers[callId] || 0
+          }
+        : call
+    ));
+
+    Alert.alert('Call Completed', 'Call has been marked as completed.', [{ text: 'OK' }]);
   };
 
   const formatTime = (dateString: string) => {
@@ -188,13 +327,22 @@ export default function HotlineSupport() {
             placeholderTextColor="#9CA3AF"
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter color="#6B7280" size={20} />
+        <TouchableOpacity
+          style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Filter size={20} color={showFilters ? '#FFFFFF' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
       {/* Status Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
         {['all', 'active', 'waiting', 'completed', 'missed'].map((status) => (
           <TouchableOpacity
             key={status}
@@ -212,7 +360,9 @@ export default function HotlineSupport() {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+          </ScrollView>
+        </View>
+      )}
 
       {/* Calls List */}
       <ScrollView style={styles.callsList} showsVerticalScrollIndicator={false}>
@@ -282,7 +432,7 @@ export default function HotlineSupport() {
               {call.status === 'waiting' && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.answerButton]}
-                  onPress={() => handleAnswerCall(call.id)}
+                  onPress={() => handleAnswerCall(call)}
                 >
                   <Phone color="#FFFFFF" size={16} />
                   <Text style={styles.answerButtonText}>Answer</Text>
@@ -291,7 +441,7 @@ export default function HotlineSupport() {
               {call.status === 'active' && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.transferButton]}
-                  onPress={() => handleTransferCall(call.id)}
+                  onPress={() => handleTransferCall(call)}
                 >
                   <Headphones color="#7C3AED" size={16} />
                   <Text style={styles.transferButtonText}>Transfer</Text>
@@ -299,7 +449,7 @@ export default function HotlineSupport() {
               )}
               <TouchableOpacity
                 style={[styles.actionButton, styles.notesButton]}
-                onPress={() => handleAddNotes(call.id)}
+                onPress={() => handleAddNotes(call)}
               >
                 <MessageCircle color="#3B82F6" size={16} />
                 <Text style={styles.notesButtonText}>Notes</Text>
@@ -308,6 +458,196 @@ export default function HotlineSupport() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Answer Call Modal */}
+      <Modal
+        visible={showAnswerModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAnswerModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowAnswerModal(false)}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Answer Call</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {selectedCall && (
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.callOverview}>
+                <Text style={styles.modalSectionTitle}>Incoming Call</Text>
+                <Text style={styles.callId}>{selectedCall.callId}</Text>
+                <Text style={styles.callerName}>{selectedCall.callerName}</Text>
+                <Text style={styles.phoneNumber}>{selectedCall.phoneNumber}</Text>
+                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(selectedCall.priority) + '20' }]}>
+                  <Text style={[styles.priorityText, { color: getPriorityColor(selectedCall.priority) }]}>
+                    {selectedCall.priority.toUpperCase()} PRIORITY
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.crisisTools}>
+                <Text style={styles.modalSectionTitle}>Crisis Intervention Tools</Text>
+                <TouchableOpacity style={styles.toolButton}>
+                  <Shield size={20} color="#DC2626" />
+                  <Text style={styles.toolButtonText}>Safety Assessment</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolButton}>
+                  <AlertTriangle size={20} color="#F59E0B" />
+                  <Text style={styles.toolButtonText}>Risk Evaluation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolButton}>
+                  <FileText size={20} color="#3B82F6" />
+                  <Text style={styles.toolButtonText}>Resource Directory</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.answerCallButton} onPress={answerCall}>
+                <Phone size={24} color="#FFFFFF" />
+                <Text style={styles.answerCallButtonText}>Answer Call</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+
+      {/* Transfer Call Modal */}
+      <Modal
+        visible={showTransferModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowTransferModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowTransferModal(false)}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Transfer Call</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {selectedCall && (
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.callOverview}>
+                <Text style={styles.modalSectionTitle}>Current Call</Text>
+                <Text style={styles.callId}>{selectedCall.callId}</Text>
+                <Text style={styles.callerName}>{selectedCall.callerName}</Text>
+                <Text style={styles.currentCounselor}>
+                  Current: {selectedCall.assignedCounselor || 'Current Operator'}
+                </Text>
+                {activeCallTimers[selectedCall.id] && (
+                  <Text style={styles.callDuration}>
+                    Duration: {activeCallTimers[selectedCall.id]} minutes
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.counselorsSection}>
+                <Text style={styles.modalSectionTitle}>Available Counselors</Text>
+                {availableCounselors.map((counselor) => (
+                  <TouchableOpacity
+                    key={counselor.id}
+                    style={[
+                      styles.counselorCard,
+                      counselor.status === 'busy' && styles.counselorCardDisabled
+                    ]}
+                    onPress={() => counselor.status === 'available' && transferCall(counselor.id)}
+                    disabled={counselor.status === 'busy'}
+                  >
+                    <View style={styles.counselorInfo}>
+                      <Text style={styles.counselorName}>{counselor.name}</Text>
+                      <Text style={styles.counselorSpecialization}>{counselor.specialization}</Text>
+                    </View>
+                    <View style={[
+                      styles.counselorStatus,
+                      { backgroundColor: counselor.status === 'available' ? '#10B981' : '#F59E0B' }
+                    ]}>
+                      <Text style={styles.counselorStatusText}>
+                        {counselor.status.toUpperCase()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+
+      {/* Notes Modal */}
+      <Modal
+        visible={showNotesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowNotesModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowNotesModal(false)}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Call Notes</Text>
+            <TouchableOpacity onPress={saveNotes}>
+              <Send size={24} color="#3B82F6" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedCall && (
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.callOverview}>
+                <Text style={styles.modalSectionTitle}>Call Information</Text>
+                <Text style={styles.callId}>{selectedCall.callId}</Text>
+                <Text style={styles.callerName}>{selectedCall.callerName}</Text>
+                {activeCallTimers[selectedCall.id] && (
+                  <Text style={styles.callDuration}>
+                    Duration: {activeCallTimers[selectedCall.id]} minutes
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.notesSection}>
+                <Text style={styles.modalSectionTitle}>Notes</Text>
+                <TextInput
+                  style={styles.notesInput}
+                  multiline
+                  numberOfLines={10}
+                  placeholder="Enter detailed call notes, assessments, resources provided, and follow-up actions..."
+                  placeholderTextColor="#9CA3AF"
+                  value={callNotes}
+                  onChangeText={setCallNotes}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.quickNotes}>
+                <Text style={styles.modalSectionTitle}>Quick Templates</Text>
+                <TouchableOpacity
+                  style={styles.templateButton}
+                  onPress={() => setCallNotes(prev => prev + '\n\nCrisis Assessment:\n- Immediate danger: \n- Safety plan needed: \n- Resources provided: \n')}
+                >
+                  <Text style={styles.templateButtonText}>Crisis Assessment</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.templateButton}
+                  onPress={() => setCallNotes(prev => prev + '\n\nResources Provided:\n- Legal aid referral\n- Shelter information\n- Counseling services\n')}
+                >
+                  <Text style={styles.templateButtonText}>Resources Provided</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.templateButton}
+                  onPress={() => setCallNotes(prev => prev + '\n\nFollow-up Required:\n- Date: \n- Action: \n- Responsible: \n')}
+                >
+                  <Text style={styles.templateButtonText}>Follow-up Plan</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -386,19 +726,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  filterContainer: {
+  filterButtonActive: {
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
+  },
+  filtersContainer: {
     paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingBottom: 0,
+  },
+  filterScroll: {
+    alignItems: 'center',
+
+
   },
   filterChip: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterChipActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   filterChipText: {
     fontSize: 14,
@@ -548,5 +904,164 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
     fontSize: 14,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  callOverview: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  callerName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  phoneNumber: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  currentCounselor: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
+  },
+  callDuration: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#059669',
+  },
+  crisisTools: {
+    marginBottom: 20,
+  },
+  toolButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  toolButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginLeft: 8,
+  },
+  answerCallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  answerCallButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  counselorsSection: {
+    marginBottom: 20,
+  },
+  counselorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  counselorCardDisabled: {
+    opacity: 0.5,
+  },
+  counselorInfo: {
+    flex: 1,
+  },
+  counselorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  counselorSpecialization: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  counselorStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  counselorStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  notesSection: {
+    marginBottom: 20,
+  },
+  notesInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+    minHeight: 150,
+  },
+  quickNotes: {
+    marginBottom: 20,
+  },
+  templateButton: {
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    marginBottom: 8,
+  },
+  templateButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#3B82F6',
   },
 });
