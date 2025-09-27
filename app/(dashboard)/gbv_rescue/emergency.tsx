@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import EmergencyCases from '@/dashboards/gbv_rescue/components/EmergencyCases';
 
 export default function EmergencyScreen() {
   console.log('🚨 EmergencyScreen - GBV Emergency Cases');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <EmergencyCases />
-    </View>
+    </SafeAreaView>
   );
 }
 
