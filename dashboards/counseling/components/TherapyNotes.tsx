@@ -8,6 +8,7 @@ const TherapyNotes: React.FC = () => {
   const { assignedCases } = useProvider();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'session_note' | 'progress_note' | 'assessment'>('all');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Convert incidents to therapy notes
   const therapyNotes: TherapyNote[] = useMemo(() => {
@@ -198,13 +199,17 @@ const TherapyNotes: React.FC = () => {
             placeholderTextColor="#9CA3AF"
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={20} color="#6B7280" />
+        <TouchableOpacity
+          style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Filter size={20} color={showFilters ? '#FFFFFF' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
       {/* Filter Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
+      {showFilters && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
         {[
           { key: 'all', label: 'All Notes', count: therapyNotes.length },
           { key: 'session_note', label: 'Session Notes', count: therapyNotes.filter(n => n.type === 'session_note').length },
@@ -227,7 +232,8 @@ const TherapyNotes: React.FC = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* Notes List */}
       <ScrollView style={styles.notesList} showsVerticalScrollIndicator={false}>
@@ -305,19 +311,29 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  filterButtonActive: {
+    backgroundColor: '#3B82F6',
+  },
   filterTabs: {
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingBottom: 0,
   },
   filterTab: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   filterTabText: {
     fontSize: 14,
