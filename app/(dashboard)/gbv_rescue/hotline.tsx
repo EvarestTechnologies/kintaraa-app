@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import HotlineSupport from '@/dashboards/gbv_rescue/components/HotlineSupport';
 
 export default function HotlineScreen() {
   console.log('📞 HotlineScreen - GBV Hotline Support');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <HotlineSupport />
-    </View>
+    </SafeAreaView>
   );
 }
 
