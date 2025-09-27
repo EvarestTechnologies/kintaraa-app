@@ -1,39 +1,43 @@
-import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useState } from 'react';
+import CounselingResources from '@/dashboards/counseling/components/CounselingResources';
+import AddResourceModal from '@/dashboards/counseling/components/AddResourceModal';
+import { mockCounselingResources } from '@/dashboards/counseling/data/mockResources';
+import type { CounselingResource } from '@/dashboards/counseling/index';
 
 export default function ResourcesScreen() {
   console.log('📚 ResourcesScreen - Counseling Resources');
 
+  const [resources, setResources] = useState<CounselingResource[]>(mockCounselingResources);
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+
+  const handleResourceSelect = (resource: CounselingResource) => {
+    console.log('Selected resource:', resource.title);
+    // Handle resource selection - could open details modal, navigate, etc.
+  };
+
+  const handleAddResource = () => {
+    setShowAddModal(true);
+  };
+
+  const handleAddSuccess = (newResource: CounselingResource) => {
+    setResources(prev => [newResource, ...prev]);
+    setShowAddModal(false);
+    console.log('New resource added:', newResource.title);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Counseling Resources</Text>
-        <Text style={styles.subtitle}>Therapeutic resources and materials coming soon...</Text>
-      </View>
-    </View>
+    <>
+      <CounselingResources
+        resources={resources}
+        onResourceSelect={handleResourceSelect}
+        onAddResource={handleAddResource}
+      />
+
+      <AddResourceModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleAddSuccess}
+      />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-});
