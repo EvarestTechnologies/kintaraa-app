@@ -110,83 +110,91 @@ export default function DashboardOverview() {
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Emergency Actions</Text>
-        <View style={styles.actionsGrid}>
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#FEF2F2' }]}
-            onPress={handleEmergencyResponse}
-          >
-            <Siren color="#DC2626" size={32} />
-            <Text style={[styles.actionTitle, { color: '#DC2626' }]}>Emergency Response</Text>
-            <Text style={styles.actionDescription}>Activate emergency protocol</Text>
-          </TouchableOpacity>
+        <View style={styles.actionsContainer}>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: '#FEF2F2' }]}
+              onPress={handleEmergencyResponse}
+            >
+              <Siren color="#DC2626" size={32} />
+              <Text style={[styles.actionTitle, { color: '#DC2626' }]}>Emergency Response</Text>
+              <Text style={styles.actionDescription}>Activate emergency protocol</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#F3E8FF' }]}
-            onPress={handleHotlineSupport}
-          >
-            <Headphones color="#7C3AED" size={32} />
-            <Text style={[styles.actionTitle, { color: '#7C3AED' }]}>Hotline Support</Text>
-            <Text style={styles.actionDescription}>Manage crisis calls</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: '#F3E8FF' }]}
+              onPress={handleHotlineSupport}
+            >
+              <Headphones color="#7C3AED" size={32} />
+              <Text style={[styles.actionTitle, { color: '#7C3AED' }]}>Hotline Support</Text>
+              <Text style={styles.actionDescription}>Manage crisis calls</Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#ECFDF5' }]}
-            onPress={handleSafeHouseManagement}
-          >
-            <Home color="#059669" size={32} />
-            <Text style={[styles.actionTitle, { color: '#059669' }]}>Safe House</Text>
-            <Text style={styles.actionDescription}>Manage accommodations</Text>
-          </TouchableOpacity>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: '#ECFDF5' }]}
+              onPress={handleSafeHouseManagement}
+            >
+              <Home color="#059669" size={32} />
+              <Text style={[styles.actionTitle, { color: '#059669' }]}>Safe House</Text>
+              <Text style={styles.actionDescription}>Manage accommodations</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#FFF7ED' }]}
-            onPress={handleCrisisIntervention}
-          >
-            <LifeBuoy color="#EA580C" size={32} />
-            <Text style={[styles.actionTitle, { color: '#EA580C' }]}>Crisis Intervention</Text>
-            <Text style={styles.actionDescription}>Immediate support tools</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: '#FFF7ED' }]}
+              onPress={handleCrisisIntervention}
+            >
+              <LifeBuoy color="#EA580C" size={32} />
+              <Text style={[styles.actionTitle, { color: '#EA580C' }]}>Crisis Intervention</Text>
+              <Text style={styles.actionDescription}>Immediate support tools</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Performance Overview */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Performance Overview</Text>
-        <View style={styles.performanceGrid}>
-          <View style={styles.performanceCard}>
-            <View style={styles.performanceHeader}>
-              <Users color="#3B82F6" size={20} />
-              <Text style={styles.performanceTitle}>Active Teams</Text>
+        <View style={styles.performanceContainer}>
+          <View style={styles.performanceRow}>
+            <View style={styles.performanceCard}>
+              <View style={styles.performanceHeader}>
+                <Users color="#3B82F6" size={20} />
+                <Text style={styles.performanceTitle}>Active Teams</Text>
+              </View>
+              <Text style={styles.performanceValue}>{activeTeams}</Text>
+              <Text style={styles.performanceChange}>+1 from yesterday</Text>
             </View>
-            <Text style={styles.performanceValue}>{activeTeams}</Text>
-            <Text style={styles.performanceChange}>+1 from yesterday</Text>
+
+            <View style={styles.performanceCard}>
+              <View style={styles.performanceHeader}>
+                <TrendingUp color="#10B981" size={20} />
+                <Text style={styles.performanceTitle}>Total Rescues</Text>
+              </View>
+              <Text style={styles.performanceValue}>{totalRescues}</Text>
+              <Text style={styles.performanceChange}>+12 this month</Text>
+            </View>
           </View>
-          
-          <View style={styles.performanceCard}>
-            <View style={styles.performanceHeader}>
-              <TrendingUp color="#10B981" size={20} />
-              <Text style={styles.performanceTitle}>Total Rescues</Text>
+
+          <View style={styles.performanceRow}>
+            <View style={styles.performanceCard}>
+              <View style={styles.performanceHeader}>
+                <Clock color="#F59E0B" size={20} />
+                <Text style={styles.performanceTitle}>Response Rate</Text>
+              </View>
+              <Text style={styles.performanceValue}>94%</Text>
+              <Text style={styles.performanceChange}>+2% improvement</Text>
             </View>
-            <Text style={styles.performanceValue}>{totalRescues}</Text>
-            <Text style={styles.performanceChange}>+12 this month</Text>
-          </View>
-          
-          <View style={styles.performanceCard}>
-            <View style={styles.performanceHeader}>
-              <Clock color="#F59E0B" size={20} />
-              <Text style={styles.performanceTitle}>Response Rate</Text>
+
+            <View style={styles.performanceCard}>
+              <View style={styles.performanceHeader}>
+                <Phone color="#7C3AED" size={20} />
+                <Text style={styles.performanceTitle}>Call Success</Text>
+              </View>
+              <Text style={styles.performanceValue}>98%</Text>
+              <Text style={styles.performanceChange}>Excellent rating</Text>
             </View>
-            <Text style={styles.performanceValue}>94%</Text>
-            <Text style={styles.performanceChange}>+2% improvement</Text>
-          </View>
-          
-          <View style={styles.performanceCard}>
-            <View style={styles.performanceHeader}>
-              <Phone color="#7C3AED" size={20} />
-              <Text style={styles.performanceTitle}>Call Success</Text>
-            </View>
-            <Text style={styles.performanceValue}>98%</Text>
-            <Text style={styles.performanceChange}>Excellent rating</Text>
           </View>
         </View>
       </View>
@@ -355,17 +363,19 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
   },
-  actionsGrid: {
+  actionsContainer: {
+    marginTop: 8,
+  },
+  actionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
+    marginBottom: 12,
   },
   actionCard: {
-    width: '48%',
+    flex: 1,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    margin: 6,
+    marginHorizontal: 4,
   },
   actionTitle: {
     fontSize: 14,
@@ -379,17 +389,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  performanceGrid: {
+  performanceContainer: {
+    marginTop: 8,
+  },
+  performanceRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
+    marginBottom: 12,
   },
   performanceCard: {
-    width: '48%',
+    flex: 1,
     backgroundColor: '#F9FAFB',
     padding: 16,
     borderRadius: 8,
-    margin: 6,
+    marginHorizontal: 4,
   },
   performanceHeader: {
     flexDirection: 'row',
