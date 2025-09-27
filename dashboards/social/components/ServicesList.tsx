@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { Search, Filter, Plus, Calendar, DollarSign, FileText, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Filter, Plus, Calendar, DollarSign, FileText, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { SocialService } from '../index';
 
 interface ServicesListProps {
@@ -102,7 +103,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Services</Text>
@@ -215,7 +216,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
                     <Text style={styles.priorityBadgeText}>{service.priority.toUpperCase()}</Text>
                   </View>
                 </View>
-                <Text style={styles.clientName}>{service.clientName}</Text>
+                <Text style={styles.clientName}>{service.clientName || 'Unknown Client'}</Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(service.status) }]}>
                 <Text style={styles.statusBadgeText}>
@@ -225,7 +226,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
             </View>
 
             <Text style={styles.serviceDescription} numberOfLines={2}>
-              {service.description}
+              {service.description || 'No description available'}
             </Text>
 
             <View style={styles.serviceDetails}>
@@ -256,15 +257,15 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Provider:</Text>
-                <Text style={styles.detailText}>{service.provider}</Text>
+                <Text style={styles.detailText}>{service.provider || 'Not specified'}</Text>
               </View>
 
-              {service.cost && (
+              {service.cost !== undefined && (
                 <View style={styles.detailRow}>
                   <DollarSign size={14} color="#64748B" />
                   <Text style={styles.detailText}>
                     Cost: ${service.cost.toLocaleString()}
-                    {service.fundingSource && ` (${service.fundingSource})`}
+                    {service.fundingSource ? ` (${service.fundingSource})` : ''}
                   </Text>
                 </View>
               )}
@@ -277,15 +278,15 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
               </View>
               <View style={styles.documentsProgress}>
                 <Text style={styles.documentsText}>
-                  {service.documentsSubmitted.length} of {service.documentsRequired.length} submitted
+                  {service.documentsSubmitted?.length || 0} of {service.documentsRequired?.length || 0} submitted
                 </Text>
                 <View style={styles.progressBar}>
                   <View 
                     style={[
                       styles.progressFill,
-                      { 
-                        width: `${(service.documentsSubmitted.length / service.documentsRequired.length) * 100}%`,
-                        backgroundColor: service.documentsSubmitted.length === service.documentsRequired.length ? '#10B981' : '#F59E0B'
+                      {
+                        width: `${((service.documentsSubmitted?.length || 0) / Math.max(service.documentsRequired?.length || 1, 1)) * 100}%`,
+                        backgroundColor: (service.documentsSubmitted?.length || 0) === (service.documentsRequired?.length || 0) ? '#10B981' : '#F59E0B'
                       }
                     ]}
                   />
@@ -293,11 +294,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
               </View>
             </View>
 
-            {service.eligibilityCriteria.length > 0 && (
+            {(service.eligibilityCriteria?.length || 0) > 0 && (
               <View style={styles.eligibilitySection}>
                 <AlertCircle size={14} color="#3B82F6" />
                 <Text style={styles.eligibilityText}>
-                  Eligibility: {service.eligibilityCriteria.join(', ')}
+                  Eligibility: {service.eligibilityCriteria?.join(', ') || 'Not specified'}
                 </Text>
               </View>
             )}
@@ -317,7 +318,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ services, onServiceSelect, 
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
