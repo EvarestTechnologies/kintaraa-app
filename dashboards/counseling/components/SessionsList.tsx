@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, Video, Phone, MapPin, User, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import type { CounselingSession } from '../index';
@@ -171,7 +172,7 @@ const SessionsList: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Sessions</Text>
@@ -181,7 +182,12 @@ const SessionsList: React.FC = () => {
       </View>
 
       {/* Filter Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
+      <View style={styles.filtersContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
         {[
           { key: 'all', label: 'All Sessions', count: sessions.length },
           { key: 'today', label: 'Today', count: sessions.filter(s => new Date(s.date).toDateString() === new Date().toDateString()).length },
@@ -204,7 +210,8 @@ const SessionsList: React.FC = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Sessions List */}
       <ScrollView style={styles.sessionsList} showsVerticalScrollIndicator={false}>
@@ -222,7 +229,7 @@ const SessionsList: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -245,19 +252,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  filterTabs: {
+  filtersContainer: {
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingBottom: 0,
+  },
+  filterScroll: {
+    alignItems: 'center',
   },
   filterTab: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   filterTabText: {
     fontSize: 14,
@@ -270,6 +287,7 @@ const styles = StyleSheet.create({
   sessionsList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 16,
   },
   sessionCard: {
     backgroundColor: '#FFFFFF',

@@ -92,3 +92,28 @@ export interface TherapyNote {
   tags: string[];
   caseId: string;
 }
+
+export interface CounselingResource {
+  id: string;
+  title: string;
+  description: string;
+  category: 'mental_health' | 'assessments' | 'crisis' | 'group_therapy' | 'referrals' | 'education' | 'community' | 'professional' | 'medication' | 'legal';
+  type: 'form' | 'guide' | 'contact' | 'website' | 'document' | 'assessment' | 'hotline' | 'video' | 'article';
+  url?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  hours?: string;
+  cost?: 'free' | 'low_cost' | 'insurance' | 'paid';
+  downloadUrl?: string;
+  fileName?: string;
+  isLocal?: boolean;
+  tags: string[];
+  rating?: number;
+  featured?: boolean;
+  lastUpdated: string;
+  isActive: boolean;
+  contactPerson?: string;
+  languages?: string[];
+  accessibility?: string[];
+}
