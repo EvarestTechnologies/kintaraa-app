@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import ResourceDirectory from '@/dashboards/social/components/ResourceDirectory';
+import AddResourceModal from '@/dashboards/social/components/AddResourceModal';
 import { CommunityResource } from '@/dashboards/social';
 
 export default function ResourcesScreen() {
   console.log('📚 ResourcesScreen - Social Resources');
-
-  // Mock resources for Resource Directory
-  const mockResources: CommunityResource[] = [
+  const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
+  const [resources, setResources] = useState<CommunityResource[]>([
     {
       id: '1',
       name: 'Community Food Bank',
@@ -27,22 +27,32 @@ export default function ResourcesScreen() {
       isActive: true,
       contactPerson: 'Maria Rodriguez'
     }
-  ];
+  ]);
 
   const handleResourceSelect = (resource: CommunityResource) => {
     console.log('Selected resource:', resource.name);
   };
 
   const handleAddResource = () => {
-    console.log('Add new resource');
+    setIsAddModalVisible(true);
+  };
+
+  const handleAddSuccess = (newResource: CommunityResource) => {
+    setResources(prev => [newResource, ...prev]);
   };
 
   return (
     <View style={styles.container}>
       <ResourceDirectory
-        resources={mockResources}
+        resources={resources}
         onResourceSelect={handleResourceSelect}
         onAddResource={handleAddResource}
+      />
+
+      <AddResourceModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={handleAddSuccess}
       />
     </View>
   );

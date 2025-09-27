@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Users, Home, DollarSign, Calendar, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Users, Home, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
 import { SocialServicesStats } from '../index';
 
 interface DashboardOverviewProps {
@@ -79,36 +80,41 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, onNavigate
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Social Services Dashboard</Text>
         <Text style={styles.subtitle}>Comprehensive community support and case management</Text>
       </View>
 
-      <View style={styles.statsGrid}>
-        {quickStats.map((stat, index) => {
-          const IconComponent = stat.icon;
-          return (
-            <View key={index} style={styles.statCard}>
-              <View style={styles.statHeader}>
-                <View style={[styles.iconContainer, { backgroundColor: `${stat.color}20` }]}>
-                  <IconComponent size={24} color={stat.color} />
-                </View>
-                <View style={[styles.changeIndicator, { 
-                  backgroundColor: stat.changeType === 'positive' ? '#10B98120' : '#EF444420' 
-                }]}>
-                  <Text style={[styles.changeText, { 
-                    color: stat.changeType === 'positive' ? '#10B981' : '#EF4444' 
+      {/* Quick Stats */}
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>Quick Stats</Text>
+        <View style={styles.statsGrid}>
+          {quickStats.map((stat, index) => {
+            const IconComponent = stat.icon;
+            return (
+              <View key={index} style={styles.statCard}>
+                <View style={styles.statHeader}>
+                  <View style={[styles.iconContainer, { backgroundColor: `${stat.color}20` }]}>
+                    <IconComponent size={24} color={stat.color} />
+                  </View>
+                  <View style={[styles.changeIndicator, {
+                    backgroundColor: stat.changeType === 'positive' ? '#10B98120' : '#EF444420'
                   }]}>
-                    {stat.change}
-                  </Text>
+                    <Text style={[styles.changeText, {
+                      color: stat.changeType === 'positive' ? '#10B981' : '#EF4444'
+                    }]}>
+                      {stat.change}
+                    </Text>
+                  </View>
                 </View>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statTitle}>{stat.title}</Text>
               </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statTitle}>{stat.title}</Text>
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
       </View>
 
       <View style={styles.metricsSection}>
@@ -169,7 +175,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, onNavigate
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -177,6 +184,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   header: {
     padding: 20,
@@ -192,11 +202,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748B',
   },
+  statsSection: {
+    padding: 20,
+    paddingBottom: 18,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 20,
-    paddingTop: 10,
     gap: 12,
   },
   statCard: {

@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import ServicesList from '@/dashboards/social/components/ServicesList';
+import AddServiceModal from '@/dashboards/social/components/AddServiceModal';
 import { SocialService } from '@/dashboards/social';
 
 export default function ServicesScreen() {
   console.log('🔧 ServicesScreen - Social Services');
-
-  // Mock services for Services List
-  const mockServices: SocialService[] = [
+  const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
+  const [services, setServices] = useState<SocialService[]>([
     {
       id: '1',
       clientId: 'client-001',
@@ -26,22 +26,32 @@ export default function ServicesScreen() {
       notes: 'Client facing eviction, needs immediate assistance',
       caseId: 'case-001'
     }
-  ];
+  ]);
 
   const handleServiceSelect = (service: SocialService) => {
     console.log('Selected service:', service.id);
   };
 
   const handleAddService = () => {
-    console.log('Add new service');
+    setIsAddModalVisible(true);
+  };
+
+  const handleAddSuccess = (newService: SocialService) => {
+    setServices(prev => [newService, ...prev]);
   };
 
   return (
     <View style={styles.container}>
       <ServicesList
-        services={mockServices}
+        services={services}
         onServiceSelect={handleServiceSelect}
         onAddService={handleAddService}
+      />
+
+      <AddServiceModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={handleAddSuccess}
       />
     </View>
   );

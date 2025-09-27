@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { Search, Filter, Plus, FileText, Calendar, User, AlertTriangle, CheckCircle, Clock, Target } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Filter, Plus, FileText, Calendar, User, AlertTriangle, CheckCircle, Target } from 'lucide-react-native';
 import { ServiceAssessment } from '../index';
 
 interface CaseManagementProps {
@@ -66,7 +67,7 @@ const CaseManagement: React.FC<CaseManagementProps> = ({ assessments, onAssessme
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Case Management</Text>
@@ -255,7 +256,7 @@ const CaseManagement: React.FC<CaseManagementProps> = ({ assessments, onAssessme
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
