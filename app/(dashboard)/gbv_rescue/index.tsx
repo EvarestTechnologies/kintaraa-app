@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DashboardOverview from '@/dashboards/gbv_rescue/components/DashboardOverview';
 
 export default function GbvRescueDashboardScreen() {
   console.log('🚨 GbvRescueDashboardScreen - GBV Rescue Dashboard Home');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <DashboardOverview />
-    </View>
+    </SafeAreaView>
   );
 }
 
