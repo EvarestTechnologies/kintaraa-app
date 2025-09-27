@@ -291,17 +291,24 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingBottom: 0,
   },
   filterTab: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6A2CB0',
+    borderColor: '#6A2CB0',
   },
   filterTabText: {
     fontSize: 14,
