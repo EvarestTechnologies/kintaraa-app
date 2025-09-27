@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import CaseManagement from '@/dashboards/social/components/CaseManagement';
+import AddAssessmentModal from '@/dashboards/social/components/AddAssessmentModal';
 import { ServiceAssessment } from '@/dashboards/social';
 
 export default function CasesScreen() {
   console.log('📋 CasesScreen - Social Cases');
-
-  // Mock assessments for Social Cases
-  const mockAssessments: ServiceAssessment[] = [
+  const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
+  const [assessments, setAssessments] = useState<ServiceAssessment[]>([
     {
       id: '1',
       clientId: 'client-001',
@@ -31,22 +31,32 @@ export default function CasesScreen() {
       status: 'completed',
       caseId: 'case-001'
     }
-  ];
+  ]);
 
   const handleAssessmentSelect = (assessment: ServiceAssessment) => {
     console.log('Selected assessment:', assessment.id);
   };
 
   const handleAddAssessment = () => {
-    console.log('Add new assessment');
+    setIsAddModalVisible(true);
+  };
+
+  const handleAddSuccess = (newAssessment: ServiceAssessment) => {
+    setAssessments(prev => [newAssessment, ...prev]);
   };
 
   return (
     <View style={styles.container}>
       <CaseManagement
-        assessments={mockAssessments}
+        assessments={assessments}
         onAssessmentSelect={handleAssessmentSelect}
         onAddAssessment={handleAddAssessment}
+      />
+
+      <AddAssessmentModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSuccess={handleAddSuccess}
       />
     </View>
   );
