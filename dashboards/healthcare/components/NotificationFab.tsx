@@ -8,6 +8,7 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Bell,
@@ -20,9 +21,10 @@ import {
   Phone,
   MapPin,
 } from 'lucide-react-native';
-import { useProvider, ProviderNotification } from '@/providers/ProviderContext';
+import { useProvider, ProviderNotification, ProviderAssignmentData } from '@/providers/ProviderContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProviderResponseService } from '@/services/providerResponseService';
+import { ProviderRoutingService } from '@/services/providerRouting';
 
 const { width } = Dimensions.get('window');
 
@@ -31,51 +33,35 @@ interface NotificationFabProps {
 }
 
 export default function NotificationFab({ onNewCasePress }: NotificationFabProps) {
-  const { notifications } = useProvider();
+  const { notifications, providerAssignments } = useProvider();
+  const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
+  const [acceptingCase, setAcceptingCase] = useState<string | null>(null);
+  const [contactingSurvivor, setContactingSurvivor] = useState<string | null>(null);
+  const [actionResults, setActionResults] = useState<{[key: string]: 'accepted' | 'contacted'}>({});
 
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const urgentCount = notifications.filter(n => !n.isRead && n.urgencyLevel === 'immediate').length;
+  // Filter out dismissed notifications and get only active ones
+  // Also filter out notifications for incidents that already have accepted assignments
+  const activeNotifications = notifications.filter(n => {
+    if (dismissedNotifications.includes(n.id)) return false;
 
-  // Mock notifications for testing (in real app, these come from routing)
-  const mockNotifications: ProviderNotification[] = [
-    {
-      id: '1',
-      type: 'new_case',
-      title: 'New Emergency Case',
-      message: 'Sexual assault case requires immediate medical attention. PEP window: 68 hours remaining.',
-      incidentId: 'incident-001',
-      urgencyLevel: 'immediate',
-      estimatedResponseTime: 15,
-      isRead: false,
-      createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-    },
-    {
-      id: '2',
-      type: 'new_case',
-      title: 'New GBV Case',
-      message: 'Physical violence case - survivor requests medical examination and counseling.',
-      incidentId: 'incident-002',
-      urgencyLevel: 'urgent',
-      estimatedResponseTime: 30,
-      isRead: false,
-      createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-    },
-    {
-      id: '3',
-      type: 'message',
-      title: 'Case Update',
-      message: 'Patient EMG-241210001 has completed initial examination. Follow-up scheduled.',
-      incidentId: 'incident-003',
-      urgencyLevel: 'routine',
-      isRead: true,
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    },
-  ];
+    // If this is a case notification, check if the provider already accepted it
+    if (n.type === 'new_case' && n.incidentId) {
+      const hasAcceptedAssignment = providerAssignments.some((assignment: ProviderAssignmentData) =>
+        assignment.incidentId === n.incidentId &&
+        assignment.providerId === 'provider-healthcare-1' &&
+        assignment.status === 'accepted'
+      );
+      return !hasAcceptedAssignment;
+    }
 
-  const allNotifications = [...notifications, ...mockNotifications];
+    return true;
+  });
+
+  // Count unread notifications from active ones
+  const unreadCount = activeNotifications.filter(n => !n.isRead).length;
+  const urgentCount = activeNotifications.filter(n => !n.isRead && n.urgencyLevel === 'immediate').length;
 
   const handlePress = () => {
     // Animate button press
@@ -141,96 +127,135 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
     }
   };
 
-  const handleAcceptCase = (notification: ProviderNotification) => {
-    if (!notification.incidentId) return;
+  const handleAcceptCase = async (notification: ProviderNotification) => {
+    if (!notification.incidentId || acceptingCase === notification.id) return;
 
-    // Create a mock incident for the response service
-    const mockIncident = {
-      id: notification.incidentId,
-      caseNumber: `Case ${notification.incidentId}`,
-      survivorId: 'survivor-1',
-      type: 'physical' as const,
-      status: 'assigned' as const,
-      priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
-      incidentDate: new Date().toISOString(),
-      location: {
-        address: 'Location not specified',
-        coordinates: { latitude: -1.2921, longitude: 36.8219 },
-        description: 'Provider accepted case'
-      },
-      description: 'Case accepted by healthcare provider',
-      severity: 'high' as const,
-      supportServices: ['medical'],
-      isAnonymous: false,
-      evidence: [],
-      messages: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      urgencyLevel: notification.urgencyLevel || 'routine',
-      providerPreferences: {
-        communicationMethod: 'sms' as const,
-        preferredGender: 'no_preference' as const,
-        proximityPreference: 'nearest' as const
+    setAcceptingCase(notification.id);
+
+    try {
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Create a mock incident for the response service
+      const mockIncident = {
+        id: notification.incidentId,
+        caseNumber: `Case ${notification.incidentId}`,
+        survivorId: 'survivor-1',
+        type: 'physical' as const,
+        status: 'assigned' as const,
+        priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
+        incidentDate: new Date().toISOString(),
+        location: {
+          address: 'Location not specified',
+          coordinates: { latitude: -1.2921, longitude: 36.8219 },
+          description: 'Provider accepted case'
+        },
+        description: 'Case accepted by healthcare provider',
+        severity: 'high' as const,
+        supportServices: ['medical'],
+        isAnonymous: false,
+        evidence: [],
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        urgencyLevel: notification.urgencyLevel || 'routine',
+        providerPreferences: {
+          communicationMethod: 'sms' as const,
+          preferredGender: 'no_preference' as const,
+          proximityPreference: 'nearest' as const
+        }
+      };
+
+      // Find and accept the assignment in the routing system
+      const incidentAssignments = ProviderRoutingService.getIncidentAssignments(notification.incidentId);
+      const pendingAssignment = incidentAssignments.find((assignment: ProviderAssignmentData) =>
+        assignment.providerId === 'provider-healthcare-1' && assignment.status === 'pending'
+      );
+
+      if (pendingAssignment) {
+        // Accept the assignment in the routing system
+        ProviderRoutingService.acceptAssignment(pendingAssignment.id);
+        console.log('Assignment accepted in routing system:', pendingAssignment.id);
       }
-    };
 
-    // Record provider assignment - this will create a survivor notification
-    ProviderResponseService.recordProviderAssignment(
-      mockIncident,
-      'provider-healthcare-1',
-      'Dr. Sarah Johnson',
-      'healthcare'
-    );
+      // Record provider assignment - this will create a survivor notification
+      ProviderResponseService.recordProviderAssignment(
+        mockIncident,
+        'provider-healthcare-1',
+        'Dr. Sarah Johnson',
+        'healthcare'
+      );
 
-    console.log('Case accepted! Survivor will be notified.');
-    setShowNotifications(false);
+      // Mark as successful and dismiss notification
+      setActionResults(prev => ({ ...prev, [notification.id]: 'accepted' }));
+      setDismissedNotifications(prev => [...prev, notification.id]);
+
+      console.log('Case accepted! Added to patients list. Survivor will be notified.');
+    } catch (error) {
+      console.error('Error accepting case:', error);
+    } finally {
+      setAcceptingCase(null);
+    }
   };
 
-  const handleContactSurvivor = (notification: ProviderNotification) => {
-    if (!notification.incidentId) return;
+  const handleContactSurvivor = async (notification: ProviderNotification) => {
+    if (!notification.incidentId || contactingSurvivor === notification.id) return;
 
-    // Create a mock incident for the response service
-    const mockIncident = {
-      id: notification.incidentId,
-      caseNumber: `Case ${notification.incidentId}`,
-      survivorId: 'survivor-1',
-      type: 'physical' as const,
-      status: 'assigned' as const,
-      priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
-      incidentDate: new Date().toISOString(),
-      location: {
-        address: 'Location not specified',
-        coordinates: { latitude: -1.2921, longitude: 36.8219 },
-        description: 'Provider contacting survivor'
-      },
-      description: 'Provider attempting to contact survivor',
-      severity: 'high' as const,
-      supportServices: ['medical'],
-      isAnonymous: false,
-      evidence: [],
-      messages: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      urgencyLevel: notification.urgencyLevel || 'routine',
-      providerPreferences: {
-        communicationMethod: 'sms' as const,
-        preferredGender: 'no_preference' as const,
-        proximityPreference: 'nearest' as const
-      }
-    };
+    setContactingSurvivor(notification.id);
 
-    // Record contact attempt - this will create a survivor notification
-    ProviderResponseService.recordContactAttempt(
-      mockIncident,
-      'provider-healthcare-1',
-      'Dr. Sarah Johnson',
-      'healthcare',
-      'sms',
-      true // successful contact
-    );
+    try {
+      // Simulate SMS/call processing time
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-    console.log('Contacting survivor! Survivor will be notified.');
-    setShowNotifications(false);
+      // Create a mock incident for the response service
+      const mockIncident = {
+        id: notification.incidentId,
+        caseNumber: `Case ${notification.incidentId}`,
+        survivorId: 'survivor-1',
+        type: 'physical' as const,
+        status: 'assigned' as const,
+        priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
+        incidentDate: new Date().toISOString(),
+        location: {
+          address: 'Location not specified',
+          coordinates: { latitude: -1.2921, longitude: 36.8219 },
+          description: 'Provider contacting survivor'
+        },
+        description: 'Provider attempting to contact survivor',
+        severity: 'high' as const,
+        supportServices: ['medical'],
+        isAnonymous: false,
+        evidence: [],
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        urgencyLevel: notification.urgencyLevel || 'routine',
+        providerPreferences: {
+          communicationMethod: 'sms' as const,
+          preferredGender: 'no_preference' as const,
+          proximityPreference: 'nearest' as const
+        }
+      };
+
+      // Record contact attempt - this will create a survivor notification
+      ProviderResponseService.recordContactAttempt(
+        mockIncident,
+        'provider-healthcare-1',
+        'Dr. Sarah Johnson',
+        'healthcare',
+        'sms',
+        true // successful contact
+      );
+
+      // Mark as successful
+      setActionResults(prev => ({ ...prev, [notification.id]: 'contacted' }));
+
+      console.log('Contacting survivor! Survivor will be notified.');
+    } catch (error) {
+      console.error('Error contacting survivor:', error);
+    } finally {
+      setContactingSurvivor(null);
+    }
   };
 
   return (
@@ -262,6 +287,16 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
         onRequestClose={() => setShowNotifications(false)}
       >
         <View style={styles.modalContainer}>
+          {/* Success Banner */}
+          {Object.keys(actionResults).length > 0 && (
+            <View style={styles.successBanner}>
+              <CheckCircle size={20} color="#10B981" />
+              <Text style={styles.successBannerText}>
+                Actions completed! Survivor has been notified.
+              </Text>
+            </View>
+          )}
+
           {/* Header */}
           <View style={styles.modalHeader}>
             <View>
@@ -280,16 +315,16 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
 
           {/* Notifications List */}
           <ScrollView style={styles.notificationsList} showsVerticalScrollIndicator={false}>
-            {allNotifications.length === 0 ? (
+            {activeNotifications.length === 0 ? (
               <View style={styles.emptyState}>
                 <Bell size={48} color="#D1D5DB" />
-                <Text style={styles.emptyStateTitle}>No notifications</Text>
+                <Text style={styles.emptyStateTitle}>No new cases</Text>
                 <Text style={styles.emptyStateText}>
                   You'll receive notifications when new cases are assigned to you.
                 </Text>
               </View>
             ) : (
-              allNotifications
+              activeNotifications
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((notification) => (
                   <TouchableOpacity
@@ -346,18 +381,57 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
                       {notification.type === 'new_case' && (
                         <View style={styles.actionButtons}>
                           <TouchableOpacity
-                            style={[styles.actionButton, styles.acceptButton]}
+                            style={[
+                              styles.actionButton,
+                              styles.acceptButton,
+                              actionResults[notification.id] === 'accepted' && styles.successButton,
+                              acceptingCase === notification.id && styles.disabledButton
+                            ]}
                             onPress={() => handleAcceptCase(notification)}
+                            disabled={acceptingCase === notification.id || actionResults[notification.id] === 'accepted'}
                           >
-                            <CheckCircle size={16} color="#FFFFFF" />
-                            <Text style={[styles.actionButtonText, styles.acceptButtonText]}>Accept Case</Text>
+                            {acceptingCase === notification.id ? (
+                              <>
+                                <ActivityIndicator size={16} color="#FFFFFF" />
+                                <Text style={[styles.actionButtonText, styles.acceptButtonText]}>Accepting...</Text>
+                              </>
+                            ) : actionResults[notification.id] === 'accepted' ? (
+                              <>
+                                <CheckCircle size={16} color="#FFFFFF" />
+                                <Text style={[styles.actionButtonText, styles.acceptButtonText]}>Case Accepted!</Text>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle size={16} color="#FFFFFF" />
+                                <Text style={[styles.actionButtonText, styles.acceptButtonText]}>Accept Case</Text>
+                              </>
+                            )}
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={styles.actionButton}
+                            style={[
+                              styles.actionButton,
+                              actionResults[notification.id] === 'contacted' && styles.successButton,
+                              contactingSurvivor === notification.id && styles.disabledButton
+                            ]}
                             onPress={() => handleContactSurvivor(notification)}
+                            disabled={contactingSurvivor === notification.id || actionResults[notification.id] === 'contacted'}
                           >
-                            <Phone size={16} color="#3B82F6" />
-                            <Text style={styles.actionButtonText}>Contact</Text>
+                            {contactingSurvivor === notification.id ? (
+                              <>
+                                <ActivityIndicator size={16} color="#3B82F6" />
+                                <Text style={styles.actionButtonText}>Sending SMS...</Text>
+                              </>
+                            ) : actionResults[notification.id] === 'contacted' ? (
+                              <>
+                                <CheckCircle size={16} color="#10B981" />
+                                <Text style={[styles.actionButtonText, { color: '#10B981' }]}>SMS Sent!</Text>
+                              </>
+                            ) : (
+                              <>
+                                <Phone size={16} color="#3B82F6" />
+                                <Text style={styles.actionButtonText}>Send SMS</Text>
+                              </>
+                            )}
                           </TouchableOpacity>
                         </View>
                       )}
@@ -418,6 +492,22 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#10B981',
+    gap: 8,
+  },
+  successBannerText: {
+    fontSize: 14,
+    color: '#065F46',
+    fontWeight: '500',
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -562,6 +652,12 @@ const styles = StyleSheet.create({
   },
   acceptButtonText: {
     color: '#FFFFFF',
+  },
+  successButton: {
+    backgroundColor: '#10B981',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   unreadDot: {
     width: 8,

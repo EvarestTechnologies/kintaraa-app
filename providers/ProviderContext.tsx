@@ -84,9 +84,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
   const assignedCases = useMemo(() => {
     // Get real incidents assigned through routing system
     const routedIncidents = incidents.filter(incident => {
-      // Check if this provider has an assignment for this incident
+      // Check if this provider has an ACCEPTED assignment for this incident
       return providerAssignments.some(assignment =>
-        assignment.incidentId === incident.id && assignment.providerId === providerProfile?.id
+        assignment.incidentId === incident.id &&
+        assignment.providerId === providerProfile?.id &&
+        assignment.status === 'accepted'
       );
     });
 
@@ -569,6 +571,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     providerProfile,
     assignedCases,
     pendingAssignments: pendingAssignmentsQuery.data || [],
+    providerAssignments,
     stats,
     notifications,
     unreadCount,
@@ -584,6 +587,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     providerProfile,
     assignedCases,
     pendingAssignmentsQuery.data,
+    providerAssignments,
     stats,
     notifications,
     unreadCount,
