@@ -8,6 +8,12 @@ export { default as CommunityOutreach } from './components/CommunityOutreach';
 export { default as HealthScreenings } from './components/HealthScreenings';
 export { default as ReferralTracking } from './components/ReferralTracking';
 export { default as HealthResources } from './components/HealthResources';
+export { default as CHWProfile } from './components/CHWProfile';
+export { default as CommunityManagement } from './components/CommunityManagement';
+export { default as AddCommunityCaseModal } from './components/AddCommunityCaseModal';
+export { default as AddOutreachEventModal } from './components/AddOutreachEventModal';
+export { default as LocationManagement } from './components/LocationManagement';
+export { default as AddLocationModal } from './components/AddLocationModal';
 
 // CHW-specific types and utilities
 export interface CHWStats {
@@ -172,4 +178,101 @@ export interface HealthResource {
   notes?: string;
   rating?: number;
   reviews?: string[];
+}
+
+export interface CommunityCase {
+  id: string;
+  caseNumber: string;
+  caseType: 'outbreak' | 'household' | 'program' | 'referral' | 'environmental' | 'emergency';
+  title: string;
+  description: string;
+  status: 'active' | 'monitoring' | 'resolved' | 'escalated' | 'pending';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  affectedHouseholds: number;
+  affectedIndividuals: number;
+  location: {
+    area: string;
+    coordinates?: [number, number];
+    households: string[];
+  };
+  reportedDate: string;
+  lastUpdate: string;
+  assignedCHW: string;
+  collaboratingCHWs?: string[];
+  interventions: CommunityIntervention[];
+  outcomes?: string[];
+  relatedCases?: string[];
+  tags: string[];
+  resources: string[];
+  followUpDate?: string;
+  estimatedResolution?: string;
+}
+
+export interface CommunityIntervention {
+  id: string;
+  type: 'education' | 'screening' | 'treatment' | 'referral' | 'follow_up' | 'prevention' | 'emergency_response';
+  description: string;
+  date: string;
+  duration: number; // minutes
+  participantsCount: number;
+  materials: string[];
+  outcome: string;
+  followUpRequired: boolean;
+  followUpDate?: string;
+  notes?: string;
+  conductedBy: string;
+  location: string;
+}
+
+export interface CHWLocation {
+  id: string;
+  name: string;
+  type: 'household' | 'health_facility' | 'community_infrastructure' | 'risk_area' | 'service_point';
+  category: string;
+  address: string;
+  coordinates?: [number, number]; // [latitude, longitude]
+  zone: string;
+  status: 'active' | 'inactive' | 'monitoring' | 'high_risk';
+  population?: {
+    total: number;
+    adults: number;
+    children: number;
+    elderly: number;
+    pregnant: number;
+  };
+  healthData?: {
+    vaccinationRate: number;
+    chronicConditions: string[];
+    riskFactors: string[];
+    lastVisit?: string;
+    nextVisit?: string;
+  };
+  facilities?: {
+    waterAccess: boolean;
+    sanitationAccess: boolean;
+    electricityAccess: boolean;
+    roadAccess: 'good' | 'poor' | 'none';
+  };
+  contacts?: {
+    householdHead?: string;
+    phone?: string;
+    emergencyContact?: string;
+  };
+  assignedCHW: string;
+  collaboratingCHWs?: string[];
+  notes?: string;
+  createdDate: string;
+  lastUpdated: string;
+  tags: string[];
+}
+
+export interface LocationStats {
+  totalLocations: number;
+  activeHouseholds: number;
+  totalPopulation: number;
+  highRiskAreas: number;
+  healthFacilities: number;
+  recentVisits: number;
+  pendingVisits: number;
+  vaccinationCoverage: number;
 }
