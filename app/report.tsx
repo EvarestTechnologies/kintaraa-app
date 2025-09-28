@@ -40,12 +40,13 @@ const incidentTypes = [
 ];
 
 const supportServices = [
-  { id: 'medical', title: 'Medical Assistance', icon: '🏥' },
-  { id: 'legal', title: 'Legal Support', icon: '⚖️' },
-  { id: 'counseling', title: 'Psychological Counseling', icon: '🧠' },
-  { id: 'police', title: 'Police Intervention', icon: '👮' },
-  { id: 'shelter', title: 'Shelter/Accommodation', icon: '🏠' },
-  { id: 'financial', title: 'Financial Assistance', icon: '💰' },
+  { id: 'medical', title: 'Medical Assistance', icon: '🏥', urgent: true, providerType: 'healthcare' },
+  { id: 'legal', title: 'Legal Support', icon: '⚖️', urgent: false, providerType: 'legal' },
+  { id: 'counseling', title: 'Psychological Counseling', icon: '🧠', urgent: false, providerType: 'counseling' },
+  { id: 'police', title: 'Police Intervention', icon: '👮', urgent: true, providerType: 'police' },
+  { id: 'shelter', title: 'Shelter/Accommodation', icon: '🏠', urgent: false, providerType: 'social' },
+  { id: 'financial', title: 'Financial Assistance', icon: '💰', urgent: false, providerType: 'social' },
+  { id: 'emergency', title: 'Emergency Response', icon: '🚨', urgent: true, providerType: 'gbv_rescue' },
 ];
 
 export default function ReportScreen() {
@@ -65,6 +66,12 @@ export default function ReportScreen() {
     description: '',
     severity: '',
     supportServices: [] as string[],
+    urgencyLevel: 'routine' as 'immediate' | 'urgent' | 'routine',
+    providerPreferences: {
+      communicationMethod: 'sms' as 'sms' | 'call' | 'secure_message',
+      preferredGender: 'no_preference' as 'male' | 'female' | 'no_preference',
+      proximityPreference: 'nearest' as 'nearest' | 'specific_facility',
+    },
     isAnonymous: false,
     voiceRecording: undefined as {
       uri: string;
@@ -116,7 +123,7 @@ export default function ReportScreen() {
     }
   };
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -149,31 +156,64 @@ export default function ReportScreen() {
         : `[Voice Recording Transcription]\n${reportData.voiceRecording.transcription}`;
     }
 
-    createIncident({
-      type: reportData.type,
-      incidentDate: reportData.incidentDate,
-      incidentTime: reportData.incidentTime,
-      location: reportData.location.address || reportData.location.description ? reportData.location : undefined,
-      description: finalDescription,
-      severity: reportData.severity,
-      supportServices: reportData.supportServices,
-      isAnonymous: reportData.isAnonymous,
-    });
+    try {
+      console.log('Attempting to submit incident...', reportData);
 
-    Alert.alert(
-      'Report Submitted',
-      'Your report has been submitted successfully. You will receive updates on the progress of your case.',
-      [
-        {
-          text: 'OK',
-          onPress: () => router.replace('/(dashboard)/survivor/reports'),
-        },
-      ]
-    );
+      await createIncident({
+        type: reportData.type,
+        incidentDate: reportData.incidentDate,
+        incidentTime: reportData.incidentTime,
+        location: reportData.location.address || reportData.location.description ? reportData.location : undefined,
+        description: finalDescription,
+        severity: reportData.severity,
+        supportServices: reportData.supportServices,
+        urgencyLevel: reportData.urgencyLevel,
+        providerPreferences: reportData.providerPreferences,
+        isAnonymous: reportData.isAnonymous,
+      });
+
+      console.log('Incident submitted successfully');
+
+      Alert.alert(
+        'Report Submitted',
+        'Your report has been submitted successfully. You will receive updates on the progress of your case.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(dashboard)/survivor/reports'),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error submitting incident:', error);
+      Alert.alert('Error', `Failed to submit report: ${error}`);
+    }
   };
 
   const updateReportData = (key: string, value: any) => {
     setReportData(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Auto-determine urgency based on selected services
+  const determineUrgency = (services: string[]) => {
+    const urgentServices = supportServices.filter(s => s.urgent && services.includes(s.id));
+    if (urgentServices.length > 0) {
+      // Check for immediate services (medical, police, emergency)
+      const immediateServices = urgentServices.filter(s =>
+        s.id === 'medical' || s.id === 'police' || s.id === 'emergency'
+      );
+      return immediateServices.length > 0 ? 'immediate' : 'urgent';
+    }
+    return 'routine';
+  };
+
+  const updateSupportServices = (services: string[]) => {
+    const urgency = determineUrgency(services);
+    setReportData(prev => ({
+      ...prev,
+      supportServices: services,
+      urgencyLevel: urgency
+    }));
   };
 
   const getCurrentLocation = async () => {
@@ -226,8 +266,8 @@ export default function ReportScreen() {
     const services = reportData.supportServices.includes(serviceId)
       ? reportData.supportServices.filter(id => id !== serviceId)
       : [...reportData.supportServices, serviceId];
-    
-    updateReportData('supportServices', services);
+
+    updateSupportServices(services);
   };
 
   // Voice recording functions
@@ -693,6 +733,73 @@ export default function ReportScreen() {
       case 4:
         return (
           <View style={styles.stepContent}>
+            <Text style={styles.stepTitle}>How should providers contact you?</Text>
+            <Text style={styles.stepDescription}>
+              Set your communication preferences and urgency level
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Urgency Level</Text>
+              <View style={styles.urgencyContainer}>
+                <View style={[styles.urgencyBadge, {
+                  backgroundColor: reportData.urgencyLevel === 'immediate' ? '#E53935' :
+                                 reportData.urgencyLevel === 'urgent' ? '#FF8F00' : '#43A047'
+                }]}>
+                  <Text style={styles.urgencyText}>
+                    {reportData.urgencyLevel.charAt(0).toUpperCase() + reportData.urgencyLevel.slice(1)}
+                  </Text>
+                </View>
+                <Text style={styles.urgencyNote}>
+                  {reportData.urgencyLevel === 'immediate' ? 'Providers will be notified immediately' :
+                   reportData.urgencyLevel === 'urgent' ? 'Priority notification to providers' :
+                   'Standard notification process'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Preferred Communication Method</Text>
+              <View style={styles.communicationOptions}>
+                {[
+                  { id: 'sms', title: 'Text Message (SMS)', description: 'Quick and discrete' },
+                  { id: 'call', title: 'Phone Call', description: 'Direct conversation' },
+                  { id: 'secure_message', title: 'Secure App Message', description: 'Encrypted messaging' }
+                ].map((method) => (
+                  <TouchableOpacity
+                    key={method.id}
+                    style={[
+                      styles.communicationOption,
+                      reportData.providerPreferences.communicationMethod === method.id && styles.communicationOptionSelected,
+                    ]}
+                    onPress={() => updateReportData('providerPreferences', {
+                      ...reportData.providerPreferences,
+                      communicationMethod: method.id
+                    })}
+                  >
+                    <View style={styles.communicationOptionContent}>
+                      <Text style={[
+                        styles.communicationOptionTitle,
+                        reportData.providerPreferences.communicationMethod === method.id && styles.communicationOptionTitleSelected,
+                      ]}>
+                        {method.title}
+                      </Text>
+                      <Text style={styles.communicationOptionDescription}>
+                        {method.description}
+                      </Text>
+                    </View>
+                    {reportData.providerPreferences.communicationMethod === method.id && (
+                      <Check color="#6A2CB0" size={20} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        );
+
+      case 5:
+        return (
+          <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>Review & Submit</Text>
             <Text style={styles.stepDescription}>
               Review your report before submitting
@@ -776,6 +883,8 @@ export default function ReportScreen() {
       case 3:
         return true; // Support services are optional
       case 4:
+        return true; // Communication preferences are optional
+      case 5:
         return true; // Review step
       default:
         return false;
@@ -1267,5 +1376,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2E7D32',
     lineHeight: 16,
+  },
+  urgencyContainer: {
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  urgencyBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  urgencyText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  urgencyNote: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+  },
+  communicationOptions: {
+    gap: 12,
+  },
+  communicationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E8E8E8',
+  },
+  communicationOptionSelected: {
+    borderColor: '#6A2CB0',
+    backgroundColor: '#F5F0FF',
+  },
+  communicationOptionContent: {
+    flex: 1,
+  },
+  communicationOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  communicationOptionTitleSelected: {
+    color: '#6A2CB0',
+  },
+  communicationOptionDescription: {
+    fontSize: 14,
+    color: '#666666',
   },
 });

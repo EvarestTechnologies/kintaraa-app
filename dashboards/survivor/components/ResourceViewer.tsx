@@ -25,7 +25,7 @@ import { Asset } from 'expo-asset';
 
 // Asset mappings for local PDF files
 const assetMappings: { [key: string]: any } = {
-  'Kenya_Police_P3_Form_2024.pdf': require('../../../assets/documents/forms/p3-form/Kenya_Police_P3_Form_2024.pdf'),
+  'Kenya_Police_P3_Form_Updated.pdf': require('../../../assets/documents/forms/p3-form/Kenya_Police_P3_Form_Updated.pdf'),
   'Kenya_MOH_PRC_Form_363.pdf': require('../../../assets/documents/forms/prc-form/Kenya_MOH_PRC_Form_363.pdf'),
 };
 
@@ -99,7 +99,7 @@ const resourceContent: ResourceContent = {
     title: 'P3 Form (Kenya Police Medical Examination Report)',
     content: 'The P3 Form is the official medical examination report required by the Kenya Police for documenting injuries in criminal cases. This form is essential for legal proceedings and is free of charge.',
     localAssetPath: 'assets/documents/forms/p3-form/',
-    fileName: 'Kenya_Police_P3_Form_2024.pdf',
+    fileName: 'Kenya_Police_P3_Form_Updated.pdf',
     isLocalFile: true,
     sections: [
       {

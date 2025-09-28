@@ -31,8 +31,22 @@ export interface ProviderNotification {
   title: string;
   message: string;
   incidentId?: string;
+  urgencyLevel?: 'immediate' | 'urgent' | 'routine';
+  estimatedResponseTime?: number;
   isRead: boolean;
   createdAt: string;
+}
+
+export interface ProviderAssignmentData {
+  id: string;
+  incidentId: string;
+  providerId: string;
+  providerType: string;
+  priority: number;
+  estimatedResponseTime: number;
+  distance: number;
+  assignedAt: string;
+  status: 'pending' | 'accepted' | 'declined';
 }
 
 export const [ProviderContext, useProvider] = createContextHook(() => {

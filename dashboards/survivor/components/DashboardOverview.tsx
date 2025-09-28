@@ -13,6 +13,8 @@ import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useIncidents } from '@/providers/IncidentProvider';
 import { useSafety } from '@/providers/SafetyProvider';
+import SurvivorNotificationFab from './SurvivorNotificationFab';
+import { ProviderResponseService } from '@/services/providerResponseService';
 import {
   Heart,
   Shield,
@@ -317,6 +319,21 @@ export function DashboardOverview() {
         </View>
       </View>
     </ScrollView>
+
+    {/* Floating Notification Button */}
+    <SurvivorNotificationFab
+      onNotificationPress={(notification) => {
+        console.log('Survivor notification pressed:', notification);
+        // Navigate to appropriate screen based on notification type
+        if (notification.type === 'appointment') {
+          router.push('/(dashboard)/survivor/reports');
+        } else if (notification.type === 'provider_response') {
+          router.push('/(dashboard)/survivor/reports');
+        } else if (notification.type === 'case_update') {
+          router.push('/(dashboard)/survivor/reports');
+        }
+      }}
+    />
     </SafeAreaView>
   );
 }

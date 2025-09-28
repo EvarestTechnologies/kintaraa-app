@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ProviderRoutingService } from '@/services/providerRouting';
 
 export interface Incident {
   id: string;
@@ -24,6 +25,12 @@ export interface Incident {
   description?: string;
   severity?: 'low' | 'medium' | 'high';
   supportServices: string[];
+  urgencyLevel?: 'immediate' | 'urgent' | 'routine';
+  providerPreferences?: {
+    communicationMethod?: 'sms' | 'call' | 'secure_message';
+    preferredGender?: 'male' | 'female' | 'no_preference';
+    proximityPreference?: 'nearest' | 'specific_facility';
+  };
   isAnonymous: boolean;
   evidence: Evidence[];
   messages: Message[];
@@ -91,6 +98,12 @@ export interface CreateIncidentData {
   description?: string;
   severity?: string;
   supportServices: string[];
+  urgencyLevel?: 'immediate' | 'urgent' | 'routine';
+  providerPreferences?: {
+    communicationMethod?: 'sms' | 'call' | 'secure_message';
+    preferredGender?: 'male' | 'female' | 'no_preference';
+    proximityPreference?: 'nearest' | 'specific_facility';
+  };
   isAnonymous: boolean;
 }
 
@@ -406,6 +419,8 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
         description: data.description,
         severity: data.severity as any,
         supportServices: data.supportServices,
+        urgencyLevel: data.urgencyLevel || 'routine',
+        providerPreferences: data.providerPreferences,
         isAnonymous: data.isAnonymous,
         evidence: [],
         messages: [],
@@ -417,7 +432,34 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
       const updatedIncidents = [newIncident, ...existingIncidents];
       
       await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
-      
+
+      // Route incident to appropriate providers
+      console.log('Routing incident to providers...', newIncident.id);
+      try {
+        const providerAssignments = await ProviderRoutingService.routeIncident(newIncident);
+        console.log('Provider assignments:', providerAssignments);
+
+        // Store routing results (in real app, this would notify providers)
+        if (providerAssignments.length > 0) {
+          console.log(`Incident ${newIncident.caseNumber} routed to ${providerAssignments.length} providers`);
+
+          // Update incident status to 'assigned' for the first provider
+          const primaryProvider = providerAssignments[0];
+          setTimeout(() => {
+            queryClient.setQueryData(['incidents', user.id], (oldData: Incident[] | undefined) => {
+              if (!oldData) return [newIncident];
+              return oldData.map(incident =>
+                incident.id === newIncident.id
+                  ? { ...incident, status: 'assigned' as const, assignedProviderId: primaryProvider.providerId }
+                  : incident
+              );
+            });
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error routing incident:', error);
+      }
+
       // Simulate real-time update
       setTimeout(() => {
         const updatedIncident = {
@@ -607,7 +649,7 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     providers: providersQuery.data || [],
     isLoading: incidentsQuery.isLoading || providersQuery.isLoading,
     error: incidentsQuery.error || providersQuery.error,
-    createIncident: createIncidentMutation.mutate,
+    createIncident: createIncidentMutation.mutateAsync,
     updateIncident: updateIncidentMutation.mutate,
     addMessage: addMessageMutation.mutate,
     isCreating: createIncidentMutation.isPending,
