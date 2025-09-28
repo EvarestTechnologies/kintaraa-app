@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   MapPin, 
   Phone, 
@@ -289,7 +290,7 @@ const HealthResources: React.FC<HealthResourcesProps> = ({ resources, onResource
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Health Resources</Text>
@@ -344,7 +345,7 @@ const HealthResources: React.FC<HealthResourcesProps> = ({ resources, onResource
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

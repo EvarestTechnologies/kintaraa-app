@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   BookOpen, 
   Calendar, 
@@ -228,7 +229,7 @@ const HealthEducation: React.FC<HealthEducationProps> = ({ sessions, onSessionSe
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Health Education</Text>
@@ -283,7 +284,7 @@ const HealthEducation: React.FC<HealthEducationProps> = ({ sessions, onSessionSe
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
