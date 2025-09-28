@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Activity, 
   Calendar, 
@@ -290,7 +291,7 @@ const HealthScreenings: React.FC<HealthScreeningsProps> = ({ screenings, onScree
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Health Screenings</Text>
@@ -345,7 +346,7 @@ const HealthScreenings: React.FC<HealthScreeningsProps> = ({ screenings, onScree
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Users, 
   Activity, 
@@ -163,7 +164,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, onNavigate
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>CHW Dashboard</Text>
         <Text style={styles.subtitle}>Community Health Worker Overview</Text>
@@ -212,14 +214,18 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, onNavigate
           </View>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  container: {
+    flex: 1,
   },
   header: {
     padding: 20,
