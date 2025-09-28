@@ -8,7 +8,9 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   X,
   Calendar,
@@ -63,8 +65,10 @@ export default function AppointmentSchedulingModal({
   const [selectedType, setSelectedType] = useState<AppointmentType>('consultation');
   const [selectedMode, setSelectedMode] = useState<AppointmentMode>('in_person');
   const [selectedPriority, setSelectedPriority] = useState<Priority>('medium');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Tomorrow
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [duration, setDuration] = useState('60');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -74,11 +78,44 @@ export default function AppointmentSchedulingModal({
     setSelectedType('consultation');
     setSelectedMode('in_person');
     setSelectedPriority('medium');
-    setSelectedDate('');
-    setSelectedTime('');
+    setSelectedDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Tomorrow
+    setSelectedTime(new Date());
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setDuration('60');
     setLocation('');
     setNotes('');
+  };
+
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const handleTimeChange = (event: any, time?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (time) {
+      setSelectedTime(time);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (time: Date) => {
+    return time.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   };
 
   const handleClose = () => {
@@ -100,8 +137,8 @@ export default function AppointmentSchedulingModal({
         patientId: patient.id,
         type: selectedType,
         mode: selectedMode,
-        date: selectedDate,
-        time: selectedTime,
+        date: selectedDate.toISOString().split('T')[0], // Convert to YYYY-MM-DD format
+        time: formatTime(selectedTime), // Convert to HH:MM format
         duration: parseInt(duration),
         status: 'scheduled',
         location: selectedMode === 'in_person' ? location : undefined,
@@ -118,7 +155,7 @@ export default function AppointmentSchedulingModal({
 
       Alert.alert(
         'Appointment Scheduled',
-        `Appointment with ${patient.name} has been scheduled for ${selectedDate} at ${selectedTime}. The patient will be notified.`
+        `Appointment with ${patient.name} has been scheduled for ${formatDate(selectedDate)} at ${formatTime(selectedTime)}. The patient will be notified.`
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to schedule appointment. Please try again.');
@@ -127,22 +164,6 @@ export default function AppointmentSchedulingModal({
     }
   };
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  };
-
-  const getTimeSlots = () => {
-    const slots = [];
-    for (let hour = 8; hour <= 17; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(timeString);
-      }
-    }
-    return slots;
-  };
 
   if (!patient) return null;
 
@@ -227,23 +248,27 @@ export default function AppointmentSchedulingModal({
             <View style={styles.dateTimeRow}>
               <View style={styles.dateInput}>
                 <Text style={styles.inputLabel}>Date</Text>
-                <TextInput
-                  style={styles.input}
-                  value={selectedDate}
-                  onChangeText={setSelectedDate}
-                  placeholder={getTomorrowDate()}
-                  placeholderTextColor="#9CA3AF"
-                />
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Calendar size={16} color="#6B7280" />
+                  <Text style={styles.pickerButtonText}>
+                    {formatDate(selectedDate)}
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.timeInput}>
                 <Text style={styles.inputLabel}>Time</Text>
-                <TextInput
-                  style={styles.input}
-                  value={selectedTime}
-                  onChangeText={setSelectedTime}
-                  placeholder="14:00"
-                  placeholderTextColor="#9CA3AF"
-                />
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Clock size={16} color="#6B7280" />
+                  <Text style={styles.pickerButtonText}>
+                    {formatTime(selectedTime)}
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.durationInput}>
                 <Text style={styles.inputLabel}>Duration (min)</Text>
@@ -257,6 +282,27 @@ export default function AppointmentSchedulingModal({
                 />
               </View>
             </View>
+
+            {/* Date Picker */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                minimumDate={new Date()}
+              />
+            )}
+
+            {/* Time Picker */}
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleTimeChange}
+              />
+            )}
           </View>
 
           {/* Location (if in-person) */}
@@ -456,6 +502,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: '#111827',
+  },
+  pickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    gap: 8,
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
   },
   textArea: {
     borderWidth: 1,
