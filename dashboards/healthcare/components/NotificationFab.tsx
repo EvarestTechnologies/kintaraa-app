@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { useProvider, ProviderNotification } from '@/providers/ProviderContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ProviderResponseService } from '@/services/providerResponseService';
 
 const { width } = Dimensions.get('window');
 
@@ -140,6 +141,98 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
     }
   };
 
+  const handleAcceptCase = (notification: ProviderNotification) => {
+    if (!notification.incidentId) return;
+
+    // Create a mock incident for the response service
+    const mockIncident = {
+      id: notification.incidentId,
+      caseNumber: `Case ${notification.incidentId}`,
+      survivorId: 'survivor-1',
+      type: 'physical' as const,
+      status: 'assigned' as const,
+      priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
+      incidentDate: new Date().toISOString(),
+      location: {
+        address: 'Location not specified',
+        coordinates: { latitude: -1.2921, longitude: 36.8219 },
+        description: 'Provider accepted case'
+      },
+      description: 'Case accepted by healthcare provider',
+      severity: 'high' as const,
+      supportServices: ['medical'],
+      isAnonymous: false,
+      evidence: [],
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      urgencyLevel: notification.urgencyLevel || 'routine',
+      providerPreferences: {
+        communicationMethod: 'sms' as const,
+        preferredGender: 'no_preference' as const,
+        proximityPreference: 'nearest' as const
+      }
+    };
+
+    // Record provider assignment - this will create a survivor notification
+    ProviderResponseService.recordProviderAssignment(
+      mockIncident,
+      'provider-healthcare-1',
+      'Dr. Sarah Johnson',
+      'healthcare'
+    );
+
+    console.log('Case accepted! Survivor will be notified.');
+    setShowNotifications(false);
+  };
+
+  const handleContactSurvivor = (notification: ProviderNotification) => {
+    if (!notification.incidentId) return;
+
+    // Create a mock incident for the response service
+    const mockIncident = {
+      id: notification.incidentId,
+      caseNumber: `Case ${notification.incidentId}`,
+      survivorId: 'survivor-1',
+      type: 'physical' as const,
+      status: 'assigned' as const,
+      priority: notification.urgencyLevel === 'immediate' ? 'critical' as const : 'high' as const,
+      incidentDate: new Date().toISOString(),
+      location: {
+        address: 'Location not specified',
+        coordinates: { latitude: -1.2921, longitude: 36.8219 },
+        description: 'Provider contacting survivor'
+      },
+      description: 'Provider attempting to contact survivor',
+      severity: 'high' as const,
+      supportServices: ['medical'],
+      isAnonymous: false,
+      evidence: [],
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      urgencyLevel: notification.urgencyLevel || 'routine',
+      providerPreferences: {
+        communicationMethod: 'sms' as const,
+        preferredGender: 'no_preference' as const,
+        proximityPreference: 'nearest' as const
+      }
+    };
+
+    // Record contact attempt - this will create a survivor notification
+    ProviderResponseService.recordContactAttempt(
+      mockIncident,
+      'provider-healthcare-1',
+      'Dr. Sarah Johnson',
+      'healthcare',
+      'sms',
+      true // successful contact
+    );
+
+    console.log('Contacting survivor! Survivor will be notified.');
+    setShowNotifications(false);
+  };
+
   return (
     <>
       {/* Floating Action Button */}
@@ -252,13 +345,19 @@ export default function NotificationFab({ onNewCasePress }: NotificationFabProps
 
                       {notification.type === 'new_case' && (
                         <View style={styles.actionButtons}>
-                          <TouchableOpacity style={styles.actionButton}>
-                            <Phone size={16} color="#3B82F6" />
-                            <Text style={styles.actionButtonText}>Call</Text>
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.acceptButton]}
+                            onPress={() => handleAcceptCase(notification)}
+                          >
+                            <CheckCircle size={16} color="#FFFFFF" />
+                            <Text style={[styles.actionButtonText, styles.acceptButtonText]}>Accept Case</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={styles.actionButton}>
-                            <MapPin size={16} color="#10B981" />
-                            <Text style={styles.actionButtonText}>Location</Text>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleContactSurvivor(notification)}
+                          >
+                            <Phone size={16} color="#3B82F6" />
+                            <Text style={styles.actionButtonText}>Contact</Text>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -457,6 +556,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
     marginLeft: 4,
+  },
+  acceptButton: {
+    backgroundColor: '#10B981',
+  },
+  acceptButtonText: {
+    color: '#FFFFFF',
   },
   unreadDot: {
     width: 8,

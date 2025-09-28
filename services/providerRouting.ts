@@ -1,6 +1,8 @@
 import { Incident } from '@/providers/IncidentProvider';
 
 export interface ProviderAssignment {
+  id: string;
+  incidentId: string;
   providerId: string;
   providerType: 'healthcare' | 'police' | 'legal' | 'counseling' | 'social' | 'gbv_rescue' | 'chw';
   priority: number; // 1 = highest priority
@@ -12,6 +14,8 @@ export interface ProviderAssignment {
     email?: string;
     facilityName?: string;
   };
+  assignedAt: string;
+  status: 'pending' | 'accepted' | 'declined';
 }
 
 export interface ProviderProfile {
@@ -153,6 +157,7 @@ const mockProviders: ProviderProfile[] = [
 ];
 
 export class ProviderRoutingService {
+  private static assignments: ProviderAssignment[] = [];
 
   /**
    * Main routing function - assigns providers to an incident
@@ -177,6 +182,9 @@ export class ProviderRoutingService {
 
     // Limit to top 3 providers per service type
     const finalAssignments = this.limitAssignmentsPerType(sortedAssignments);
+
+    // Store assignments for tracking
+    this.assignments.push(...finalAssignments);
 
     console.log('Routing complete. Assigned providers:', finalAssignments.length);
     return finalAssignments;
@@ -301,6 +309,8 @@ export class ProviderRoutingService {
       }
 
       return {
+        id: `assignment-${incident.id}-${provider.id}-${Date.now()}`,
+        incidentId: incident.id,
         providerId: provider.id,
         providerType: provider.type,
         priority: Math.round(priorityScore),
@@ -311,7 +321,9 @@ export class ProviderRoutingService {
           phone: provider.contactInfo.phone,
           email: provider.contactInfo.email,
           facilityName: provider.location.facilityName
-        }
+        },
+        assignedAt: new Date().toISOString(),
+        status: 'pending'
       };
     });
   }
@@ -387,5 +399,51 @@ export class ProviderRoutingService {
     if (provider) {
       provider.currentCaseLoad += 1;
     }
+  }
+
+  /**
+   * Get all assignments for a specific provider
+   */
+  static getProviderAssignments(providerId: string): ProviderAssignment[] {
+    return this.assignments.filter(assignment => assignment.providerId === providerId);
+  }
+
+  /**
+   * Get assignment details for a specific incident
+   */
+  static getIncidentAssignments(incidentId: string): ProviderAssignment[] {
+    return this.assignments.filter(assignment => assignment.incidentId === incidentId);
+  }
+
+  /**
+   * Accept an assignment (called when provider accepts case)
+   */
+  static acceptAssignment(assignmentId: string): void {
+    const assignment = this.assignments.find(a => a.id === assignmentId);
+    if (assignment) {
+      assignment.status = 'accepted';
+    }
+  }
+
+  /**
+   * Decline an assignment (called when provider declines case)
+   */
+  static declineAssignment(assignmentId: string): void {
+    const assignment = this.assignments.find(a => a.id === assignmentId);
+    if (assignment) {
+      assignment.status = 'declined';
+    }
+  }
+
+  /**
+   * Clear old assignments (cleanup function)
+   */
+  static clearOldAssignments(daysOld: number = 30): void {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    this.assignments = this.assignments.filter(
+      assignment => new Date(assignment.assignedAt) > cutoffDate
+    );
   }
 }
