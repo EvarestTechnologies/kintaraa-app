@@ -35,3 +35,18 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 .vercel
+
+# Documentation files (local development only)
+CODEBASE_DOCUMENTATION.md
+DEBUG_REPORT_FORM.md
+IMPLEMENTATION_TASKS.md
+KENYA_FORMS_SPECIFICATION.md
+SPRINT_1_PLAN.md
+TEST_CHANGES.md
+*.html
+*.pdf
+.claude/
+
+# PDF documents
+NATIONAL\ GBV\ GUIDELINES-080824-.pdf
+p3_form.pdf

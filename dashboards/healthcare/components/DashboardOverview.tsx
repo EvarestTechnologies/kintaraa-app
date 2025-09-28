@@ -25,6 +25,7 @@ import {
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
 import ConsultationForm from '@/components/healthcare/ConsultationForm';
+import NotificationFab from './NotificationFab';
 
 const { width } = Dimensions.get('window');
 
@@ -268,6 +269,15 @@ export default function DashboardOverview() {
         />
       </Modal>
       </ScrollView>
+
+      {/* Floating Notification Button */}
+      <NotificationFab
+        onNewCasePress={(incidentId) => {
+          console.log('Opening case:', incidentId);
+          // In real app, this would navigate to case details
+          router.push('/(dashboard)/healthcare/patients');
+        }}
+      />
     </SafeAreaView>
   );
 }

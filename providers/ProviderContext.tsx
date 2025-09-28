@@ -1,8 +1,11 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { useIncidents, Incident } from './IncidentProvider';
+import { ProviderRoutingService, ProviderAssignment } from '@/services/providerRouting';
+import { NotificationService } from '@/services/notificationService';
+import { ProviderResponseService } from '@/services/providerResponseService';
 
 export interface ProviderStats {
   totalCases: number;
@@ -31,8 +34,22 @@ export interface ProviderNotification {
   title: string;
   message: string;
   incidentId?: string;
+  urgencyLevel?: 'immediate' | 'urgent' | 'routine';
+  estimatedResponseTime?: number;
   isRead: boolean;
   createdAt: string;
+}
+
+export interface ProviderAssignmentData {
+  id: string;
+  incidentId: string;
+  providerId: string;
+  providerType: string;
+  priority: number;
+  estimatedResponseTime: number;
+  distance: number;
+  assignedAt: string;
+  status: 'pending' | 'accepted' | 'declined';
 }
 
 export const [ProviderContext, useProvider] = createContextHook(() => {
@@ -41,16 +58,43 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
   const { incidents, providers } = useIncidents();
   const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<ProviderNotification[]>([]);
+  const [providerAssignments, setProviderAssignments] = useState<ProviderAssignment[]>([]);
 
   // Get provider profile
   const providerProfile = providers.find(p => p.userId === user?.id);
 
-  // Get assigned cases for this provider (with additional dummy data for testing)
+  // Poll for provider assignments from routing service
+  useEffect(() => {
+    if (!providerProfile?.id) return;
+
+    const interval = setInterval(() => {
+      // Get assignments for this provider
+      const assignments = ProviderRoutingService.getProviderAssignments(providerProfile.id);
+      setProviderAssignments(assignments);
+
+      // Get provider notifications
+      const providerNotifications = NotificationService.groupNotifications([]);
+      // In a real app, this would fetch from server or local storage
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [providerProfile?.id]);
+
+  // Get assigned cases for this provider
   const assignedCases = useMemo(() => {
-    const realAssignedCases = incidents.filter(incident => 
-      incident.assignedProviderId === providerProfile?.id
-    );
-    
+    // Get real incidents assigned through routing system
+    const routedIncidents = incidents.filter(incident => {
+      // Check if this provider has an ACCEPTED assignment for this incident
+      return providerAssignments.some(assignment =>
+        assignment.incidentId === incident.id &&
+        assignment.providerId === providerProfile?.id &&
+        assignment.status === 'accepted'
+      );
+    });
+
+    console.log('Routed incidents for provider:', routedIncidents.length);
+    console.log('Provider assignments:', providerAssignments.length);
+
     // Add dummy cases for testing search and filter functionality
     if (user?.role === 'provider' && providerProfile) {
       const dummyCases = [
@@ -378,11 +422,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
         }
       ];
       
-      return [...realAssignedCases, ...dummyCases];
+      return [...routedIncidents, ...dummyCases];
     }
-    
-    return realAssignedCases;
-  }, [incidents, providerProfile, user?.role]);
+
+    return routedIncidents;
+  }, [incidents, providerProfile, user?.role, providerAssignments]);
 
   // Get pending case assignments
   const pendingAssignmentsQuery = useQuery({
@@ -527,6 +571,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     providerProfile,
     assignedCases,
     pendingAssignments: pendingAssignmentsQuery.data || [],
+    providerAssignments,
     stats,
     notifications,
     unreadCount,
@@ -542,6 +587,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     providerProfile,
     assignedCases,
     pendingAssignmentsQuery.data,
+    providerAssignments,
     stats,
     notifications,
     unreadCount,

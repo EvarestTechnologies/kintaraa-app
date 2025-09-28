@@ -259,7 +259,7 @@ export function SafetyTools() {
           </Text>
           <TouchableOpacity
             style={styles.createPlanButton}
-            onPress={() => router.push('/(tabs)/safety')}
+            onPress={() => router.push('/(dashboard)/survivor/safety')}
           >
             <Text style={styles.createPlanButtonText}>Create Safety Plan</Text>
           </TouchableOpacity>

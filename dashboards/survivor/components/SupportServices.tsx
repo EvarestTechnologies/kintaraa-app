@@ -209,7 +209,7 @@ export function SupportServices() {
           
           <TouchableOpacity
             style={styles.quickActionCard}
-            onPress={() => router.push('/(tabs)/safety')}
+            onPress={() => router.push('/(dashboard)/survivor/safety')}
           >
             <Shield color="#26A69A" size={24} />
             <Text style={styles.quickActionTitle}>Safety Planning</Text>
