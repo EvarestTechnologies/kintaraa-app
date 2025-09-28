@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ArrowRight, 
   Calendar, 
@@ -281,7 +282,7 @@ const ReferralTracking: React.FC<ReferralTrackingProps> = ({ referrals, onReferr
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Referral Tracking</Text>
@@ -336,7 +337,7 @@ const ReferralTracking: React.FC<ReferralTrackingProps> = ({ referrals, onReferr
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
