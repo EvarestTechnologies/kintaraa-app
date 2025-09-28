@@ -8,6 +8,8 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  Alert,
+  Linking,
 } from 'react-native';
 import {
   Bell,
@@ -22,6 +24,8 @@ import {
   Calendar,
   User,
   Activity,
+  Trash2,
+  MoreHorizontal,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SurvivorNotification, NotificationService } from '@/services/notificationService';
@@ -39,6 +43,7 @@ export default function SurvivorNotificationFab({
   const [showNotifications, setShowNotifications] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
   const [notifications, setNotifications] = useState<SurvivorNotification[]>([]);
+  const [clearedNotifications, setClearedNotifications] = useState<string[]>([]);
 
   // Get live notifications from ProviderResponseService
   useEffect(() => {
@@ -53,10 +58,6 @@ export default function SurvivorNotificationFab({
 
     return () => clearInterval(interval);
   }, []);
-
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const actionRequiredCount = notifications.filter(n => !n.isRead && n.actionRequired).length;
 
   // Mock notifications for testing (will be replaced by live notifications)
   const mockNotifications: SurvivorNotification[] = [
@@ -98,7 +99,14 @@ export default function SurvivorNotificationFab({
     },
   ];
 
-  const allNotifications = [...notifications, ...mockNotifications];
+  // Filter out cleared notifications
+  const activeNotifications = [...notifications, ...mockNotifications].filter(n =>
+    !clearedNotifications.includes(n.id)
+  );
+
+  // Count unread notifications from active notifications
+  const unreadCount = activeNotifications.filter(n => !n.isRead).length;
+  const actionRequiredCount = activeNotifications.filter(n => !n.isRead && n.actionRequired).length;
 
   const handlePress = () => {
     Animated.sequence([
@@ -146,7 +154,75 @@ export default function SurvivorNotificationFab({
     setShowNotifications(false);
   };
 
-  const sortedNotifications = allNotifications
+  const handleClearNotification = (notificationId: string) => {
+    Alert.alert(
+      'Clear Notification',
+      'Are you sure you want to clear this notification?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () => {
+            setClearedNotifications(prev => [...prev, notificationId]);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleMarkAllAsRead = () => {
+    activeNotifications.forEach(notification => {
+      if (!notification.isRead) {
+        ProviderResponseService.markSurvivorNotificationRead(notification.id);
+      }
+    });
+  };
+
+  const handleCall = (notification: SurvivorNotification) => {
+    // Mock phone number - in real app this would come from provider data
+    const phoneNumber = '+254712345001'; // Default healthcare provider number
+
+    Alert.alert(
+      'Call Provider',
+      `Call ${notification.providerName || 'Provider'} at ${phoneNumber}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          onPress: () => {
+            Linking.openURL(`tel:${phoneNumber}`).catch(err => {
+              Alert.alert('Error', 'Unable to make phone call. Please check your device settings.');
+            });
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSMS = (notification: SurvivorNotification) => {
+    // Mock phone number - in real app this would come from provider data
+    const phoneNumber = '+254712345001'; // Default healthcare provider number
+    const message = `Hi ${notification.providerName || 'Provider'}, I received your notification about my case. I would like to discuss next steps.`;
+
+    Alert.alert(
+      'Send Message',
+      `Send SMS to ${notification.providerName || 'Provider'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send',
+          onPress: () => {
+            Linking.openURL(`sms:${phoneNumber}?body=${encodeURIComponent(message)}`).catch(err => {
+              Alert.alert('Error', 'Unable to send SMS. Please check your device settings.');
+            });
+          }
+        }
+      ]
+    );
+  };
+
+  const sortedNotifications = activeNotifications
     .sort((a, b) => NotificationService.getSurvivorNotificationPriority(b) - NotificationService.getSurvivorNotificationPriority(a));
 
   return (
@@ -180,18 +256,29 @@ export default function SurvivorNotificationFab({
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View>
+            <View style={styles.headerLeft}>
               <Text style={styles.modalTitle}>Updates</Text>
               <Text style={styles.modalSubtitle}>
                 {unreadCount} unread {actionRequiredCount > 0 && `• ${actionRequiredCount} need action`}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setShowNotifications(false)}
-              style={styles.closeButton}
-            >
-              <X size={24} color="#6B7280" />
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              {unreadCount > 0 && (
+                <TouchableOpacity
+                  onPress={handleMarkAllAsRead}
+                  style={styles.markAllButton}
+                >
+                  <CheckCircle size={18} color="#10B981" />
+                  <Text style={styles.markAllText}>Mark All Read</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setShowNotifications(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Notifications List */}
@@ -206,68 +293,86 @@ export default function SurvivorNotificationFab({
               </View>
             ) : (
               sortedNotifications.map((notification) => (
-                <TouchableOpacity
+                <View
                   key={notification.id}
                   style={[
                     styles.notificationCard,
                     !notification.isRead && styles.unreadNotification,
                     notification.actionRequired && styles.actionRequiredNotification,
                   ]}
-                  onPress={() => handleNotificationPress(notification)}
                 >
-                  <View style={styles.notificationIcon}>
-                    {getNotificationIcon(notification)}
-                  </View>
-
-                  <View style={styles.notificationContent}>
-                    <View style={styles.notificationHeader}>
-                      <Text style={[
-                        styles.notificationTitle,
-                        !notification.isRead && styles.unreadTitle
-                      ]}>
-                        {notification.title}
-                      </Text>
-                      <View style={styles.notificationMeta}>
-                        {notification.actionRequired && (
-                          <View style={styles.actionBadge}>
-                            <Text style={styles.actionText}>ACTION</Text>
-                          </View>
-                        )}
-                        <Text style={styles.timeText}>
-                          {formatTimeAgo(notification.createdAt)}
-                        </Text>
-                      </View>
+                  <TouchableOpacity
+                    style={styles.notificationMainContent}
+                    onPress={() => handleNotificationPress(notification)}
+                  >
+                    <View style={styles.notificationIcon}>
+                      {getNotificationIcon(notification)}
                     </View>
 
-                    <Text style={styles.notificationMessage}>
-                      {notification.message}
-                    </Text>
-
-                    {notification.providerName && (
-                      <View style={styles.providerInfo}>
-                        <User size={14} color="#6B7280" />
-                        <Text style={styles.providerText}>
-                          {notification.providerName}
+                    <View style={styles.notificationContent}>
+                      <View style={styles.notificationHeader}>
+                        <Text style={[
+                          styles.notificationTitle,
+                          !notification.isRead && styles.unreadTitle
+                        ]}>
+                          {notification.title}
                         </Text>
+                        <View style={styles.notificationMeta}>
+                          {notification.actionRequired && (
+                            <View style={styles.actionBadge}>
+                              <Text style={styles.actionText}>ACTION</Text>
+                            </View>
+                          )}
+                          <Text style={styles.timeText}>
+                            {formatTimeAgo(notification.createdAt)}
+                          </Text>
+                        </View>
                       </View>
-                    )}
 
-                    {(notification.type === 'provider_response' || notification.type === 'appointment') && (
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity style={styles.actionButton}>
-                          <Phone size={16} color="#10B981" />
-                          <Text style={styles.actionButtonText}>Call</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionButton}>
-                          <MessageSquare size={16} color="#3B82F6" />
-                          <Text style={styles.actionButtonText}>Message</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
+                      <Text style={styles.notificationMessage}>
+                        {notification.message}
+                      </Text>
 
-                  {!notification.isRead && <View style={styles.unreadDot} />}
-                </TouchableOpacity>
+                      {notification.providerName && (
+                        <View style={styles.providerInfo}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.providerText}>
+                            {notification.providerName}
+                          </Text>
+                        </View>
+                      )}
+
+                      {(notification.type === 'provider_response' || notification.type === 'appointment') && (
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleCall(notification)}
+                          >
+                            <Phone size={16} color="#10B981" />
+                            <Text style={styles.actionButtonText}>Call</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleSMS(notification)}
+                          >
+                            <MessageSquare size={16} color="#3B82F6" />
+                            <Text style={styles.actionButtonText}>Message</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+
+                    {!notification.isRead && <View style={styles.unreadDot} />}
+                  </TouchableOpacity>
+
+                  {/* Clear button */}
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => handleClearNotification(notification.id)}
+                  >
+                    <Trash2 size={16} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
               ))
             )}
           </ScrollView>
@@ -331,6 +436,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  markAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 6,
+  },
+  markAllText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#10B981',
+    marginLeft: 4,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -375,6 +502,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     position: 'relative',
+  },
+  notificationMainContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  clearButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   unreadNotification: {
     backgroundColor: '#F8FAFC',
