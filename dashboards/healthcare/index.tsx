@@ -4,6 +4,7 @@
 export { default as DashboardOverview } from './components/DashboardOverview';
 export { default as PatientsList } from './components/PatientsList';
 export { default as AppointmentsList } from './components/AppointmentsList';
+export { default as AppointmentManagementDashboard } from './components/AppointmentManagementDashboard';
 export { default as MedicalRecords } from './components/MedicalRecords';
 export { default as ProviderProfile } from './components/ProviderProfile';
 
@@ -40,7 +41,7 @@ export interface Appointment {
   date: string;
   time: string;
   duration: number;
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'confirmed' | 'declined' | 'reschedule_requested' | 'rescheduled' | 'in_progress' | 'completed' | 'cancelled';
   location?: string;
   notes?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
