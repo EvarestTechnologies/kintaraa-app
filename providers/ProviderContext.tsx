@@ -67,18 +67,33 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
   useEffect(() => {
     if (!providerProfile?.id) return;
 
+    // Register this provider with the routing service
+    ProviderRoutingService.registerCurrentProvider({
+      id: providerProfile.id,
+      name: providerProfile.name,
+      type: providerProfile.type,
+      isAvailable: true,
+      location: providerProfile.location
+    });
+
+    // Get initial assignments
+    const assignments = ProviderRoutingService.getProviderAssignments(providerProfile.id);
+    setProviderAssignments(assignments);
+
     const interval = setInterval(() => {
       // Get assignments for this provider
-      const assignments = ProviderRoutingService.getProviderAssignments(providerProfile.id);
-      setProviderAssignments(assignments);
-
-      // Get provider notifications
-      const providerNotifications = NotificationService.groupNotifications([]);
-      // In a real app, this would fetch from server or local storage
-    }, 2000); // Poll every 2 seconds
+      const currentAssignments = ProviderRoutingService.getProviderAssignments(providerProfile.id);
+      setProviderAssignments(prev => {
+        // Only update if assignments have actually changed
+        if (JSON.stringify(prev) !== JSON.stringify(currentAssignments)) {
+          return currentAssignments;
+        }
+        return prev;
+      });
+    }, 5000); // Poll every 5 seconds instead of 2
 
     return () => clearInterval(interval);
-  }, [providerProfile?.id]);
+  }, [providerProfile?.id, providerProfile?.name, providerProfile?.type]); // Add stable dependencies
 
   // Get assigned cases for this provider
   const assignedCases = useMemo(() => {
