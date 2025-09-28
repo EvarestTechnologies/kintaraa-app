@@ -158,6 +158,51 @@ const mockProviders: ProviderProfile[] = [
 
 export class ProviderRoutingService {
   private static assignments: ProviderAssignment[] = [];
+  private static currentProviders: ProviderProfile[] = [];
+
+  /**
+   * Register current logged-in provider for routing
+   */
+  static registerCurrentProvider(provider: {
+    id: string;
+    name: string;
+    type: 'healthcare' | 'police' | 'legal' | 'counseling' | 'social' | 'gbv_rescue' | 'chw';
+    isAvailable?: boolean;
+    location?: { latitude: number; longitude: number; address: string };
+  }): void {
+    // Remove existing provider with same ID
+    this.currentProviders = this.currentProviders.filter(p => p.id !== provider.id);
+
+    // Add current provider
+    const providerProfile: ProviderProfile = {
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+      isAvailable: provider.isAvailable ?? true,
+      currentCaseLoad: 0,
+      maxCaseLoad: 10,
+      location: provider.location || {
+        latitude: -1.286389,
+        longitude: 36.817223,
+        address: provider.name + ' Facility'
+      },
+      specializations: provider.type === 'healthcare' ? ['post_rape_care', 'emergency_medicine'] : ['support_services'],
+      contactInfo: {
+        phone: '+254712345000',
+        email: `${provider.id}@provider.com`
+      },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        is24Hours: false
+      },
+      responseTimeMinutes: 20,
+      rating: 4.5,
+      lastActiveTime: new Date()
+    };
+
+    this.currentProviders.push(providerProfile);
+  }
 
   /**
    * Main routing function - assigns providers to an incident
@@ -196,7 +241,10 @@ export class ProviderRoutingService {
   private static getAvailableProviders(): ProviderProfile[] {
     const now = new Date();
 
-    return mockProviders.filter(provider => {
+    // Combine mock providers with current registered providers
+    const allProviders = [...mockProviders, ...this.currentProviders];
+
+    return allProviders.filter(provider => {
       // Check availability
       if (!provider.isAvailable) return false;
 

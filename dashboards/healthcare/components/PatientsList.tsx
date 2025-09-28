@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,11 +24,13 @@ import {
   CheckCircle,
   Clock,
   ChevronRight,
+  MessageSquare,
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
-import type { Patient } from '../index';
+import type { Patient, Appointment } from '../index';
 import ConsultationForm from '@/components/healthcare/ConsultationForm';
+import AppointmentSchedulingModal from './AppointmentSchedulingModal';
 
 type PatientStatus = 'active' | 'recovering' | 'stable' | 'critical';
 type FilterType = 'all' | 'active' | 'recovering' | 'stable' | 'critical';
@@ -111,19 +114,41 @@ export default function PatientsList() {
   };
 
   const [showConsultationForm, setShowConsultationForm] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   const handleAddPatient = () => {
     setShowConsultationForm(true);
   };
 
-  const handleCallPatient = (patient: Patient) => {
+  const handleCallPatient = async (patient: Patient) => {
+    try {
+      await Linking.openURL(`tel:${patient.phone}`);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to make phone call');
+    }
+  };
+
+  const handleSMSPatient = async (patient: Patient) => {
+    try {
+      const message = `Hello ${patient.name}, this is your healthcare provider. Please let me know if you need any assistance or have questions about your care.`;
+      await Linking.openURL(`sms:${patient.phone}?body=${encodeURIComponent(message)}`);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to send SMS');
+    }
+  };
+
+  const handleScheduleAppointment = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setShowAppointmentModal(true);
+  };
+
+  const handleAppointmentScheduled = (appointment: Omit<Appointment, 'id'>) => {
+    // TODO: Save appointment to storage/context
+    console.log('Appointment scheduled:', appointment);
     Alert.alert(
-      'Call Patient',
-      `Call ${patient.name} at ${patient.phone}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Call', onPress: () => console.log('Calling:', patient.phone) },
-      ]
+      'Appointment Scheduled',
+      `Appointment with ${selectedPatient?.name} has been scheduled successfully.`
     );
   };
 
@@ -306,19 +331,28 @@ export default function PatientsList() {
               </View>
 
               <View style={styles.actionButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.callButton}
                   onPress={() => handleCallPatient(patient)}
                 >
                   <Phone color="#FFFFFF" size={16} />
                   <Text style={styles.callButtonText}>Call</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.viewButton}
-                  onPress={() => handlePatientPress(patient)}
+
+                <TouchableOpacity
+                  style={styles.smsButton}
+                  onPress={() => handleSMSPatient(patient)}
                 >
-                  <Text style={styles.viewButtonText}>View Details</Text>
+                  <MessageSquare color="#FFFFFF" size={16} />
+                  <Text style={styles.smsButtonText}>SMS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.scheduleButton}
+                  onPress={() => handleScheduleAppointment(patient)}
+                >
+                  <Calendar color="#FFFFFF" size={16} />
+                  <Text style={styles.scheduleButtonText}>Schedule</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -344,6 +378,17 @@ export default function PatientsList() {
           />
         </Modal>
       )}
+
+      {/* Appointment Scheduling Modal */}
+      <AppointmentSchedulingModal
+        visible={showAppointmentModal}
+        patient={selectedPatient}
+        onClose={() => {
+          setShowAppointmentModal(false);
+          setSelectedPatient(null);
+        }}
+        onSchedule={handleAppointmentScheduled}
+      />
     </SafeAreaView>
   );
 }
@@ -590,11 +635,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   callButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#10B981',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     gap: 6,
   },
@@ -603,15 +650,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  viewButton: {
+  smsButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 8,
+    gap: 6,
   },
-  viewButtonText: {
-    color: '#6A2CB0',
+  smsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scheduleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  scheduleButtonText: {
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

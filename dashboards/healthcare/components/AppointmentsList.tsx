@@ -25,7 +25,9 @@ import {
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
-import type { Appointment } from '../index';
+import type { Appointment, Patient } from '../index';
+import AppointmentSchedulingModal from './AppointmentSchedulingModal';
+import PatientSelectionModal from './PatientSelectionModal';
 
 type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
 type AppointmentType = 'consultation' | 'follow_up' | 'emergency' | 'therapy';
@@ -66,6 +68,9 @@ export default function AppointmentsList() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [showPatientSelection, setShowPatientSelection] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   // Transform cases to appointments
   const appointments: Appointment[] = useMemo(() => {
@@ -104,6 +109,24 @@ export default function AppointmentsList() {
     return appointmentsList.sort((a, b) => 
       new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime()
     );
+  }, [assignedCases]);
+
+  // Transform cases to patients for appointment scheduling
+  const patients: Patient[] = useMemo(() => {
+    return assignedCases.map((case_, index) => ({
+      id: case_.id,
+      name: `Patient ${case_.caseNumber.split('-')[2] || index + 1}`,
+      age: 25 + (index % 40),
+      gender: index % 2 === 0 ? 'Female' : 'Male',
+      condition: case_.description ? case_.description.substring(0, 50) + '...' : 'No description available',
+      status: (['active', 'recovering', 'stable', 'critical'] as const)[index % 4],
+      lastVisit: case_.updatedAt,
+      nextAppointment: case_.status === 'in_progress' ?
+        new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      phone: `+256 ${700 + index}${String(index).padStart(6, '0')}`,
+      address: case_.location?.address || case_.location?.description || 'Address not provided',
+      caseId: case_.id,
+    }));
   }, [assignedCases]);
 
   // Filter appointments
@@ -150,10 +173,29 @@ export default function AppointmentsList() {
   };
 
   const handleAddAppointment = () => {
+    if (patients.length === 0) {
+      Alert.alert(
+        'No Patients Available',
+        'You need to have assigned patients before scheduling appointments.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setShowPatientSelection(true);
+  };
+
+  const handlePatientSelected = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setShowAppointmentModal(true);
+  };
+
+  const handleAppointmentScheduled = (appointment: Omit<Appointment, 'id'>) => {
+    // TODO: Save appointment to storage/context
+    console.log('Appointment scheduled:', appointment);
     Alert.alert(
-      'Schedule Appointment',
-      'Appointment scheduling functionality will be implemented in the next phase.',
-      [{ text: 'OK' }]
+      'Appointment Scheduled',
+      `Appointment with ${selectedPatient?.name} has been scheduled successfully.`
     );
   };
 
@@ -407,6 +449,25 @@ export default function AppointmentsList() {
           ))
         )}
       </ScrollView>
+
+      {/* Patient Selection Modal */}
+      <PatientSelectionModal
+        visible={showPatientSelection}
+        patients={patients}
+        onClose={() => setShowPatientSelection(false)}
+        onSelectPatient={handlePatientSelected}
+      />
+
+      {/* Appointment Scheduling Modal */}
+      <AppointmentSchedulingModal
+        visible={showAppointmentModal}
+        patient={selectedPatient}
+        onClose={() => {
+          setShowAppointmentModal(false);
+          setSelectedPatient(null);
+        }}
+        onSchedule={handleAppointmentScheduled}
+      />
     </SafeAreaView>
   );
 }
@@ -637,12 +698,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 8,
+    minWidth: 80,
   },
   viewButtonText: {
     color: '#6A2CB0',
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
