@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProviderRoutingService } from '@/services/providerRouting';
 import { NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
+import { IncidentService, incidentQueryKeys } from '@/services/incidentService';
+import { APP_CONFIG } from '@/constants/config';
 
 export interface Incident {
   id: string;
@@ -125,18 +127,34 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     return `KIN-${year}${month}${day}${random}`;
   };
 
-  // Load incidents from storage
+  // Load incidents from API or fallback to mock data
   const incidentsQuery = useQuery({
-    queryKey: ['incidents', user?.id],
+    queryKey: incidentQueryKeys.list(),
     queryFn: async () => {
       if (!user) return [];
-      
+
+      // Try to fetch from API first
+      if (APP_CONFIG.API.BASE_URL && !APP_CONFIG.API.BASE_URL.includes('localhost:8000')) {
+        try {
+          console.log('📡 Fetching incidents from API...');
+          const response = await IncidentService.getIncidents();
+          console.log(`✅ Loaded ${response.results.length} incidents from API`);
+          return response.results;
+        } catch (error) {
+          console.warn('⚠️ API fetch failed, falling back to mock data:', error);
+          // Continue to mock data fallback below
+        }
+      }
+
+      // Fallback: Check AsyncStorage for development
       const stored = await AsyncStorage.getItem(`incidents_${user.id}`);
       if (stored) {
+        console.log('📦 Loaded incidents from AsyncStorage');
         return JSON.parse(stored) as Incident[];
       }
-      
-      // Return mock data for demo purposes
+
+      // Final fallback: Return mock data for demo/development
+      console.log('🎭 Using mock incident data for development');
       const mockIncidents: Incident[] = [
         // COMPLETED CASES
         {
@@ -407,7 +425,22 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
   const createIncidentMutation = useMutation({
     mutationFn: async (data: CreateIncidentData) => {
       if (!user) throw new Error('User not authenticated');
-      
+
+      // Try API first
+      if (APP_CONFIG.API.BASE_URL && !APP_CONFIG.API.BASE_URL.includes('localhost:8000')) {
+        try {
+          console.log('📡 Creating incident via API...');
+          const newIncident = await IncidentService.createIncident(data);
+          console.log('✅ Incident created via API:', newIncident.caseNumber);
+          return newIncident;
+        } catch (error) {
+          console.warn('⚠️ API creation failed, falling back to local storage:', error);
+          // Continue to local fallback below
+        }
+      }
+
+      // Fallback: Local creation for development/offline mode
+      console.log('💾 Creating incident locally (development mode)');
       const newIncident: Incident = {
         id: Date.now().toString(),
         caseNumber: generateCaseNumber(),
@@ -429,7 +462,7 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      
+
       const existingIncidents = incidentsQuery.data || [];
       const updatedIncidents = [newIncident, ...existingIncidents];
 
@@ -505,6 +538,8 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
       return newIncident;
     },
     onSuccess: () => {
+      // Invalidate both old and new query keys for compatibility
+      queryClient.invalidateQueries({ queryKey: incidentQueryKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
     },
   });
@@ -513,18 +548,35 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
   const updateIncidentMutation = useMutation({
     mutationFn: async ({ incidentId, updates }: { incidentId: string; updates: Partial<Incident> }) => {
       if (!user) throw new Error('User not authenticated');
-      
+
+      // Try API first - check if it's a status-only update
+      if (APP_CONFIG.API.BASE_URL && !APP_CONFIG.API.BASE_URL.includes('localhost:8000')) {
+        try {
+          if (updates.status && Object.keys(updates).length === 1) {
+            console.log('📡 Updating incident status via API...');
+            const updated = await IncidentService.updateIncidentStatus(incidentId, updates.status);
+            console.log('✅ Status updated via API');
+            return updated;
+          }
+        } catch (error) {
+          console.warn('⚠️ API update failed, falling back to local storage:', error);
+        }
+      }
+
+      // Fallback: Local update
+      console.log('💾 Updating incident locally');
       const existingIncidents = incidentsQuery.data || [];
-      const updatedIncidents = existingIncidents.map(incident => 
-        incident.id === incidentId 
+      const updatedIncidents = existingIncidents.map(incident =>
+        incident.id === incidentId
           ? { ...incident, ...updates, updatedAt: new Date().toISOString() }
           : incident
       );
-      
+
       await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
       return updatedIncidents.find(i => i.id === incidentId);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: incidentQueryKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
     },
   });
@@ -533,7 +585,32 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
   const addMessageMutation = useMutation({
     mutationFn: async ({ incidentId, content }: { incidentId: string; content: string }) => {
       if (!user) throw new Error('User not authenticated');
-      
+
+      // Try API first (using notes endpoint for providers, messages for survivors)
+      if (APP_CONFIG.API.BASE_URL && !APP_CONFIG.API.BASE_URL.includes('localhost:8000')) {
+        try {
+          if (user.role === 'provider') {
+            console.log('📡 Adding case note via API...');
+            const note = await IncidentService.addIncidentNote(incidentId, content, false);
+            console.log('✅ Case note added via API');
+            // Transform note to message format
+            return {
+              id: note.id,
+              incidentId,
+              senderId: user.id,
+              senderRole: user.role,
+              content,
+              type: 'text' as const,
+              createdAt: note.created_at,
+            };
+          }
+        } catch (error) {
+          console.warn('⚠️ API message failed, falling back to local storage:', error);
+        }
+      }
+
+      // Fallback: Local message
+      console.log('💾 Adding message locally');
       const newMessage: Message = {
         id: Date.now().toString(),
         incidentId,
@@ -543,22 +620,23 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
         type: 'text',
         createdAt: new Date().toISOString(),
       };
-      
+
       const existingIncidents = incidentsQuery.data || [];
-      const updatedIncidents = existingIncidents.map(incident => 
-        incident.id === incidentId 
-          ? { 
-              ...incident, 
+      const updatedIncidents = existingIncidents.map(incident =>
+        incident.id === incidentId
+          ? {
+              ...incident,
               messages: [...incident.messages, newMessage],
               updatedAt: new Date().toISOString()
             }
           : incident
       );
-      
+
       await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
       return newMessage;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: incidentQueryKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
     },
   });

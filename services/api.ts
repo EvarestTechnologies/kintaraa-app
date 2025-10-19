@@ -24,11 +24,23 @@ export const API_CONFIG = {
       BIOMETRIC_ENABLE: '/auth/biometric/enable/',
       BIOMETRIC_DISABLE: '/auth/biometric/disable/',
     },
-    // Future endpoints for incidents, messaging, etc.
+    // Incident & Case Management endpoints
     INCIDENTS: {
-      LIST: '/incidents/',
-      CREATE: '/incidents/',
-      DETAIL: '/incidents/{id}/',
+      LIST: '/api/incidents/',
+      CREATE: '/api/incidents/',
+      DETAIL: '/api/incidents/{id}/',
+      UPDATE: '/api/incidents/{id}/',
+      DELETE: '/api/incidents/{id}/',
+      STATUS: '/api/incidents/{id}/status/',
+      TIMELINE: '/api/incidents/{id}/timeline/',
+      NOTES: '/api/incidents/{id}/notes/',
+      EVIDENCE: '/api/incidents/{id}/evidence/',
+    },
+    CASES: {
+      ASSIGNED: '/api/cases/assigned-to-me/',
+      ACCEPT: '/api/cases/{id}/accept/',
+      REJECT: '/api/cases/{id}/reject/',
+      RESPOND: '/api/cases/{id}/respond/',
     },
   },
   
@@ -61,7 +73,7 @@ export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {},
   includeAuth = true
-) => {
+): Promise<any> => {
   try {
     const config = await createApiConfig(includeAuth);
     const url = `${API_CONFIG.BASE_URL}${endpoint}`;
