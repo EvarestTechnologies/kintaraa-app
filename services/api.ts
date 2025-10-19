@@ -59,6 +59,14 @@ export const API_CONFIG = {
       REGISTER_TOKEN: '/api/notifications/register-token/',
       UNREAD_COUNT: '/api/notifications/unread-count/',
     },
+    // Communication endpoints (SMS/Call)
+    COMMUNICATIONS: {
+      SEND_SMS: '/api/communications/send-sms/',
+      INITIATE_CALL: '/api/communications/initiate-call/',
+      TEMPLATES: '/api/communications/templates/',
+      LOG: '/api/communications/log/',
+      HISTORY: '/api/cases/{id}/communications/',
+    },
   },
   
   TIMEOUT: APP_CONFIG.API.TIMEOUT,
