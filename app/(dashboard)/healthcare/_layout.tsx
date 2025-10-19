@@ -4,6 +4,7 @@ import { Home, Users, Calendar, FileText, User } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { RouteGuard, createProviderGuard } from '@/utils/routeGuards';
 import { UnauthorizedAccess } from '@/app/components/UnauthorizedAccess';
+import { NotificationBellIcon } from '@/app/components/NotificationBellIcon';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function HealthcareTabLayout() {
@@ -49,7 +50,12 @@ export default function HealthcareTabLayout() {
       screenOptions={{
         tabBarActiveTintColor: '#6A2CB0',
         tabBarInactiveTintColor: '#D8CEE8',
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: '#6A2CB0',
+        },
+        headerTintColor: '#FFFFFF',
+        headerRight: () => <NotificationBellIcon />,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#F5F0FF',

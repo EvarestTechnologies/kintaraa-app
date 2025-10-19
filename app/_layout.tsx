@@ -12,6 +12,7 @@ import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
+import { NotificationProvider } from "@/providers/NotificationProvider";
 
 
 // Error Boundary Component
@@ -148,18 +149,20 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={styles.container}>
             <AuthProvider>
-              <SafetyProvider>
-                <IncidentProvider>
-                  <ProviderContext>
-                    <WellbeingProvider>
-                      <RecommendationProvider>
-                        <RootLayoutNav />
-                        <StatusBar style={styles.statusBar} />
-                      </RecommendationProvider>
-                    </WellbeingProvider>
-                  </ProviderContext>
-                </IncidentProvider>
-              </SafetyProvider>
+              <NotificationProvider>
+                <SafetyProvider>
+                  <IncidentProvider>
+                    <ProviderContext>
+                      <WellbeingProvider>
+                        <RecommendationProvider>
+                          <RootLayoutNav />
+                          <StatusBar style={styles.statusBar} />
+                        </RecommendationProvider>
+                      </WellbeingProvider>
+                    </ProviderContext>
+                  </IncidentProvider>
+                </SafetyProvider>
+              </NotificationProvider>
             </AuthProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
