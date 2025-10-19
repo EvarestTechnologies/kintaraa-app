@@ -77,6 +77,35 @@ export const API_CONFIG = {
       UPCOMING: '/api/appointments/upcoming/',
       REMINDERS: '/api/appointments/{id}/reminders/',
     },
+    // Kenya MOH Forms endpoints
+    FORMS: {
+      PRC: {
+        LIST: '/api/forms/prc/',
+        CREATE: '/api/forms/prc/',
+        DETAIL: '/api/forms/prc/{id}/',
+        UPDATE: '/api/forms/prc/{id}/',
+        SUBMIT: '/api/forms/prc/{id}/submit/',
+        PDF: '/api/forms/prc/{id}/pdf/',
+      },
+      P3: {
+        LIST: '/api/forms/p3/',
+        CREATE: '/api/forms/p3/',
+        DETAIL: '/api/forms/p3/{id}/',
+        UPDATE: '/api/forms/p3/{id}/',
+        SUBMIT: '/api/forms/p3/{id}/submit/',
+        PDF: '/api/forms/p3/{id}/pdf/',
+      },
+      GBV_REGISTER: {
+        LIST: '/api/forms/gbv-register/',
+        CREATE: '/api/forms/gbv-register/',
+        SUMMARY: '/api/forms/gbv-register/summary/',
+      },
+      MONTHLY_SUMMARY: {
+        LIST: '/api/forms/monthly-summary/',
+        CREATE: '/api/forms/monthly-summary/',
+        GENERATE: '/api/forms/monthly-summary/generate/',
+      },
+    },
   },
   
   TIMEOUT: APP_CONFIG.API.TIMEOUT,
