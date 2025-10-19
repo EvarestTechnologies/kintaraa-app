@@ -42,6 +42,23 @@ export const API_CONFIG = {
       REJECT: '/api/cases/{id}/reject/',
       RESPOND: '/api/cases/{id}/respond/',
     },
+    // Provider Routing & Availability endpoints
+    ROUTING: {
+      ASSIGN_PROVIDERS: '/api/routing/assign-providers/',
+      AVAILABLE_PROVIDERS: '/api/providers/available/',
+    },
+    PROVIDERS: {
+      AVAILABILITY: '/api/providers/{id}/availability/',
+      PROFILE: '/api/providers/{id}/',
+    },
+    // Notification endpoints
+    NOTIFICATIONS: {
+      LIST: '/api/notifications/',
+      SEND: '/api/notifications/send/',
+      READ: '/api/notifications/{id}/read/',
+      REGISTER_TOKEN: '/api/notifications/register-token/',
+      UNREAD_COUNT: '/api/notifications/unread-count/',
+    },
   },
   
   TIMEOUT: APP_CONFIG.API.TIMEOUT,

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ProviderRoutingService } from '@/services/providerRouting';
+import { ProviderRoutingApiService } from '@/services/providerRoutingApiService';
 import { NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
 import { IncidentService, incidentQueryKeys } from '@/services/incidentService';
@@ -471,10 +471,11 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
       // Automatically route incident to providers and create notifications
       console.log('Routing incident to providers...', newIncident.id);
       try {
-        const providerAssignments = await ProviderRoutingService.routeIncident(newIncident);
+        // Use API routing service (falls back to local if API unavailable)
+        const providerAssignments = await ProviderRoutingApiService.assignProviders(newIncident);
 
         // Create provider notifications for each assigned provider
-        const providerNotifications = NotificationService.createProviderNotifications(newIncident, providerAssignments);
+        NotificationService.createProviderNotifications(newIncident, providerAssignments);
 
         // Record provider assignments and create survivor notifications
         for (const assignment of providerAssignments) {
