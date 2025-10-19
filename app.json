@@ -23,7 +23,8 @@
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "UIBackgroundModes": [
           "location",
-          "audio"
+          "audio",
+          "remote-notification"
         ],
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
       }
@@ -76,8 +77,23 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#E53935",
+          "sounds": ["./assets/sounds/notification.wav"],
+          "mode": "production"
+        }
       ]
     ],
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#E53935",
+      "androidMode": "default",
+      "androidCollapsedTitle": "#{unread_notifications} new updates"
+    },
     "experiments": {
       "typedRoutes": true
     }
