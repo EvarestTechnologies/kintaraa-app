@@ -26,6 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { Patient, Appointment } from '../index';
 import { NotificationService } from '@/services/notificationService';
 import { AppointmentReminderService } from '@/services/appointmentReminderService';
+import { AppointmentService } from '@/services/appointmentService';
 import { useProvider } from '@/providers/ProviderContext';
 import { useIncidents } from '@/providers/IncidentProvider';
 
@@ -138,13 +139,33 @@ export default function AppointmentSchedulingModal({
     setIsScheduling(true);
 
     try {
+      // Map appointment type to API type
+      const apiType = selectedType === 'consultation' ? 'medical_exam' :
+                     selectedType === 'therapy' ? 'counseling' :
+                     selectedType === 'emergency' ? 'medical_exam' : 'follow_up';
+
+      // Create appointment via API
+      const createdAppointment = await AppointmentService.createAppointment({
+        caseId: patient.caseId || patient.id,
+        providerId: providerProfile?.id || 'current-provider',
+        survivorId: patient.id,
+        type: apiType,
+        date: selectedDate.toISOString().split('T')[0],
+        time: formatTime(selectedTime),
+        duration: parseInt(duration),
+        location: selectedMode === 'in_person' ? location : `${selectedMode} appointment`,
+        notes,
+        sendReminders: true, // Always send reminders by default
+      });
+
+      // Map back to local appointment format for UI
       const appointmentData: Omit<Appointment, 'id'> = {
         patientName: patient.name,
         patientId: patient.id,
         type: selectedType,
         mode: selectedMode,
-        date: selectedDate.toISOString().split('T')[0], // Convert to YYYY-MM-DD format
-        time: formatTime(selectedTime), // Convert to HH:MM format
+        date: selectedDate.toISOString().split('T')[0],
+        time: formatTime(selectedTime),
         duration: parseInt(duration),
         status: 'scheduled',
         location: selectedMode === 'in_person' ? location : undefined,
@@ -152,9 +173,6 @@ export default function AppointmentSchedulingModal({
         priority: selectedPriority,
         caseId: patient.caseId,
       };
-
-      // Simulate scheduling delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
 
       onSchedule(appointmentData);
 

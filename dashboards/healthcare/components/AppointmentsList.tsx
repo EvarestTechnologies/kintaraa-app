@@ -27,6 +27,7 @@ import {
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
 import { AppointmentStatusService } from '@/services/appointmentStatusService';
+import { AppointmentService } from '@/services/appointmentService';
 import type { Appointment, Patient } from '../index';
 import AppointmentSchedulingModal from './AppointmentSchedulingModal';
 import PatientSelectionModal from './PatientSelectionModal';
@@ -83,6 +84,29 @@ export default function AppointmentsList() {
   const [selectedAppointmentForReschedule, setSelectedAppointmentForReschedule] = useState<Appointment | null>(null);
   const [statusUpdates, setStatusUpdates] = useState(AppointmentStatusService.getRecentStatusUpdates());
   const [needsAttention, setNeedsAttention] = useState(AppointmentStatusService.getStatusUpdatesNeedingAttention());
+  const [apiAppointments, setApiAppointments] = useState<any[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+
+  // Fetch appointments from API
+  useEffect(() => {
+    const loadAppointments = async () => {
+      setIsLoadingAppointments(true);
+      try {
+        const appointments = await AppointmentService.getAppointments();
+        setApiAppointments(appointments);
+      } catch (error) {
+        console.error('Failed to load appointments:', error);
+      } finally {
+        setIsLoadingAppointments(false);
+      }
+    };
+
+    loadAppointments();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(loadAppointments, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Poll for status updates
   useEffect(() => {

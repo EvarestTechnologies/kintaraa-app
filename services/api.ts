@@ -67,6 +67,16 @@ export const API_CONFIG = {
       LOG: '/api/communications/log/',
       HISTORY: '/api/cases/{id}/communications/',
     },
+    // Appointment endpoints
+    APPOINTMENTS: {
+      LIST: '/api/appointments/',
+      CREATE: '/api/appointments/',
+      DETAIL: '/api/appointments/{id}/',
+      UPDATE: '/api/appointments/{id}/',
+      STATUS: '/api/appointments/{id}/status/',
+      UPCOMING: '/api/appointments/upcoming/',
+      REMINDERS: '/api/appointments/{id}/reminders/',
+    },
   },
   
   TIMEOUT: APP_CONFIG.API.TIMEOUT,
