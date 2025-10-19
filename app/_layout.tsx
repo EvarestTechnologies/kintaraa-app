@@ -81,7 +81,7 @@ const queryClient = new QueryClient({
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ 
+    <Stack screenOptions={{
       headerBackTitle: "Back",
       headerStyle: {
         backgroundColor: '#F5F0FF',
@@ -89,7 +89,6 @@ function RootLayoutNav() {
       headerTintColor: '#341A52',
     }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(dashboard)" options={{ headerShown: false }} />
       <Stack.Screen name="emergency" options={{
         presentation: "modal",

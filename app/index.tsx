@@ -3,6 +3,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Shield } from 'lucide-react-native';
+import { RouteGuard } from '@/utils/routeGuards';
 
 export default function Index() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -42,15 +43,36 @@ export default function Index() {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  // For provider users, redirect to specific dashboard
-  if (user?.role === 'provider' && user?.providerType) {
-    console.log(`✅ Index - Provider (${user.providerType}), redirecting to hierarchical dashboard`);
+  // Enhanced validation for provider users
+  if (user?.role === 'provider') {
+    // Validate provider has a provider type
+    if (!user.providerType) {
+      console.error('❌ Index - Provider user missing providerType!');
+      console.log('⚠️ Index - Redirecting to welcome for re-authentication');
+      return <Redirect href="/(auth)/welcome" />;
+    }
+
+    // Validate provider type is valid
+    if (!RouteGuard.isValidProviderType(user.providerType)) {
+      console.error('❌ Index - Invalid provider type:', user.providerType);
+      console.log('⚠️ Index - Redirecting to welcome for re-authentication');
+      return <Redirect href="/(auth)/welcome" />;
+    }
+
+    console.log(`✅ Index - Provider (${user.providerType}), redirecting to dashboard`);
     return <Redirect href={`/(dashboard)/${user.providerType}`} />;
   }
 
   // For survivors, redirect to survivor dashboard
-  console.log('✅ Index - Survivor, redirecting to survivor dashboard');
-  return <Redirect href="/(dashboard)/survivor" />;
+  if (user?.role === 'survivor') {
+    console.log('✅ Index - Survivor, redirecting to survivor dashboard');
+    return <Redirect href="/(dashboard)/survivor" />;
+  }
+
+  // Fallback for invalid or unknown roles
+  console.error('❌ Index - Invalid user role:', user?.role);
+  console.log('⚠️ Index - Redirecting to welcome for re-authentication');
+  return <Redirect href="/(auth)/welcome" />;
 }
 
 const styles = StyleSheet.create({

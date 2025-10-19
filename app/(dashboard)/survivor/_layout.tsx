@@ -1,9 +1,45 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Home, FileText, Heart, Shield, User } from 'lucide-react-native';
+import { useAuth } from '@/providers/AuthProvider';
+import { RouteGuard, createSurvivorGuard } from '@/utils/routeGuards';
+import { UnauthorizedAccess } from '@/app/components/UnauthorizedAccess';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function SurvivorTabLayout() {
+  const { user, isLoading } = useAuth();
+
   console.log('🛡️ SurvivorTabLayout - Rendering Survivor Dashboard');
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      RouteGuard.guard(user, createSurvivorGuard());
+    }
+  }, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6A2CB0" />
+      </View>
+    );
+  }
+
+  const hasAccess = RouteGuard.canAccess(user, createSurvivorGuard());
+
+  if (!hasAccess) {
+    console.warn('🚫 Survivor dashboard - Access denied');
+    return (
+      <UnauthorizedAccess
+        message="This area is only accessible to survivors"
+        redirectPath="/"
+        userRole={user?.role}
+        requiredRole="survivor"
+      />
+    );
+  }
+
+  console.log('✅ Survivor dashboard - Access granted');
 
   return (
     <Tabs
@@ -64,3 +100,12 @@ export default function SurvivorTabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+});

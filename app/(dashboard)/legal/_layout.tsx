@@ -1,9 +1,45 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Home, Scale, FileText, Building, User } from 'lucide-react-native';
+import { useAuth } from '@/providers/AuthProvider';
+import { RouteGuard, createProviderGuard } from '@/utils/routeGuards';
+import { UnauthorizedAccess } from '@/app/components/UnauthorizedAccess';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function LegalTabLayout() {
+  const { user, isLoading } = useAuth();
+
   console.log('⚖️ LegalTabLayout - Rendering Legal Dashboard');
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      RouteGuard.guard(user, createProviderGuard('legal'));
+    }
+  }, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6A2CB0" />
+      </View>
+    );
+  }
+
+  const hasAccess = RouteGuard.canAccess(user, createProviderGuard('legal'));
+
+  if (!hasAccess) {
+    console.warn('🚫 Legal dashboard - Access denied');
+    return (
+      <UnauthorizedAccess
+        message="This area is only accessible to legal professionals"
+        redirectPath="/"
+        userRole={user?.role}
+        requiredRole="provider (legal)"
+      />
+    );
+  }
+
+  console.log('✅ Legal dashboard - Access granted');
 
   return (
     <Tabs
@@ -64,3 +100,12 @@ export default function LegalTabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+});

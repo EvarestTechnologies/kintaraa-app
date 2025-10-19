@@ -1,9 +1,45 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Home, Users, HandHeart, BookOpen, User } from 'lucide-react-native';
+import { useAuth } from '@/providers/AuthProvider';
+import { RouteGuard, createProviderGuard } from '@/utils/routeGuards';
+import { UnauthorizedAccess } from '@/app/components/UnauthorizedAccess';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function SocialTabLayout() {
+  const { user, isLoading } = useAuth();
+
   console.log('🤝 SocialTabLayout - Rendering Social Dashboard');
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      RouteGuard.guard(user, createProviderGuard('social'));
+    }
+  }, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6A2CB0" />
+      </View>
+    );
+  }
+
+  const hasAccess = RouteGuard.canAccess(user, createProviderGuard('social'));
+
+  if (!hasAccess) {
+    console.warn('🚫 Social services dashboard - Access denied');
+    return (
+      <UnauthorizedAccess
+        message="This area is only accessible to social services providers"
+        redirectPath="/"
+        userRole={user?.role}
+        requiredRole="provider (social)"
+      />
+    );
+  }
+
+  console.log('✅ Social services dashboard - Access granted');
 
   return (
     <Tabs
@@ -64,3 +100,12 @@ export default function SocialTabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+});
