@@ -67,6 +67,16 @@ export default function DashboardOverview() {
       },
     },
     {
+      id: 'prc-form',
+      title: 'PRC Form (MOH 363)',
+      subtitle: 'GBV examination',
+      icon: FileText,
+      color: '#2E7D32',
+      onPress: () => {
+        router.push('/forms/prc/new');
+      },
+    },
+    {
       id: 'appointments',
       title: 'Appointments',
       subtitle: `${healthcareStats.todayAppointments} today`,

@@ -190,6 +190,12 @@ const DashboardOverview: React.FC = () => {
             onPress={handleNewCase}
           />
           <QuickAction
+            title="P3 Form"
+            icon={<FileText color="white" />}
+            color="#1565C0"
+            onPress={() => router.push('/forms/p3/new')}
+          />
+          <QuickAction
             title="Add Evidence"
             icon={<FileText color="white" />}
             color="#8B5CF6"

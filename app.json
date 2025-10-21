@@ -81,7 +81,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
+          "icon": "./assets/images/icon.png",
           "color": "#E53935",
           "sounds": ["./assets/sounds/notification.wav"],
           "mode": "production"
@@ -89,7 +89,7 @@
       ]
     ],
     "notification": {
-      "icon": "./assets/images/notification-icon.png",
+      "icon": "./assets/images/icon.png",
       "color": "#E53935",
       "androidMode": "default",
       "androidCollapsedTitle": "#{unread_notifications} new updates"
