@@ -25,7 +25,8 @@ import { Asset } from 'expo-asset';
 
 // Asset mappings for local PDF files
 const assetMappings: { [key: string]: any } = {
-  'Kenya_Police_P3_Form_Updated.pdf': require('../../../assets/documents/forms/p3-form/Kenya_Police_P3_Form_Updated.pdf'),
+  // Note: P3 form PDF not yet added to assets - commented out until file is available
+  // 'Kenya_Police_P3_Form_Updated.pdf': require('../../../assets/documents/forms/p3-form/Kenya_Police_P3_Form_Updated.pdf'),
   'Kenya_MOH_PRC_Form_363.pdf': require('../../../assets/documents/forms/prc-form/Kenya_MOH_PRC_Form_363.pdf'),
 };
 
