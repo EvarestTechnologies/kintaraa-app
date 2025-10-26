@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProviderRoutingService } from '@/services/providerRouting';
 import { NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
+import * as IncidentsAPI from '@/services/incidents';
+import { handleApiError } from '@/services/api';
 
 export interface Incident {
   id: string;
@@ -109,34 +111,100 @@ export interface CreateIncidentData {
   isAnonymous: boolean;
 }
 
+/**
+ * Transform API response to frontend Incident format
+ */
+const transformApiIncidentToFrontend = (apiIncident: IncidentsAPI.IncidentResponse): Incident => {
+  return {
+    id: apiIncident.id,
+    caseNumber: apiIncident.case_number,
+    survivorId: '', // Will be set from user context
+    type: apiIncident.type as any,
+    status: apiIncident.status as any,
+    priority: apiIncident.severity as any, // Map severity to priority
+    incidentDate: apiIncident.incident_date,
+    incidentTime: apiIncident.incident_time,
+    location: apiIncident.location,
+    description: apiIncident.description,
+    severity: apiIncident.severity as any,
+    supportServices: apiIncident.support_services,
+    urgencyLevel: apiIncident.urgency_level as any,
+    providerPreferences: apiIncident.provider_preferences as any,
+    isAnonymous: apiIncident.is_anonymous,
+    evidence: [], // Not yet implemented in backend
+    messages: [], // Not yet implemented in backend
+    assignedProviderId: undefined, // Not yet implemented in backend
+    createdAt: apiIncident.date_submitted,
+    updatedAt: apiIncident.last_updated,
+  };
+};
+
+/**
+ * Transform frontend CreateIncidentData to API payload
+ */
+const transformFrontendToApiPayload = (data: CreateIncidentData): IncidentsAPI.CreateIncidentPayload => {
+  return {
+    type: data.type as any,
+    incident_date: data.incidentDate || new Date().toISOString().split('T')[0],
+    incident_time: data.incidentTime || new Date().toISOString().split('T')[1].split('.')[0],
+    description: data.description || '',
+    location: {
+      address: data.location?.address || '',
+      coordinates: {
+        latitude: data.location?.coordinates?.latitude || 0,
+        longitude: data.location?.coordinates?.longitude || 0,
+      },
+      description: data.location?.description,
+    },
+    severity: (data.severity || 'medium') as any,
+    support_services: data.supportServices,
+    urgency_level: data.urgencyLevel || 'routine',
+    provider_preferences: data.providerPreferences,
+    is_anonymous: data.isAnonymous,
+  };
+};
+
 export const [IncidentProvider, useIncidents] = createContextHook(() => {
   console.log('IncidentProvider initializing...');
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [realTimeUpdates, setRealTimeUpdates] = useState<Incident[]>([]);
 
-  // Generate case number
-  const generateCaseNumber = () => {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `KIN-${year}${month}${day}${random}`;
-  };
-
-  // Load incidents from storage
+  // Load incidents from API
   const incidentsQuery = useQuery({
     queryKey: ['incidents', user?.id],
     queryFn: async () => {
-      if (!user) return [];
-      
-      const stored = await AsyncStorage.getItem(`incidents_${user.id}`);
-      if (stored) {
-        return JSON.parse(stored) as Incident[];
+      if (!user) {
+        throw new Error('User not authenticated');
       }
-      
-      // Return mock data for demo purposes
+
+      try {
+        // Fetch incidents from backend API
+        console.log('🔄 Fetching incidents from API...');
+        const apiIncidents = await IncidentsAPI.getIncidents();
+
+        // Transform API response to frontend format
+        const incidents = apiIncidents.map(apiIncident => {
+          const transformed = transformApiIncidentToFrontend(apiIncident as any);
+          return {
+            ...transformed,
+            survivorId: user.id,
+          };
+        });
+
+        console.log('✅ Successfully fetched incidents from API:', incidents.length);
+        return incidents;
+      } catch (error: any) {
+        // Use reusable error handler (logs error internally)
+        throw handleApiError(error, 'Failed to load incidents.');
+      }
+    },
+    enabled: !!user,
+    retry: 2, // Retry failed requests twice
+    staleTime: 30000, // Consider data fresh for 30 seconds
+  });
+
+  // Remove mock data - keeping this comment as placeholder for future reference
+  /*
       const mockIncidents: Incident[] = [
         // COMPLETED CASES
         {
@@ -395,134 +463,76 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
           updatedAt: '2024-12-11T14:20:00Z',
         }
       ];
-      
-      // Store mock data
-      await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(mockIncidents));
-      return mockIncidents;
-    },
-    enabled: !!user,
-  });
+      */
 
   // Create new incident
   const createIncidentMutation = useMutation({
     mutationFn: async (data: CreateIncidentData) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const newIncident: Incident = {
-        id: Date.now().toString(),
-        caseNumber: generateCaseNumber(),
-        survivorId: user.id,
-        type: data.type as any,
-        status: 'new',
-        priority: data.severity === 'high' ? 'high' : data.severity === 'medium' ? 'medium' : 'low',
-        incidentDate: data.incidentDate,
-        incidentTime: data.incidentTime,
-        location: data.location,
-        description: data.description,
-        severity: data.severity as any,
-        supportServices: data.supportServices,
-        urgencyLevel: data.urgencyLevel || 'routine',
-        providerPreferences: data.providerPreferences,
-        isAnonymous: data.isAnonymous,
-        evidence: [],
-        messages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      const existingIncidents = incidentsQuery.data || [];
-      const updatedIncidents = [newIncident, ...existingIncidents];
-
-      await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
-
-      // Automatically route incident to providers and create notifications
-      console.log('Routing incident to providers...', newIncident.id);
-      try {
-        const providerAssignments = await ProviderRoutingService.routeIncident(newIncident);
-
-        // Create provider notifications for each assigned provider
-        const providerNotifications = NotificationService.createProviderNotifications(newIncident, providerAssignments);
-
-        // Record provider assignments and create survivor notifications
-        for (const assignment of providerAssignments) {
-          // Create a survivor notification for this provider assignment
-          ProviderResponseService.recordProviderAssignment(
-            newIncident,
-            assignment.providerId,
-            `Provider ${assignment.providerId}`, // Use generic name since we don't have provider names in assignment
-            assignment.providerType
-          );
-        }
-        console.log('Provider assignments:', providerAssignments);
-
-        // Store routing results (in real app, this would notify providers)
-        if (providerAssignments.length > 0) {
-          console.log(`Incident ${newIncident.caseNumber} routed to ${providerAssignments.length} providers`);
-
-          // Update incident status to 'assigned' for the first provider
-          const primaryProvider = providerAssignments[0];
-          setTimeout(() => {
-            queryClient.setQueryData(['incidents', user.id], (oldData: Incident[] | undefined) => {
-              if (!oldData) return [newIncident];
-              return oldData.map(incident =>
-                incident.id === newIncident.id
-                  ? { ...incident, status: 'assigned' as const, assignedProviderId: primaryProvider.providerId }
-                  : incident
-              );
-            });
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error routing incident:', error);
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
-      // Simulate real-time update
-      setTimeout(() => {
-        const updatedIncident = {
-          ...newIncident,
-          status: 'assigned' as const,
-          assignedProviderId: 'provider-1',
-          messages: [
-            {
-              id: Date.now().toString(),
-              incidentId: newIncident.id,
-              senderId: 'system',
-              senderRole: 'admin' as const,
-              content: `Your report ${newIncident.caseNumber} has been received and assigned to a case worker. You will be contacted within 24 hours.`,
-              type: 'system' as const,
-              createdAt: new Date().toISOString(),
-            }
-          ],
-          updatedAt: new Date().toISOString(),
-        };
-        
-        setRealTimeUpdates(prev => {
-          const filtered = prev.filter(i => i.id !== newIncident.id);
-          return [updatedIncident, ...filtered];
-        });
-      }, 3000);
-      
-      return newIncident;
+      try {
+        console.log('🔄 Creating incident via API...', data);
+
+        // Transform frontend data to API payload format
+        const payload = transformFrontendToApiPayload(data);
+
+        // Send to backend API
+        const apiResponse = await IncidentsAPI.createIncident(payload);
+
+        // Transform API response back to frontend format
+        const newIncident = transformApiIncidentToFrontend(apiResponse);
+        newIncident.survivorId = user.id;
+
+        console.log('✅ Successfully created incident:', newIncident.caseNumber);
+
+        // Return the new incident
+        return newIncident;
+      } catch (error: any) {
+        // Use reusable error handler (logs error internally)
+        throw handleApiError(error, 'Failed to submit incident report.');
+      }
+
+      /* TODO: Provider routing will be handled by backend
+      // Automatically route incident to providers and create notifications
+      // This logic should be moved to backend after provider assignment APIs are implemented
+      */
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
     },
   });
 
-  // Update incident status
+  // Update incident (limited fields)
   const updateIncidentMutation = useMutation({
     mutationFn: async ({ incidentId, updates }: { incidentId: string; updates: Partial<Incident> }) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const existingIncidents = incidentsQuery.data || [];
-      const updatedIncidents = existingIncidents.map(incident => 
-        incident.id === incidentId 
-          ? { ...incident, ...updates, updatedAt: new Date().toISOString() }
-          : incident
-      );
-      
-      await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
-      return updatedIncidents.find(i => i.id === incidentId);
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      try {
+        console.log('🔄 Updating incident via API...', incidentId);
+
+        // Only allow updating specific fields (matching backend UpdateSerializer)
+        const payload: any = {};
+        if (updates.description) payload.description = updates.description;
+        if (updates.supportServices) payload.support_services = updates.supportServices;
+        if (updates.providerPreferences) payload.provider_preferences = updates.providerPreferences;
+
+        // Send update to backend API
+        const apiResponse = await IncidentsAPI.updateIncident(incidentId, payload);
+
+        // Transform API response back to frontend format
+        const updatedIncident = transformApiIncidentToFrontend(apiResponse);
+        updatedIncident.survivorId = user.id;
+
+        console.log('✅ Successfully updated incident:', updatedIncident.caseNumber);
+        return updatedIncident;
+      } catch (error: any) {
+        // Use reusable error handler (logs error internally)
+        throw handleApiError(error, 'Failed to update incident.');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
@@ -530,33 +540,15 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
   });
 
   // Add message to incident
+  // TODO: Implement messaging API endpoint in backend
   const addMessageMutation = useMutation({
     mutationFn: async ({ incidentId, content }: { incidentId: string; content: string }) => {
       if (!user) throw new Error('User not authenticated');
-      
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        incidentId,
-        senderId: user.id,
-        senderRole: user.role,
-        content,
-        type: 'text',
-        createdAt: new Date().toISOString(),
-      };
-      
-      const existingIncidents = incidentsQuery.data || [];
-      const updatedIncidents = existingIncidents.map(incident => 
-        incident.id === incidentId 
-          ? { 
-              ...incident, 
-              messages: [...incident.messages, newMessage],
-              updatedAt: new Date().toISOString()
-            }
-          : incident
-      );
-      
-      await AsyncStorage.setItem(`incidents_${user.id}`, JSON.stringify(updatedIncidents));
-      return newMessage;
+
+      // TODO: Replace with API call when messaging endpoint is implemented
+      // const apiResponse = await MessagingAPI.sendMessage(incidentId, content);
+
+      throw new Error('Messaging feature is not yet implemented on the backend.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });
@@ -641,27 +633,9 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     },
   });
 
-  // Merge real-time updates with stored data
-  const allIncidents = (() => {
-    const storedIncidents = incidentsQuery.data || [];
-    const updatedIncidents = [...storedIncidents];
-    
-    realTimeUpdates.forEach(update => {
-      const index = updatedIncidents.findIndex(i => i.id === update.id);
-      if (index >= 0) {
-        updatedIncidents[index] = update;
-      } else {
-        updatedIncidents.unshift(update);
-      }
-    });
-    
-    return updatedIncidents.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  })();
-
+  // Return context value
   const result = {
-    incidents: allIncidents,
+    incidents: incidentsQuery.data || [],
     providers: providersQuery.data || [],
     isLoading: incidentsQuery.isLoading || providersQuery.isLoading,
     error: incidentsQuery.error || providersQuery.error,
