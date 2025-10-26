@@ -29,6 +29,7 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useIncidents } from '@/providers/IncidentProvider';
+import { useToast } from '@/providers/ToastProvider';
 
 const incidentTypes = [
   { id: 'physical', title: 'Physical Violence', color: '#E53935' },
@@ -51,6 +52,7 @@ const supportServices = [
 
 export default function ReportScreen() {
   const { createIncident, isCreating, createError } = useIncidents();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -64,7 +66,7 @@ export default function ReportScreen() {
       description: '',
     },
     description: '',
-    severity: '',
+    severity: 'medium', // Default severity
     supportServices: [] as string[],
     urgencyLevel: 'routine' as 'immediate' | 'urgent' | 'routine',
     providerPreferences: {
@@ -125,7 +127,68 @@ export default function ReportScreen() {
 
   const totalSteps = 5;
 
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        // Incident type is required
+        if (!reportData.type) {
+          return { isValid: false, message: 'Please select an incident type to continue.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 2:
+        // Date, time, and location are required
+        if (!reportData.incidentDate) {
+          return { isValid: false, message: 'Please select the incident date.' };
+        }
+        if (!reportData.incidentTime) {
+          return { isValid: false, message: 'Please select the incident time.' };
+        }
+        if (!reportData.location.address && !reportData.location.description) {
+          return { isValid: false, message: 'Please provide a location (address or description).' };
+        }
+        return { isValid: true, message: '' };
+
+      case 3:
+        // Description is required (either text or voice recording)
+        if (!reportData.description && !reportData.voiceRecording) {
+          return { isValid: false, message: 'Please provide a description or voice recording of the incident.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 4:
+        // Support services are required
+        if (reportData.supportServices.length === 0) {
+          return { isValid: false, message: 'Please select at least one support service.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 5:
+        // Review step - final validation
+        if (!reportData.type || !reportData.incidentDate || !reportData.incidentTime) {
+          return { isValid: false, message: 'Missing required information. Please review all steps.' };
+        }
+        if (!reportData.description && !reportData.voiceRecording) {
+          return { isValid: false, message: 'Description is required.' };
+        }
+        if (reportData.supportServices.length === 0) {
+          return { isValid: false, message: 'At least one support service is required.' };
+        }
+        return { isValid: true, message: '' };
+
+      default:
+        return { isValid: true, message: '' };
+    }
+  };
+
   const handleNext = () => {
+    // Validate current step before proceeding
+    const validation = validateCurrentStep();
+    if (!validation.isValid) {
+      toast.showError('Required Field', validation.message);
+      return;
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -143,7 +206,7 @@ export default function ReportScreen() {
 
   const handleSubmit = async () => {
     if (createError) {
-      Alert.alert('Error', createError);
+      toast.showError('Submission Error', createError);
       return;
     }
 
@@ -174,19 +237,28 @@ export default function ReportScreen() {
 
       console.log('Incident submitted successfully');
 
-      Alert.alert(
+      // Show success toast
+      toast.showSuccess(
         'Report Submitted',
         'Your report has been submitted successfully. You will receive updates on the progress of your case.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(dashboard)/survivor/reports'),
-          },
-        ]
+        7000
       );
-    } catch (error) {
+
+      // Navigate back after a short delay to allow toast to be seen
+      setTimeout(() => {
+        router.replace('/(dashboard)/survivor/reports');
+      }, 1500);
+    } catch (error: any) {
       console.error('Error submitting incident:', error);
-      Alert.alert('Error', `Failed to submit report: ${error}`);
+
+      // Extract user-friendly error message
+      const errorMessage = error?.message || 'An unexpected error occurred. Please try again.';
+
+      toast.showError(
+        'Failed to Submit Report',
+        errorMessage,
+        10000 // Show error for 10 seconds
+      );
     }
   };
 
@@ -877,15 +949,26 @@ export default function ReportScreen() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
+        // Incident type is required
         return reportData.type !== '';
       case 2:
-        return true; // All fields are optional in step 2
+        // Date, time, and location are required
+        return reportData.incidentDate !== '' &&
+               reportData.incidentTime !== '' &&
+               (reportData.location.address !== '' || reportData.location.description !== '');
       case 3:
-        return true; // Support services are optional
+        // Description or voice recording is required
+        return reportData.description !== '' || reportData.voiceRecording !== undefined;
       case 4:
-        return true; // Communication preferences are optional
+        // At least one support service is required
+        return reportData.supportServices.length > 0;
       case 5:
-        return true; // Review step
+        // Review step - all required fields must be filled
+        return reportData.type !== '' &&
+               reportData.incidentDate !== '' &&
+               reportData.incidentTime !== '' &&
+               (reportData.description !== '' || reportData.voiceRecording !== undefined) &&
+               reportData.supportServices.length > 0;
       default:
         return false;
     }
