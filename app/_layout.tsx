@@ -12,6 +12,7 @@ import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
 
 
 // Error Boundary Component
@@ -80,14 +81,17 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
+  console.log('📱 RootLayoutNav rendering Stack...');
+
   return (
-    <Stack screenOptions={{ 
+    <Stack screenOptions={{
       headerBackTitle: "Back",
       headerStyle: {
         backgroundColor: '#F5F0FF',
       },
       headerTintColor: '#341A52',
     }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(dashboard)" options={{ headerShown: false }} />
@@ -105,13 +109,6 @@ function RootLayoutNav() {
       }} />
       <Stack.Screen name="recommendations" options={{
         title: "AI Recommendations",
-        headerStyle: {
-          backgroundColor: '#F5F0FF',
-        },
-        headerTintColor: '#341A52',
-      }} />
-      <Stack.Screen name="integration-test" options={{
-        title: "Integration Testing",
         headerStyle: {
           backgroundColor: '#F5F0FF',
         },
@@ -140,29 +137,43 @@ export default function RootLayout() {
     hideSplash();
   }, []);
 
-  console.log('RootLayout rendering...');
+  console.log('🚀 RootLayout rendering...');
+
+  // Add error handler for uncaught errors
+  React.useEffect(() => {
+    const errorHandler = (error: Error, isFatal?: boolean) => {
+      console.error('💥 Uncaught error:', error, 'isFatal:', isFatal);
+    };
+
+    if (__DEV__) {
+      // @ts-ignore
+      ErrorUtils.setGlobalHandler(errorHandler);
+    }
+  }, []);
 
   // Temporarily simplify to test basic functionality
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={styles.container}>
-            <AuthProvider>
-              <SafetyProvider>
-                <IncidentProvider>
-                  <ProviderContext>
-                    <WellbeingProvider>
-                      <RecommendationProvider>
-                        <RootLayoutNav />
-                        <StatusBar style={styles.statusBar} />
-                      </RecommendationProvider>
-                    </WellbeingProvider>
-                  </ProviderContext>
-                </IncidentProvider>
-              </SafetyProvider>
-            </AuthProvider>
-          </GestureHandlerRootView>
+          <ToastProvider>
+            <GestureHandlerRootView style={styles.container}>
+              <AuthProvider>
+                <SafetyProvider>
+                  <IncidentProvider>
+                    <ProviderContext>
+                      <WellbeingProvider>
+                        <RecommendationProvider>
+                          <RootLayoutNav />
+                          <StatusBar style={styles.statusBar} />
+                        </RecommendationProvider>
+                      </WellbeingProvider>
+                    </ProviderContext>
+                  </IncidentProvider>
+                </SafetyProvider>
+              </AuthProvider>
+            </GestureHandlerRootView>
+          </ToastProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
