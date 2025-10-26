@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Redirect } from 'expo-router';
-import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 export default function DashboardLayout() {
   const { isAuthenticated, isLoading } = useAuth();
