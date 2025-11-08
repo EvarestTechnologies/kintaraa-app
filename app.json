@@ -1,13 +1,15 @@
 {
   "expo": {
-    "name": "Kintaraa Mobile App for GBV Support and Prevention",
+    "name": "Kintaraa",
     "slug": "kintaraa-mobile-app-gbv",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "kintaraa",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Kintaraa connects GBV survivors with specialized service providers for comprehensive support and assistance.",
+    "privacy": "public",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -16,6 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.rork.kintaraa",
+      "buildNumber": "1",
+      "requireFullScreen": false,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allow $(PRODUCT_NAME) to use Face ID.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
@@ -34,6 +38,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.rork.kintaraa",
+      "versionCode": 1,
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
@@ -80,6 +85,17 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "privacyPolicyUrl": "https://kintaraa.com/privacy",
+      "termsOfServiceUrl": "https://kintaraa.com/terms",
+      "supportEmail": "support@kintaraa.com",
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID_HERE"
+      }
+    },
+    "hooks": {
+      "postPublish": []
     }
   }
 }

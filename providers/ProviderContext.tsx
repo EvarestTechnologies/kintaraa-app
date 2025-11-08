@@ -110,7 +110,10 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     console.log('Routed incidents for provider:', routedIncidents.length);
     console.log('Provider assignments:', providerAssignments.length);
 
-    // Add dummy cases for testing search and filter functionality
+    // Return only real routed incidents (dummy cases removed for production)
+    return routedIncidents;
+
+    /* Dummy cases removed for production - restore for development if needed
     if (user?.role === 'provider' && providerProfile) {
       const dummyCases = [
         {
@@ -437,10 +440,9 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
         }
       ];
       
-      return [...routedIncidents, ...dummyCases];
+      // return [...routedIncidents, ...dummyCases];
     }
-
-    return routedIncidents;
+    */
   }, [incidents, providerProfile, user?.role, providerAssignments]);
 
   // Get pending case assignments

@@ -13,6 +13,10 @@ import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
+import { initializeSentry, captureException } from "@/utils/sentry";
+
+// Initialize Sentry crash reporting (production only)
+initializeSentry();
 
 
 // Error Boundary Component
@@ -32,6 +36,11 @@ class ErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (error && errorInfo) {
       console.log('Error caught by boundary:', error.message, errorInfo.componentStack);
+
+      // Report to Sentry in production
+      captureException(error, {
+        componentStack: errorInfo.componentStack,
+      });
     }
   }
 

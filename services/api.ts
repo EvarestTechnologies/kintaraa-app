@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_CONFIG } from '../constants/config';
+import { apiLog } from '../utils/logger';
 
 // API Configuration using centralized config
 export const API_CONFIG = {
@@ -97,8 +98,8 @@ export const apiRequest = async (
         }
       }
 
-      // Debug: Log the actual backend response to see what we're receiving
-      console.log('❌ API Error Response:', {
+      // Log API error response for debugging
+      apiLog.error('API Error Response', {
         status: response.status,
         url: endpoint,
         fullResponse: data,
@@ -199,8 +200,8 @@ export class ApiError extends Error {
    * Get a concise error message for UI display
    */
   getConciseMessage(): string {
-    // Debug: Log what we're trying to extract
-    console.log('🔍 getConciseMessage called:', {
+    // Log error message extraction
+    apiLog.debug('Extracting concise error message', {
       hasData: !!this.data,
       hasErrors: !!this.data?.errors,
       dataKeys: this.data ? Object.keys(this.data) : [],
@@ -216,7 +217,7 @@ export class ApiError extends Error {
 
     if (this.data?.errors) {
       // Format 1: Wrapped errors (authentication endpoints)
-      console.log('📦 Using wrapped error format (data.errors)');
+      apiLog.debug('Using wrapped error format (data.errors)');
       errors = this.data.errors;
     } else if (this.data && typeof this.data === 'object') {
       // Format 2: Check if data itself contains field errors (DRF default)
@@ -228,14 +229,14 @@ export class ApiError extends Error {
       );
 
       if (hasFieldErrors) {
-        console.log('📦 Using unwrapped error format (data is errors)');
+        apiLog.debug('Using unwrapped error format (data is errors)');
         errors = this.data;
       } else {
-        console.log('⚠️ No errors field in response, using fallback:', this.message);
+        apiLog.debug('No errors field in response, using fallback', { message: this.message });
         return this.message;
       }
     } else {
-      console.log('⚠️ No valid error data, using fallback:', this.message);
+      apiLog.debug('No valid error data, using fallback', { message: this.message });
       return this.message;
     }
 
@@ -253,11 +254,11 @@ export class ApiError extends Error {
       if (errors[field]) {
         const fieldErrors = errors[field];
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-          console.log(`✅ Extracted priority field error (${field}):`, fieldErrors[0]);
+          apiLog.debug('Extracted priority field error', { field, error: fieldErrors[0] });
           return fieldErrors[0];
         }
         if (typeof fieldErrors === 'string') {
-          console.log(`✅ Extracted priority field error (${field}):`, fieldErrors);
+          apiLog.debug('Extracted priority field error', { field, error: fieldErrors });
           return fieldErrors;
         }
       }
@@ -265,7 +266,7 @@ export class ApiError extends Error {
 
     // Handle non_field_errors
     if (errors.non_field_errors && Array.isArray(errors.non_field_errors) && errors.non_field_errors.length > 0) {
-      console.log('✅ Extracted non_field_errors:', errors.non_field_errors[0]);
+      apiLog.debug('Extracted non_field_errors', { error: errors.non_field_errors[0] });
       return errors.non_field_errors[0];
     }
 
@@ -274,16 +275,16 @@ export class ApiError extends Error {
     if (firstField && errors[firstField]) {
       const fieldErrors = errors[firstField];
       if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-        console.log(`✅ Extracted first field error (${firstField}):`, fieldErrors[0]);
+        apiLog.debug('Extracted first field error', { field: firstField, error: fieldErrors[0] });
         return fieldErrors[0];
       }
       if (typeof fieldErrors === 'string') {
-        console.log(`✅ Extracted first field error (${firstField}):`, fieldErrors);
+        apiLog.debug('Extracted first field error', { field: firstField, error: fieldErrors });
         return fieldErrors;
       }
     }
 
-    console.log('⚠️ Could not extract any field errors, using fallback:', this.message);
+    apiLog.debug('Could not extract any field errors, using fallback', { message: this.message });
     return this.message;
   }
 }
@@ -320,7 +321,7 @@ const refreshAuthToken = async (): Promise<boolean> => {
     
     return false;
   } catch (error) {
-    console.error('Token refresh failed:', error);
+    apiLog.error('Token refresh failed', error);
     return false;
   }
 };
@@ -357,7 +358,7 @@ export const clearAuthData = async (): Promise<void> => {
  * @returns Error object with user-friendly message
  */
 export const handleApiError = (error: any, defaultMessage?: string): Error => {
-  console.error('API Error:', error);
+  apiLog.error('API Error', error);
 
   // Authentication errors
   if (error?.status === 401 || error?.status === 403) {

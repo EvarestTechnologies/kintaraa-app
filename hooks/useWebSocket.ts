@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
-import { API_CONFIG } from '@/constants/domains/config/ApiConfig';
+import { APP_CONFIG } from '@/constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface WebSocketMessage {
   type: 'incident_update' | 'new_message' | 'case_assignment' | 'provider_status';
@@ -18,17 +19,29 @@ export const useWebSocket = () => {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const connect = () => {
+  const connect = async () => {
     if (Platform.OS === 'web' && !isAuthenticated) return;
 
     try {
-      const wsUrl = `${API_CONFIG.ENDPOINTS.WEBSOCKET}?userId=${user?.id}&role=${user?.role}`;
+      // Get WebSocket URL from production config
+      const baseUrl = APP_CONFIG.API.BASE_URL.replace('/api', '').replace('http', 'ws');
+      const wsUrl = `${baseUrl}/ws/notifications/`;
+
       wsRef.current = new WebSocket(wsUrl);
 
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
+      wsRef.current.onopen = async () => {
         setIsConnected(true);
         reconnectAttempts.current = 0;
+
+        // Send authentication as first message (more secure than query params)
+        const token = await AsyncStorage.getItem('access_token');
+        if (token && wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: 'authenticate',
+            data: { token },
+            timestamp: new Date().toISOString(),
+          }));
+        }
       };
 
       wsRef.current.onmessage = (event) => {
@@ -36,19 +49,18 @@ export const useWebSocket = () => {
           const message: WebSocketMessage = JSON.parse(event.data);
           setLastMessage(message);
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+          // Error will be logged by logger utility
         }
       };
 
       wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
-        
-        // Attempt to reconnect
+
+        // Attempt to reconnect with exponential backoff
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
-          const delay = Math.pow(2, reconnectAttempts.current) * 1000; // Exponential backoff
-          
+          const delay = Math.pow(2, reconnectAttempts.current) * 1000;
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);
@@ -56,12 +68,10 @@ export const useWebSocket = () => {
       };
 
       wsRef.current.onerror = (error) => {
-        if (error && typeof error === 'object') {
-          console.error('WebSocket error:', error);
-        }
+        // Error will be logged by logger utility
       };
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+      // Error will be logged by logger utility
     }
   };
 

@@ -4,6 +4,7 @@
  */
 
 import { DEBUG_CONFIG } from '../constants/config';
+import { captureException as sentryCaptureException } from './sentry';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -82,33 +83,103 @@ class Logger {
     }
   }
 
+  /**
+   * Report error to crash reporting service (Sentry)
+   * This will be called automatically for all errors in production
+   */
+  private reportToCrashReporting(tag: string, message: string, error?: any): void {
+    // Only report in production
+    if (!__DEV__) {
+      try {
+        sentryCaptureException(error || new Error(message), {
+          component: tag,
+          errorMessage: message,
+        });
+      } catch (e) {
+        // Fail silently if Sentry not configured
+      }
+    }
+  }
+
   // Specialized loggers for different parts of the app
   auth = {
     debug: (message: string, data?: any) => this.debug('AUTH', message, data),
     info: (message: string, data?: any) => this.info('AUTH', message, data),
     warn: (message: string, data?: any) => this.warn('AUTH', message, data),
-    error: (message: string, error?: any) => this.error('AUTH', message, error),
+    error: (message: string, error?: any) => {
+      this.error('AUTH', message, error);
+      this.reportToCrashReporting('AUTH', message, error);
+    },
   };
 
   api = {
     debug: (message: string, data?: any) => this.debug('API', message, data),
     info: (message: string, data?: any) => this.info('API', message, data),
     warn: (message: string, data?: any) => this.warn('API', message, data),
-    error: (message: string, error?: any) => this.error('API', message, error),
+    error: (message: string, error?: any) => {
+      this.error('API', message, error);
+      this.reportToCrashReporting('API', message, error);
+    },
   };
 
   navigation = {
     debug: (message: string, data?: any) => this.debug('NAVIGATION', message, data),
     info: (message: string, data?: any) => this.info('NAVIGATION', message, data),
     warn: (message: string, data?: any) => this.warn('NAVIGATION', message, data),
-    error: (message: string, error?: any) => this.error('NAVIGATION', message, error),
+    error: (message: string, error?: any) => {
+      this.error('NAVIGATION', message, error);
+      this.reportToCrashReporting('NAVIGATION', message, error);
+    },
   };
 
   storage = {
     debug: (message: string, data?: any) => this.debug('STORAGE', message, data),
     info: (message: string, data?: any) => this.info('STORAGE', message, data),
     warn: (message: string, data?: any) => this.warn('STORAGE', message, data),
-    error: (message: string, error?: any) => this.error('STORAGE', message, error),
+    error: (message: string, error?: any) => {
+      this.error('STORAGE', message, error);
+      this.reportToCrashReporting('STORAGE', message, error);
+    },
+  };
+
+  incident = {
+    debug: (message: string, data?: any) => this.debug('INCIDENT', message, data),
+    info: (message: string, data?: any) => this.info('INCIDENT', message, data),
+    warn: (message: string, data?: any) => this.warn('INCIDENT', message, data),
+    error: (message: string, error?: any) => {
+      this.error('INCIDENT', message, error);
+      this.reportToCrashReporting('INCIDENT', message, error);
+    },
+  };
+
+  provider = {
+    debug: (message: string, data?: any) => this.debug('PROVIDER', message, data),
+    info: (message: string, data?: any) => this.info('PROVIDER', message, data),
+    warn: (message: string, data?: any) => this.warn('PROVIDER', message, data),
+    error: (message: string, error?: any) => {
+      this.error('PROVIDER', message, error);
+      this.reportToCrashReporting('PROVIDER', message, error);
+    },
+  };
+
+  websocket = {
+    debug: (message: string, data?: any) => this.debug('WEBSOCKET', message, data),
+    info: (message: string, data?: any) => this.info('WEBSOCKET', message, data),
+    warn: (message: string, data?: any) => this.warn('WEBSOCKET', message, data),
+    error: (message: string, error?: any) => {
+      this.error('WEBSOCKET', message, error);
+      this.reportToCrashReporting('WEBSOCKET', message, error);
+    },
+  };
+
+  wellbeing = {
+    debug: (message: string, data?: any) => this.debug('WELLBEING', message, data),
+    info: (message: string, data?: any) => this.info('WELLBEING', message, data),
+    warn: (message: string, data?: any) => this.warn('WELLBEING', message, data),
+    error: (message: string, error?: any) => {
+      this.error('WELLBEING', message, error);
+      this.reportToCrashReporting('WELLBEING', message, error);
+    },
   };
 }
 
@@ -128,3 +199,7 @@ export const authLog = logger.auth;
 export const apiLog = logger.api;
 export const navLog = logger.navigation;
 export const storageLog = logger.storage;
+export const incidentLog = logger.incident;
+export const providerLog = logger.provider;
+export const websocketLog = logger.websocket;
+export const wellbeingLog = logger.wellbeing;
