@@ -33,6 +33,21 @@ export const API_CONFIG = {
       STATS: '/incidents/stats/',
       UPLOAD_VOICE: '/incidents/upload-voice/',
     },
+
+    /* Provider endpoints - Uncomment when backend implements these
+    PROVIDERS: {
+      LIST: '/providers/',
+      DETAIL: '/providers/{id}/',
+      MY_PROFILE: '/providers/me/',
+      UPDATE_PROFILE: '/providers/me/update/',
+      STATS: '/providers/stats/',
+      ASSIGNMENTS: '/providers/assignments/',
+      ASSIGNMENT_DETAIL: '/providers/assignments/{id}/',
+      ACCEPT_ASSIGNMENT: '/providers/assignments/{id}/accept/',
+      DECLINE_ASSIGNMENT: '/providers/assignments/{id}/decline/',
+      AVAILABILITY: '/providers/me/availability/',
+    },
+    */
   },
   
   TIMEOUT: APP_CONFIG.API.TIMEOUT,
