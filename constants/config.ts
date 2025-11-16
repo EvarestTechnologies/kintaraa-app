@@ -36,11 +36,6 @@ const getLocalDevIP = (): string => {
  * - Production: https://api-kintara.onrender.com/api
  */
 const getApiBaseUrl = (): string => {
-  // TEMPORARY: Always use production backend for testing
-  // TODO: Remove this override when local backend setup is complete
-  return 'https://api-kintara.onrender.com/api';
-
-  /* Original logic - uncomment when testing with local backend:
   if (isProduction) {
     return 'https://api-kintara.onrender.com/api';
   }
@@ -56,7 +51,6 @@ const getApiBaseUrl = (): string => {
     const localIP = getLocalDevIP();
     return `http://${localIP}:${backendPort}/api`;
   }
-  */
 };
 
 // API Configuration
