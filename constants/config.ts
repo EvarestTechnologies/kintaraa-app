@@ -11,6 +11,12 @@ export const isDevelopment = __DEV__;
 export const isProduction = !__DEV__;
 
 /**
+ * TOGGLE: Set to true to use production backend even in development mode
+ * Useful when testing without running local Django server
+ */
+const USE_PRODUCTION_IN_DEV = true;
+
+/**
  * Dynamically get the local development machine IP address
  * Works for any developer's machine automatically
  */
@@ -36,11 +42,12 @@ const getLocalDevIP = (): string => {
  * - Production: https://api-kintara.onrender.com/api
  */
 const getApiBaseUrl = (): string => {
-  if (isProduction) {
+  // Use production backend if in production build OR if toggle is enabled
+  if (isProduction || USE_PRODUCTION_IN_DEV) {
     return 'https://api-kintara.onrender.com/api';
   }
 
-  // Development mode
+  // Development mode with local backend
   const backendPort = 8000; // Django backend port
 
   if (Platform.OS === 'web') {
