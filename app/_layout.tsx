@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React from "react";
@@ -6,6 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
@@ -13,6 +13,15 @@ import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
+import {
+  createOfflineQueryClient,
+  createQueryPersister,
+  setupNetworkDetection,
+  getPersistOptions,
+} from "@/config/queryPersistence";
+import { syncService } from "@/services/syncService";
+import { offlineConfig } from "@/utils/configLoader";
+import { logger } from "@/utils/logger";
 
 
 // Error Boundary Component
@@ -71,14 +80,15 @@ const errorStyles = StyleSheet.create({
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 3,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+// Create offline-capable QueryClient and persister
+const queryClient = createOfflineQueryClient();
+const queryPersister = createQueryPersister();
+
+// Setup network detection for React Query
+setupNetworkDetection();
+
+// Initialize sync service
+syncService.initialize(queryClient);
 
 function RootLayoutNav() {
   console.log('📱 RootLayoutNav rendering Stack...');
@@ -137,6 +147,31 @@ export default function RootLayout() {
     hideSplash();
   }, []);
 
+  // Register background sync if enabled
+  React.useEffect(() => {
+    const registerSync = async () => {
+      if (offlineConfig.get('features').background_sync_enabled) {
+        try {
+          await syncService.registerBackgroundSync();
+          logger.offline.info('Background sync registered');
+        } catch (error) {
+          logger.offline.error('Failed to register background sync', error);
+        }
+      }
+    };
+
+    registerSync();
+
+    // Cleanup on unmount
+    return () => {
+      if (offlineConfig.get('features').background_sync_enabled) {
+        syncService.unregisterBackgroundSync().catch((error) => {
+          logger.offline.error('Failed to unregister background sync', error);
+        });
+      }
+    };
+  }, []);
+
   console.log('🚀 RootLayout rendering...');
 
   // Add error handler for uncaught errors
@@ -151,11 +186,16 @@ export default function RootLayout() {
     }
   }, []);
 
-  // Temporarily simplify to test basic functionality
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: queryPersister,
+            ...getPersistOptions(),
+          }}
+        >
           <ToastProvider>
             <GestureHandlerRootView style={styles.container}>
               <AuthProvider>
@@ -174,7 +214,7 @@ export default function RootLayout() {
               </AuthProvider>
             </GestureHandlerRootView>
           </ToastProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
