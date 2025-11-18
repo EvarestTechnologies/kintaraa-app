@@ -6,9 +6,10 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+const Flag = false
 // Environment detection
-export const isDevelopment = __DEV__;
-export const isProduction = !__DEV__;
+export const isDevelopment = Flag;
+export const isProduction = !Flag;
 
 /**
  * Dynamically get the local development machine IP address
