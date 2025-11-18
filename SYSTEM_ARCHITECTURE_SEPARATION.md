@@ -22,9 +22,11 @@
 ## 1. Executive Summary
 
 ### Current State
+
 Kintaraa currently operates as a **monolithic React Native application** that serves both survivors and 7 different provider types (healthcare, legal, police, counseling, social services, GBV rescue, and community health workers) through a single codebase with role-based routing.
 
 ### Proposed State
+
 **Two separate applications** connected through a unified backend API:
 
 1. **Kintaraa Survivor App** - Mobile-first application for GBV survivors
@@ -32,14 +34,14 @@ Kintaraa currently operates as a **monolithic React Native application** that se
 
 ### Benefits of Separation
 
-| Aspect | Current Monolith | Separated Architecture |
-|--------|-----------------|----------------------|
-| **Bundle Size** | ~50MB (all roles) | Survivor: ~15MB, Provider: ~35MB |
-| **Security** | Shared codebase risks | Isolated security boundaries |
-| **Deployment** | Single deployment affects all | Independent deployment cycles |
-| **Scalability** | Coupled scaling | Independent horizontal scaling |
-| **Development** | Tight coupling, merge conflicts | Parallel development teams |
-| **User Experience** | One-size-fits-all | Role-optimized experiences |
+| Aspect              | Current Monolith                | Separated Architecture           |
+| ------------------- | ------------------------------- | -------------------------------- |
+| **Bundle Size**     | ~50MB (all roles)               | Survivor: ~15MB, Provider: ~35MB |
+| **Security**        | Shared codebase risks           | Isolated security boundaries     |
+| **Deployment**      | Single deployment affects all   | Independent deployment cycles    |
+| **Scalability**     | Coupled scaling                 | Independent horizontal scaling   |
+| **Development**     | Tight coupling, merge conflicts | Parallel development teams       |
+| **User Experience** | One-size-fits-all               | Role-optimized experiences       |
 
 ---
 
@@ -119,19 +121,19 @@ kintaraa-app/
 
 ### 2.2 Code Ownership Matrix
 
-| Component | Survivor App | Provider Platform | Shared | Backend |
-|-----------|-------------|-------------------|--------|---------|
-| **Authentication** | ✓ | ✓ | ✓ | ✓ |
-| **Incident Reporting** | ✓ | - | - | ✓ |
-| **Case Management** | ✓ (read-only) | ✓ (full access) | - | ✓ |
-| **Messaging** | ✓ | ✓ | ✓ | ✓ |
-| **Wellbeing Tracking** | ✓ | - | - | ✓ |
-| **Safety Planning** | ✓ | - | - | ✓ |
-| **Provider Routing** | - | - | - | ✓ |
-| **Notifications** | ✓ | ✓ | - | ✓ |
-| **Analytics** | ✓ (personal) | ✓ (professional) | - | ✓ |
-| **Learning Resources** | ✓ | - | - | - |
-| **Emergency Features** | ✓ | ✓ (GBV Rescue only) | - | ✓ |
+| Component              | Survivor App  | Provider Platform   | Shared | Backend |
+| ---------------------- | ------------- | ------------------- | ------ | ------- |
+| **Authentication**     | ✓             | ✓                   | ✓      | ✓       |
+| **Incident Reporting** | ✓             | -                   | -      | ✓       |
+| **Case Management**    | ✓ (read-only) | ✓ (full access)     | -      | ✓       |
+| **Messaging**          | ✓             | ✓                   | ✓      | ✓       |
+| **Wellbeing Tracking** | ✓             | -                   | -      | ✓       |
+| **Safety Planning**    | ✓             | -                   | -      | ✓       |
+| **Provider Routing**   | -             | -                   | -      | ✓       |
+| **Notifications**      | ✓             | ✓                   | -      | ✓       |
+| **Analytics**          | ✓ (personal)  | ✓ (professional)    | -      | ✓       |
+| **Learning Resources** | ✓             | -                   | -      | -       |
+| **Emergency Features** | ✓             | ✓ (GBV Rescue only) | -      | ✓       |
 
 ### 2.3 Data Flow Analysis
 
@@ -147,6 +149,7 @@ graph TD
 ```
 
 **Current Issues:**
+
 - ❌ Provider routing logic in frontend (`services/providerRouting.ts`)
 - ❌ Notification creation in frontend (`services/notificationService.ts`)
 - ❌ Mock data in React Context providers
@@ -488,17 +491,17 @@ websocket_urlpatterns = [
 ```typescript
 // Survivor app events
 type SurvivorEvent =
-  | { type: 'case.assigned', caseId: string, providerId: string }
-  | { type: 'case.status_updated', caseId: string, status: string }
-  | { type: 'message.received', caseId: string, message: Message }
-  | { type: 'provider.responded', caseId: string, response: string }
+  | { type: "case.assigned"; caseId: string; providerId: string }
+  | { type: "case.status_updated"; caseId: string; status: string }
+  | { type: "message.received"; caseId: string; message: Message }
+  | { type: "provider.responded"; caseId: string; response: string };
 
 // Provider platform events
 type ProviderEvent =
-  | { type: 'case.new_assignment', assignmentId: string, caseId: string }
-  | { type: 'case.updated', caseId: string }
-  | { type: 'message.received', caseId: string, message: Message }
-  | { type: 'case.escalated', caseId: string, priority: string }
+  | { type: "case.new_assignment"; assignmentId: string; caseId: string }
+  | { type: "case.updated"; caseId: string }
+  | { type: "message.received"; caseId: string; message: Message }
+  | { type: "case.escalated"; caseId: string; priority: string };
 ```
 
 ### 4.3 Data Synchronization Strategy
@@ -513,7 +516,7 @@ class OfflineManager {
     await localDB.incidents.create(data);
 
     // Queue for sync
-    await syncQueue.add('incidents.create', data);
+    await syncQueue.add("incidents.create", data);
 
     // Attempt immediate sync if online
     if (await isOnline()) {
@@ -576,6 +579,7 @@ USING (
 ### Phase 1: Backend Foundation (Weeks 1-4)
 
 **Week 1-2: Core Backend Setup**
+
 - [ ] Set up Django project with Django REST Framework
 - [ ] Configure PostgreSQL database
 - [ ] Implement authentication service (JWT)
@@ -583,6 +587,7 @@ USING (
 - [ ] Configure CORS and API gateway
 
 **Week 3-4: Core Services**
+
 - [ ] Implement Incident Management API
 - [ ] Implement Provider Routing Service
 - [ ] Implement Messaging API (HTTP)
@@ -590,6 +595,7 @@ USING (
 - [ ] Write API documentation (OpenAPI/Swagger)
 
 **Deliverables:**
+
 - ✅ Functional backend API
 - ✅ API documentation
 - ✅ Database schema
@@ -600,18 +606,21 @@ USING (
 ### Phase 2: Real-Time Infrastructure (Weeks 5-6)
 
 **Week 5: WebSocket Setup**
+
 - [ ] Configure Django Channels
 - [ ] Implement WebSocket consumers
 - [ ] Set up Redis for channel layer
 - [ ] Implement real-time messaging
 
 **Week 6: Push Notifications**
+
 - [ ] Integrate Firebase Cloud Messaging (FCM)
 - [ ] Implement SMS service (Africa's Talking/Twilio)
 - [ ] Implement email service (SendGrid)
 - [ ] Create notification preferences API
 
 **Deliverables:**
+
 - ✅ Real-time messaging working
 - ✅ Push notifications functional
 - ✅ Multi-channel notification system
@@ -621,6 +630,7 @@ USING (
 ### Phase 3: Survivor App Separation (Weeks 7-10)
 
 **Week 7-8: Create Survivor App**
+
 - [ ] Initialize new React Native project
 - [ ] Set up Expo Router
 - [ ] Migrate survivor-specific screens
@@ -628,6 +638,7 @@ USING (
 - [ ] Integrate authentication
 
 **Week 9: Core Features**
+
 - [ ] Incident reporting flow
 - [ ] Case management view
 - [ ] Messaging interface
@@ -635,6 +646,7 @@ USING (
 - [ ] Safety planning tools
 
 **Week 10: Polish & Testing**
+
 - [ ] Offline support
 - [ ] Push notification handling
 - [ ] UI/UX refinement
@@ -642,6 +654,7 @@ USING (
 - [ ] Performance optimization
 
 **Deliverables:**
+
 - ✅ Standalone survivor app
 - ✅ Offline-first functionality
 - ✅ All survivor features migrated
@@ -651,6 +664,7 @@ USING (
 ### Phase 4: Provider Platform Separation (Weeks 11-14)
 
 **Week 11-12: Create Provider Platform**
+
 - [ ] Initialize new React Native/Expo project
 - [ ] Set up web support (React Native Web)
 - [ ] Migrate provider dashboards (7 types)
@@ -658,6 +672,7 @@ USING (
 - [ ] Set up provider-specific routing
 
 **Week 13: Provider-Specific Features**
+
 - [ ] Healthcare provider workflow
 - [ ] Legal aid workflow
 - [ ] Police investigation tools
@@ -666,6 +681,7 @@ USING (
 - [ ] CHW field reporting
 
 **Week 14: Analytics & Testing**
+
 - [ ] Provider analytics dashboard
 - [ ] Performance metrics
 - [ ] Multi-provider testing
@@ -673,6 +689,7 @@ USING (
 - [ ] Cross-platform testing
 
 **Deliverables:**
+
 - ✅ Standalone provider platform
 - ✅ All 7 provider types functional
 - ✅ Web and mobile support
@@ -682,6 +699,7 @@ USING (
 ### Phase 5: Integration & Migration (Weeks 15-16)
 
 **Week 15: System Integration**
+
 - [ ] End-to-end testing
 - [ ] Load testing
 - [ ] Security audit
@@ -689,6 +707,7 @@ USING (
 - [ ] Deployment automation
 
 **Week 16: Launch Preparation**
+
 - [ ] User acceptance testing
 - [ ] Documentation
 - [ ] Training materials
@@ -696,6 +715,7 @@ USING (
 - [ ] Gradual rollout plan
 
 **Deliverables:**
+
 - ✅ Fully integrated system
 - ✅ Migration complete
 - ✅ Ready for production
@@ -710,7 +730,7 @@ USING (
 
 ```typescript
 // Biometric authentication
-import * as LocalAuthentication from 'expo-local-authentication';
+import * as LocalAuthentication from "expo-local-authentication";
 
 class BiometricAuth {
   static async authenticate() {
@@ -719,8 +739,8 @@ class BiometricAuth {
 
     if (hasHardware && isEnrolled) {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Kintaraa',
-        fallbackLabel: 'Use Passcode',
+        promptMessage: "Unlock Kintaraa",
+        fallbackLabel: "Use Passcode",
       });
 
       return result.success;
@@ -731,7 +751,7 @@ class BiometricAuth {
 }
 
 // Data encryption at rest
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
 class SecureStorage {
   static async saveSecure(key: string, value: string) {
@@ -754,16 +774,16 @@ class ProviderAuth {
   static checkAccess(
     provider: Provider,
     resource: Resource,
-    action: 'view' | 'edit' | 'delete'
+    action: "view" | "edit" | "delete"
   ): boolean {
     // Healthcare can only access medical cases
-    if (provider.type === 'healthcare') {
-      return resource.type === 'medical' && action !== 'delete';
+    if (provider.type === "healthcare") {
+      return resource.type === "medical" && action !== "delete";
     }
 
     // Police have read-only access to all cases
-    if (provider.type === 'police') {
-      return action === 'view';
+    if (provider.type === "police") {
+      return action === "view";
     }
 
     // etc...
@@ -854,39 +874,39 @@ class PersonalDataManager:
 
 #### **Survivor App**
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Framework | React Native | 0.81+ | Cross-platform mobile |
-| Routing | Expo Router | 6.0+ | File-based routing |
-| State | React Query + Context | 5.0+ | Server state management |
-| Storage | AsyncStorage + SQLite | Latest | Offline persistence |
-| Auth | Expo Local Auth | Latest | Biometric authentication |
-| Push | Expo Notifications | Latest | Push notifications |
-| UI | React Native | Built-in | Native components |
+| Layer     | Technology            | Version  | Purpose                  |
+| --------- | --------------------- | -------- | ------------------------ |
+| Framework | React Native          | 0.81+    | Cross-platform mobile    |
+| Routing   | Expo Router           | 6.0+     | File-based routing       |
+| State     | React Query + Context | 5.0+     | Server state management  |
+| Storage   | AsyncStorage + SQLite | Latest   | Offline persistence      |
+| Auth      | Expo Local Auth       | Latest   | Biometric authentication |
+| Push      | Expo Notifications    | Latest   | Push notifications       |
+| UI        | React Native          | Built-in | Native components        |
 
 #### **Provider Platform**
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Framework | React Native + Web | 0.81+ | Cross-platform |
-| Routing | Expo Router | 6.0+ | Universal routing |
-| State | React Query + Context | 5.0+ | Server state management |
-| Auth | JWT + Session | Latest | Token-based auth |
-| Web | React Native Web | Latest | Web compatibility |
-| Analytics | Custom Dashboard | - | Provider metrics |
+| Layer     | Technology            | Version | Purpose                 |
+| --------- | --------------------- | ------- | ----------------------- |
+| Framework | React Native + Web    | 0.81+   | Cross-platform          |
+| Routing   | Expo Router           | 6.0+    | Universal routing       |
+| State     | React Query + Context | 5.0+    | Server state management |
+| Auth      | JWT + Session         | Latest  | Token-based auth        |
+| Web       | React Native Web      | Latest  | Web compatibility       |
+| Analytics | Custom Dashboard      | -       | Provider metrics        |
 
 #### **Backend**
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Framework | Django | 5.0+ | REST API framework |
-| API | Django REST Framework | 3.14+ | RESTful API |
-| Database | PostgreSQL | 15+ | Primary database |
-| Cache | Redis | 7+ | Caching & sessions |
-| WebSocket | Django Channels | 4+ | Real-time communication |
-| Search | PostgreSQL FTS | 15+ | Full-text search |
-| Storage | AWS S3 | Latest | File storage |
-| Queue | Celery + Redis | Latest | Background tasks |
+| Layer     | Technology            | Version | Purpose                 |
+| --------- | --------------------- | ------- | ----------------------- |
+| Framework | Django                | 5.0+    | REST API framework      |
+| API       | Django REST Framework | 3.14+   | RESTful API             |
+| Database  | PostgreSQL            | 15+     | Primary database        |
+| Cache     | Redis                 | 7+      | Caching & sessions      |
+| WebSocket | Django Channels       | 4+      | Real-time communication |
+| Search    | PostgreSQL FTS        | 15+     | Full-text search        |
+| Storage   | AWS S3                | Latest  | File storage            |
+| Queue     | Celery + Redis        | Latest  | Background tasks        |
 
 ### 7.2 Deployment Architecture
 
@@ -958,15 +978,15 @@ class PersonalDataManager:
 
 ### 7.3 Performance Requirements
 
-| Metric | Survivor App | Provider Platform | Backend API |
-|--------|-------------|-------------------|-------------|
-| **Response Time** | < 200ms | < 300ms | < 100ms (p95) |
-| **Load Time** | < 3s | < 4s | - |
-| **API Latency** | < 500ms | < 500ms | < 200ms (p99) |
-| **Offline Support** | Full | Partial | - |
-| **Concurrent Users** | 10,000+ | 1,000+ | 50,000+ |
-| **Throughput** | - | - | 1,000 req/s |
-| **Availability** | 99.9% | 99.9% | 99.95% |
+| Metric               | Survivor App | Provider Platform | Backend API   |
+| -------------------- | ------------ | ----------------- | ------------- |
+| **Response Time**    | < 200ms      | < 300ms           | < 100ms (p95) |
+| **Load Time**        | < 3s         | < 4s              | -             |
+| **API Latency**      | < 500ms      | < 500ms           | < 200ms (p99) |
+| **Offline Support**  | Full         | Partial           | -             |
+| **Concurrent Users** | 10,000+      | 1,000+            | 50,000+       |
+| **Throughput**       | -            | -                 | 1,000 req/s   |
+| **Availability**     | 99.9%        | 99.9%             | 99.95%        |
 
 ---
 
@@ -1023,24 +1043,28 @@ class Migration(migrations.Migration):
 ### 8.2 Gradual Rollout Strategy
 
 #### **Phase 1: Pilot (Weeks 1-2)**
+
 - Deploy to 5% of users
 - Monitor error rates
 - Collect feedback
 - Fix critical bugs
 
 #### **Phase 2: Soft Launch (Weeks 3-4)**
+
 - Deploy to 25% of users
 - A/B testing
 - Performance monitoring
 - Feature flags for rollback
 
 #### **Phase 3: Full Rollout (Weeks 5-6)**
+
 - Deploy to 50% of users
 - Gradual increase to 100%
 - Monitor all metrics
 - Keep old app running for 2 weeks
 
 #### **Phase 4: Deprecation (Week 7-8)**
+
 - Force upgrade notification
 - Sunset old endpoints
 - Final data migration
@@ -1058,24 +1082,24 @@ rollback_triggers:
 
 rollback_procedure:
   1. Immediate:
-     - Revert to previous app version
-     - Switch traffic back to old backend
-     - Notify users of maintenance
+    - Revert to previous app version
+    - Switch traffic back to old backend
+    - Notify users of maintenance
 
   2. Within 30 minutes:
-     - Restore database from backup
-     - Clear corrupted cache
-     - Verify data integrity
+    - Restore database from backup
+    - Clear corrupted cache
+    - Verify data integrity
 
   3. Within 2 hours:
-     - Root cause analysis
-     - Fix and test
-     - Prepare hotfix
+    - Root cause analysis
+    - Fix and test
+    - Prepare hotfix
 
   4. Within 24 hours:
-     - Deploy hotfix
-     - Resume gradual rollout
-     - Post-mortem report
+    - Deploy hotfix
+    - Resume gradual rollout
+    - Post-mortem report
 ```
 
 ---
@@ -1084,45 +1108,46 @@ rollback_procedure:
 
 ### 9.1 Infrastructure Costs (Monthly Estimates)
 
-| Service | Specification | Cost (USD) |
-|---------|--------------|------------|
-| **Compute** |
-| API Servers | 4x t3.medium (AWS EC2) | $120 |
-| WebSocket Servers | 2x t3.small | $40 |
-| Celery Workers | 2x t3.small | $40 |
-| **Database** |
-| PostgreSQL RDS | db.t3.medium (Multi-AZ) | $150 |
-| Redis ElastiCache | cache.t3.micro (Cluster) | $30 |
-| **Storage** |
-| S3 (File Storage) | 100GB + data transfer | $25 |
-| RDS Storage | 100GB SSD | $15 |
-| **CDN & Networking** |
-| Cloudflare CDN | Pro plan | $20 |
-| Data Transfer | 500GB/month | $45 |
+| Service                   | Specification            | Cost (USD)      |
+| ------------------------- | ------------------------ | --------------- |
+| **Compute**               |
+| API Servers               | 4x t3.medium (AWS EC2)   | $120            |
+| WebSocket Servers         | 2x t3.small              | $40             |
+| Celery Workers            | 2x t3.small              | $40             |
+| **Database**              |
+| PostgreSQL RDS            | db.t3.medium (Multi-AZ)  | $150            |
+| Redis ElastiCache         | cache.t3.micro (Cluster) | $30             |
+| **Storage**               |
+| S3 (File Storage)         | 100GB + data transfer    | $25             |
+| RDS Storage               | 100GB SSD                | $15             |
+| **CDN & Networking**      |
+| Cloudflare CDN            | Pro plan                 | $20             |
+| Data Transfer             | 500GB/month              | $45             |
 | **Monitoring & Security** |
-| CloudWatch | Logs + metrics | $30 |
-| AWS WAF | - | $20 |
-| **Third-Party Services** |
-| Firebase (FCM) | Free tier | $0 |
-| Africa's Talking (SMS) | ~1000 SMS/month | $50 |
-| SendGrid (Email) | 10k emails/month | $15 |
-| **TOTAL** | | **~$600/month** |
+| CloudWatch                | Logs + metrics           | $30             |
+| AWS WAF                   | -                        | $20             |
+| **Third-Party Services**  |
+| Firebase (FCM)            | Free tier                | $0              |
+| Africa's Talking (SMS)    | ~1000 SMS/month          | $50             |
+| SendGrid (Email)          | 10k emails/month         | $15             |
+| **TOTAL**                 |                          | **~$600/month** |
 
 **Scaling Costs:**
+
 - At 50,000 users: ~$1,200/month
 - At 100,000 users: ~$2,500/month
 - At 500,000 users: ~$8,000/month
 
 ### 9.2 Development Costs
 
-| Phase | Duration | Resources | Cost (USD) |
-|-------|----------|-----------|------------|
-| Backend Development | 6 weeks | 2 backend devs | $24,000 |
-| Survivor App | 4 weeks | 2 mobile devs | $16,000 |
-| Provider Platform | 4 weeks | 2 mobile devs + 1 web dev | $20,000 |
-| Integration & Testing | 2 weeks | Full team (5 devs) | $10,000 |
-| DevOps & Infrastructure | Ongoing | 1 DevOps engineer | $8,000 |
-| **TOTAL** | | | **~$78,000** |
+| Phase                   | Duration | Resources                 | Cost (USD)   |
+| ----------------------- | -------- | ------------------------- | ------------ |
+| Backend Development     | 6 weeks  | 2 backend devs            | $24,000      |
+| Survivor App            | 4 weeks  | 2 mobile devs             | $16,000      |
+| Provider Platform       | 4 weeks  | 2 mobile devs + 1 web dev | $20,000      |
+| Integration & Testing   | 2 weeks  | Full team (5 devs)        | $10,000      |
+| DevOps & Infrastructure | Ongoing  | 1 DevOps engineer         | $8,000       |
+| **TOTAL**               |          |                           | **~$78,000** |
 
 ---
 
@@ -1130,25 +1155,25 @@ rollback_procedure:
 
 ### 10.1 Technical Metrics
 
-| Metric | Current (Monolith) | Target (Separated) |
-|--------|-------------------|-------------------|
-| Bundle Size | 50MB | Survivor: 15MB, Provider: 35MB |
-| Load Time | 5s | < 3s |
-| API Response Time | N/A (mock data) | < 200ms (p95) |
-| Crash Rate | Unknown | < 0.5% |
-| Offline Support | None | Full (survivor), Partial (provider) |
-| Deploy Frequency | Weekly | Daily (independent) |
+| Metric            | Current (Monolith) | Target (Separated)                  |
+| ----------------- | ------------------ | ----------------------------------- |
+| Bundle Size       | 50MB               | Survivor: 15MB, Provider: 35MB      |
+| Load Time         | 5s                 | < 3s                                |
+| API Response Time | N/A (mock data)    | < 200ms (p95)                       |
+| Crash Rate        | Unknown            | < 0.5%                              |
+| Offline Support   | None               | Full (survivor), Partial (provider) |
+| Deploy Frequency  | Weekly             | Daily (independent)                 |
 
 ### 10.2 Business Metrics
 
-| Metric | Target |
-|--------|--------|
-| User Retention (30-day) | > 60% |
-| Incident Report Time | < 5 minutes |
-| Provider Response Time | < 2 hours (urgent cases) |
-| Case Resolution Time | < 30 days (average) |
-| User Satisfaction | > 4.5/5.0 |
-| Provider Adoption | > 80% of active providers |
+| Metric                  | Target                    |
+| ----------------------- | ------------------------- |
+| User Retention (30-day) | > 60%                     |
+| Incident Report Time    | < 5 minutes               |
+| Provider Response Time  | < 2 hours (urgent cases)  |
+| Case Resolution Time    | < 30 days (average)       |
+| User Satisfaction       | > 4.5/5.0                 |
+| Provider Adoption       | > 80% of active providers |
 
 ---
 
@@ -1159,6 +1184,7 @@ rollback_procedure:
 **Separate Applications + Unified Backend**
 
 This architecture provides:
+
 - ✅ **Security**: Isolated security boundaries
 - ✅ **Performance**: Smaller, faster apps
 - ✅ **Scalability**: Independent scaling
@@ -1169,16 +1195,19 @@ This architecture provides:
 ### Next Steps
 
 1. **Immediate (Week 1)**:
+
    - Get stakeholder approval
    - Assemble development team
    - Set up development environment
 
 2. **Short-term (Weeks 2-4)**:
+
    - Start backend development
    - Design API contracts
    - Create database schema
 
 3. **Medium-term (Weeks 5-14)**:
+
    - Develop survivor app
    - Develop provider platform
    - Integrate and test
@@ -1196,17 +1225,18 @@ This architecture provides:
 
 #### **Django vs Alternatives Comparison**
 
-| Framework | Pros | Cons | Verdict |
-|-----------|------|------|---------|
-| **Django** | • Batteries included (ORM, admin, auth)<br>• Mature ecosystem<br>• Django REST Framework<br>• Strong security defaults<br>• Active community<br>• Good for rapid development | • Monolithic (can be heavy)<br>• Less flexible than micro-frameworks<br>• Learning curve | ✅ **Recommended** for MVP |
-| **FastAPI** | • Very fast (async/await)<br>• Modern Python (3.7+)<br>• Auto API docs<br>• Type hints<br>• Lightweight | • Less mature<br>• Smaller ecosystem<br>• Need to build auth, admin<br>• Fewer ORMs | ⚠️ Good for microservices |
-| **Flask** | • Lightweight<br>• Flexible<br>• Easy to learn<br>• Microservices-friendly | • Need to add everything manually<br>• Security not built-in<br>• More boilerplate | ⚠️ Too minimal for this project |
-| **Node.js (Express)** | • JavaScript everywhere<br>• Large npm ecosystem<br>• Good for real-time | • Less structured<br>• Callback hell (without async/await)<br>• Weaker typing | ❌ Team uses Python |
-| **Go (Gin/Echo)** | • Extremely fast<br>• Great concurrency<br>• Small binaries | • Verbose<br>• Smaller ecosystem<br>• Steep learning curve | ❌ Overkill for current scale |
+| Framework             | Pros                                                                                                                                                                         | Cons                                                                                     | Verdict                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
+| **Django**            | • Batteries included (ORM, admin, auth)<br>• Mature ecosystem<br>• Django REST Framework<br>• Strong security defaults<br>• Active community<br>• Good for rapid development | • Monolithic (can be heavy)<br>• Less flexible than micro-frameworks<br>• Learning curve | ✅ **Recommended** for MVP      |
+| **FastAPI**           | • Very fast (async/await)<br>• Modern Python (3.7+)<br>• Auto API docs<br>• Type hints<br>• Lightweight                                                                      | • Less mature<br>• Smaller ecosystem<br>• Need to build auth, admin<br>• Fewer ORMs      | ⚠️ Good for microservices       |
+| **Flask**             | • Lightweight<br>• Flexible<br>• Easy to learn<br>• Microservices-friendly                                                                                                   | • Need to add everything manually<br>• Security not built-in<br>• More boilerplate       | ⚠️ Too minimal for this project |
+| **Node.js (Express)** | • JavaScript everywhere<br>• Large npm ecosystem<br>• Good for real-time                                                                                                     | • Less structured<br>• Callback hell (without async/await)<br>• Weaker typing            | ❌ Team uses Python             |
+| **Go (Gin/Echo)**     | • Extremely fast<br>• Great concurrency<br>• Small binaries                                                                                                                  | • Verbose<br>• Smaller ecosystem<br>• Steep learning curve                               | ❌ Overkill for current scale   |
 
 #### **Why Django Wins for Kintaraa:**
 
 1. **Built-in Authentication & Authorization**
+
    ```python
    # Django gives you this out of the box:
    from django.contrib.auth.models import User
@@ -1218,11 +1248,13 @@ This architecture provides:
    ```
 
 2. **Django Admin Panel** - Free admin interface for managing data
+
    - Manage users, incidents, providers
    - Monitor system health
    - Manual interventions when needed
 
 3. **Django ORM** - Powerful database abstraction
+
    ```python
    # Complex queries made simple
    incidents = Incident.objects.filter(
@@ -1233,6 +1265,7 @@ This architecture provides:
    ```
 
 4. **Security Defaults**
+
    - CSRF protection
    - SQL injection prevention
    - XSS protection
@@ -1240,6 +1273,7 @@ This architecture provides:
    - HTTPS enforcement
 
 5. **Django REST Framework** - Best REST API library
+
    - Serializers for validation
    - Viewsets for CRUD
    - Pagination, filtering, throttling
@@ -1268,6 +1302,7 @@ async def create_incident(
 ```
 
 **Hybrid Approach:**
+
 - Use **Django** for main API (CRUD operations)
 - Use **FastAPI microservices** for high-throughput operations:
   - Real-time analytics
@@ -1280,17 +1315,18 @@ async def create_incident(
 
 #### **Storage Solution Comparison**
 
-| Storage Solution | Pros | Cons | Best For |
-|-----------------|------|------|----------|
-| **AWS S3** | • Managed service (no ops)<br>• 99.999999999% durability<br>• Global CDN integration<br>• Lifecycle policies<br>• Versioning & encryption<br>• Pay-as-you-go<br>• Compliance (HIPAA, GDPR) | • Vendor lock-in<br>• Can be expensive at scale<br>• Requires AWS account | Production, compliance-heavy |
-| **SeaweedFS** | • Open source<br>• Self-hosted (full control)<br>• Very fast<br>• Cost-effective at scale<br>• Facebook-scale proven<br>• S3 API compatible | • **You manage infrastructure**<br>• **No built-in redundancy**<br>• **No managed backups**<br>• Requires DevOps expertise<br>• High availability = complex | High-volume, DevOps-mature teams |
-| **MinIO** | • Open source<br>• S3 compatible<br>• Easy to deploy<br>• Good for hybrid cloud<br>• Kubernetes native | • You manage it<br>• Need storage infrastructure<br>• Backup complexity | Kubernetes deployments |
-| **Google Cloud Storage** | • Similar to S3<br>• Good pricing<br>• Nearline/Coldline tiers | • Vendor lock-in<br>• Smaller ecosystem than AWS | Alternative to S3 |
-| **Azure Blob Storage** | • Similar to S3<br>• Good Azure integration | • Vendor lock-in | Azure shops |
+| Storage Solution         | Pros                                                                                                                                                                                       | Cons                                                                                                                                                        | Best For                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| **AWS S3**               | • Managed service (no ops)<br>• 99.999999999% durability<br>• Global CDN integration<br>• Lifecycle policies<br>• Versioning & encryption<br>• Pay-as-you-go<br>• Compliance (HIPAA, GDPR) | • Vendor lock-in<br>• Can be expensive at scale<br>• Requires AWS account                                                                                   | Production, compliance-heavy     |
+| **SeaweedFS**            | • Open source<br>• Self-hosted (full control)<br>• Very fast<br>• Cost-effective at scale<br>• Facebook-scale proven<br>• S3 API compatible                                                | • **You manage infrastructure**<br>• **No built-in redundancy**<br>• **No managed backups**<br>• Requires DevOps expertise<br>• High availability = complex | High-volume, DevOps-mature teams |
+| **MinIO**                | • Open source<br>• S3 compatible<br>• Easy to deploy<br>• Good for hybrid cloud<br>• Kubernetes native                                                                                     | • You manage it<br>• Need storage infrastructure<br>• Backup complexity                                                                                     | Kubernetes deployments           |
+| **Google Cloud Storage** | • Similar to S3<br>• Good pricing<br>• Nearline/Coldline tiers                                                                                                                             | • Vendor lock-in<br>• Smaller ecosystem than AWS                                                                                                            | Alternative to S3                |
+| **Azure Blob Storage**   | • Similar to S3<br>• Good Azure integration                                                                                                                                                | • Vendor lock-in                                                                                                                                            | Azure shops                      |
 
 #### **Detailed SeaweedFS Analysis**
 
 **SeaweedFS Architecture:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   SEAWEEDFS CLUSTER                 │
@@ -1328,6 +1364,7 @@ async def create_incident(
 **When to Use SeaweedFS:**
 
 ✅ **Good fit if:**
+
 - You have dedicated DevOps team
 - Need to store **millions of files** (>10TB)
 - High read/write throughput requirements
@@ -1336,6 +1373,7 @@ async def create_incident(
 - Need extreme scalability (Facebook-scale)
 
 ❌ **Not ideal if:**
+
 - Small team (no dedicated DevOps)
 - Early-stage startup (focus on features, not infrastructure)
 - Need compliance certifications (HIPAA, SOC2)
@@ -1345,6 +1383,7 @@ async def create_incident(
 #### **Kintaraa-Specific Analysis**
 
 **Current Storage Needs:**
+
 ```
 Evidence Files:
 ├── Photos (injuries, documents)     ~2-5MB each
@@ -1362,13 +1401,14 @@ Estimated Monthly:
 
 **Cost Comparison (1 Year):**
 
-| Solution | Setup Cost | Monthly Cost | Annual Cost | Ops Burden |
-|----------|-----------|--------------|-------------|------------|
-| **AWS S3** | $0 | ~$25-50 | ~$300-600 | ⭐ Very Low |
-| **SeaweedFS** | $2,000-5,000 | ~$100-200 | ~$3,200-7,400 | ⭐⭐⭐⭐⭐ Very High |
-| **MinIO** | $1,000-3,000 | ~$80-150 | ~$2,000-4,800 | ⭐⭐⭐⭐ High |
+| Solution      | Setup Cost   | Monthly Cost | Annual Cost   | Ops Burden           |
+| ------------- | ------------ | ------------ | ------------- | -------------------- |
+| **AWS S3**    | $0           | ~$25-50      | ~$300-600     | ⭐ Very Low          |
+| **SeaweedFS** | $2,000-5,000 | ~$100-200    | ~$3,200-7,400 | ⭐⭐⭐⭐⭐ Very High |
+| **MinIO**     | $1,000-3,000 | ~$80-150     | ~$2,000-4,800 | ⭐⭐⭐⭐ High        |
 
 **AWS S3 Pricing Breakdown:**
+
 ```
 Storage:
 ├── First year: ~300GB × $0.023/GB = $6.90/month
@@ -1381,6 +1421,7 @@ At scale (10TB): ~$230/month
 ```
 
 **SeaweedFS Infrastructure Cost:**
+
 ```
 Servers (AWS EC2 or bare metal):
 ├── 3× Master servers (t3.small) = $60/month
@@ -1396,6 +1437,7 @@ Total: ~$2,450/month
 #### **Recommended Approach: Hybrid Strategy**
 
 **Phase 1: MVP (Months 1-6)** - AWS S3
+
 ```yaml
 why: Fast to implement, no ops burden
 cost: ~$50/month
@@ -1404,6 +1446,7 @@ focus: Build features, not infrastructure
 ```
 
 **Phase 2: Growth (Months 7-12)** - AWS S3 + CloudFront CDN
+
 ```yaml
 why: Performance optimization needed
 cost: ~$150/month
@@ -1412,6 +1455,7 @@ optimization: Add CDN for faster delivery
 ```
 
 **Phase 3: Scale (Year 2+)** - Evaluate SeaweedFS
+
 ```yaml
 trigger: Storage costs > $1,000/month
 users: 100,000+
@@ -1423,8 +1467,9 @@ decision: Compare cloud vs self-hosted TCO
 #### **SeaweedFS Implementation (If Chosen)**
 
 **Docker Compose Setup:**
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # Master servers (3 for high availability)
@@ -1500,6 +1545,7 @@ volumes:
 ```
 
 **Django Integration with SeaweedFS:**
+
 ```python
 # settings.py
 AWS_S3_ENDPOINT_URL = 'http://seaweedfs-s3:8333'  # SeaweedFS S3 endpoint
@@ -1523,7 +1569,7 @@ class Evidence(models.Model):
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   minio:
@@ -1548,6 +1594,7 @@ volumes:
 ```
 
 **MinIO Pros for Kintaraa:**
+
 - ✅ Much simpler than SeaweedFS
 - ✅ S3-compatible (easy migration)
 - ✅ Good web UI
@@ -1590,8 +1637,7 @@ Rationale:
   - Gradual migration, not rewrite
 
 File Storage: Evaluate based on costs
-Options:
-  1. Stay with S3 if costs < $1,000/month
+Options: 1. Stay with S3 if costs < $1,000/month
   2. Migrate to MinIO if need cost control
   3. Use SeaweedFS only if >50TB storage
 
@@ -1625,6 +1671,7 @@ class Evidence(models.Model):
 ```
 
 **Migration Script:**
+
 ```python
 import boto3
 
@@ -1664,6 +1711,7 @@ def migrate_files_from_s3_to_minio():
 ### Example: Create Incident
 
 **Request:**
+
 ```http
 POST /api/v1/incidents/
 Authorization: Bearer {token}
@@ -1693,6 +1741,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -1748,4 +1797,4 @@ Content-Type: application/json
 
 **Document End**
 
-*For questions or clarifications, contact the development team.*
+_For questions or clarifications, contact the development team._
