@@ -118,7 +118,7 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 
    ```bash
    # For mobile device development (recommended - works with Expo Go app)
-   npx expo start --tunnel
+   npx expo start
 
    # For web development only
    npx expo start --web --offline

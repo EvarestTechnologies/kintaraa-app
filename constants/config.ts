@@ -3,24 +3,67 @@
  * Central place for all app configuration including API URLs, feature flags, etc.
  */
 
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+const Flag = false
 // Environment detection
-export const isDevelopment = __DEV__;
-export const isProduction = !__DEV__;
+export const isDevelopment = Flag;
+export const isProduction = !Flag;
+
+/**
+ * Dynamically get the local development machine IP address
+ * Works for any developer's machine automatically
+ */
+const getLocalDevIP = (): string => {
+  // Expo provides the debugger host which contains the dev server IP
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+
+  if (debuggerHost) {
+    // Extract IP from "192.168.1.100:19000" format
+    const ip = debuggerHost.split(':')[0];
+    return ip;
+  }
+
+  // Fallback to localhost if we can't detect IP
+  return '127.0.0.1';
+};
+
+/**
+ * Get the appropriate API base URL based on environment and platform
+ *
+ * - Web (localhost): http://127.0.0.1:8000/api
+ * - Mobile (development): http://<DYNAMIC_IP>:8000/api (automatically detects your computer's IP)
+ * - Production: https://api-kintara.onrender.com/api
+ */
+const getApiBaseUrl = (): string => {
+  if (isProduction) {
+    return 'https://api-kintara.onrender.com/api';
+  }
+
+  // Development mode
+  const backendPort = 8000; // Django backend port
+
+  if (Platform.OS === 'web') {
+    // Web uses localhost
+    return `http://127.0.0.1:${backendPort}/api`;
+  } else {
+    // Mobile uses dynamically detected local network IP
+    const localIP = getLocalDevIP();
+    return `http://${localIP}:${backendPort}/api`;
+  }
+};
 
 // API Configuration
 export const APP_CONFIG = {
   // API Settings
   API: {
-    // Development - Make sure Django server is running on this address
-    DEV_BASE_URL: 'http://127.0.0.1:8000/api',
-    
-    // Production - Update when deploying
+    // Automatically select the right URL based on platform and environment
+    BASE_URL: getApiBaseUrl(),
+
+    // Production URL
     PROD_BASE_URL: 'https://api-kintara.onrender.com/api',
-    
-    // Use development URL in dev mode, production in release
-    // BASE_URL: isDevelopment ? 'http://127.0.0.1:8000/api' : 'https://api-kintara.onrender.com/api',
-    BASE_URL: isDevelopment ? 'https://api-kintara.onrender.com/api' : 'https://api-kintara.onrender.com/api',
-    
+
     TIMEOUT: 10000, // 10 seconds
   },
   
@@ -146,6 +189,16 @@ export const DEBUG_CONFIG = {
   ENABLE_STATE_LOGS: isDevelopment,
   LOG_LEVEL: isDevelopment ? 'debug' : 'error',
 };
+
+// Log API configuration on startup (development only)
+if (isDevelopment) {
+  console.log('🔧 API Configuration:', {
+    platform: Platform.OS,
+    baseUrl: APP_CONFIG.API.BASE_URL,
+    detectedIP: getLocalDevIP(),
+    isProduction: isProduction,
+  });
+}
 
 // Type exports for TypeScript
 export type UserRole = keyof typeof USER_ROLES;

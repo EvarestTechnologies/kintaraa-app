@@ -24,11 +24,13 @@ export const API_CONFIG = {
       BIOMETRIC_ENABLE: '/auth/biometric/enable/',
       BIOMETRIC_DISABLE: '/auth/biometric/disable/',
     },
-    // Future endpoints for incidents, messaging, etc.
+    // Incidents endpoints
     INCIDENTS: {
       LIST: '/incidents/',
       CREATE: '/incidents/',
       DETAIL: '/incidents/{id}/',
+      STATS: '/incidents/stats/',
+      UPLOAD_VOICE: '/incidents/upload-voice/',
     },
   },
   
@@ -61,7 +63,7 @@ export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {},
   includeAuth = true
-) => {
+): Promise<any> => {
   try {
     const config = await createApiConfig(includeAuth);
     const url = `${API_CONFIG.BASE_URL}${endpoint}`;
@@ -94,6 +96,15 @@ export const apiRequest = async (
           throw new ApiError('Authentication failed', 401, data);
         }
       }
+
+      // Debug: Log the actual backend response to see what we're receiving
+      console.log('❌ API Error Response:', {
+        status: response.status,
+        url: endpoint,
+        fullResponse: data,
+        hasErrors: !!data?.errors,
+        errorKeys: data?.errors ? Object.keys(data.errors) : [],
+      });
 
       throw new ApiError(
         data?.message || `HTTP Error: ${response.status}`,
@@ -132,12 +143,33 @@ export class ApiError extends Error {
    * Get detailed error message from backend validation errors
    */
   getDetailedMessage(): string {
-    if (!this.data?.errors) {
+    // Handle both error formats:
+    // Format 1 (Authentication): { success, message, errors: {...} }
+    // Format 2 (Incidents/DRF): { field: [...], field2: [...] }
+
+    let errors;
+
+    if (this.data?.errors) {
+      // Format 1: Wrapped errors
+      errors = this.data.errors;
+    } else if (this.data && typeof this.data === 'object') {
+      // Format 2: Check if data itself contains field errors
+      const hasFieldErrors = Object.keys(this.data).some(key =>
+        key !== 'success' &&
+        key !== 'message' &&
+        (Array.isArray(this.data[key]) || typeof this.data[key] === 'string')
+      );
+
+      if (hasFieldErrors) {
+        errors = this.data;
+      } else {
+        return this.message;
+      }
+    } else {
       return this.message;
     }
 
     // Parse Django REST framework validation errors
-    const errors = this.data.errors;
     const errorMessages: string[] = [];
 
     // Handle field-specific errors
@@ -167,22 +199,65 @@ export class ApiError extends Error {
    * Get a concise error message for UI display
    */
   getConciseMessage(): string {
-    if (!this.data?.errors) {
+    // Debug: Log what we're trying to extract
+    console.log('🔍 getConciseMessage called:', {
+      hasData: !!this.data,
+      hasErrors: !!this.data?.errors,
+      dataKeys: this.data ? Object.keys(this.data) : [],
+      errors: this.data?.errors,
+      fallbackMessage: this.message,
+    });
+
+    // Handle both error formats:
+    // Format 1 (Authentication): { success, message, errors: {...} }
+    // Format 2 (Incidents/DRF): { field: [...], field2: [...] }
+
+    let errors;
+
+    if (this.data?.errors) {
+      // Format 1: Wrapped errors (authentication endpoints)
+      console.log('📦 Using wrapped error format (data.errors)');
+      errors = this.data.errors;
+    } else if (this.data && typeof this.data === 'object') {
+      // Format 2: Check if data itself contains field errors (DRF default)
+      // DRF validation errors are objects with field names as keys and arrays as values
+      const hasFieldErrors = Object.keys(this.data).some(key =>
+        key !== 'success' &&
+        key !== 'message' &&
+        (Array.isArray(this.data[key]) || typeof this.data[key] === 'string')
+      );
+
+      if (hasFieldErrors) {
+        console.log('📦 Using unwrapped error format (data is errors)');
+        errors = this.data;
+      } else {
+        console.log('⚠️ No errors field in response, using fallback:', this.message);
+        return this.message;
+      }
+    } else {
+      console.log('⚠️ No valid error data, using fallback:', this.message);
       return this.message;
     }
 
-    const errors = this.data.errors;
-    
-    // For registration/login, prioritize common fields
-    const priorityFields = ['email', 'password', 'confirm_password', 'first_name', 'last_name'];
-    
+    // Prioritize common fields based on context
+    // Auth fields: email, password, etc.
+    // Incident fields: description, location, type, etc.
+    const priorityFields = [
+      'email', 'password', 'confirm_password',
+      'first_name', 'last_name',
+      'description', 'location', 'type', 'severity',
+      'urgency_level', 'incident_date', 'incident_time'
+    ];
+
     for (const field of priorityFields) {
       if (errors[field]) {
         const fieldErrors = errors[field];
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          console.log(`✅ Extracted priority field error (${field}):`, fieldErrors[0]);
           return fieldErrors[0];
         }
         if (typeof fieldErrors === 'string') {
+          console.log(`✅ Extracted priority field error (${field}):`, fieldErrors);
           return fieldErrors;
         }
       }
@@ -190,6 +265,7 @@ export class ApiError extends Error {
 
     // Handle non_field_errors
     if (errors.non_field_errors && Array.isArray(errors.non_field_errors) && errors.non_field_errors.length > 0) {
+      console.log('✅ Extracted non_field_errors:', errors.non_field_errors[0]);
       return errors.non_field_errors[0];
     }
 
@@ -198,13 +274,16 @@ export class ApiError extends Error {
     if (firstField && errors[firstField]) {
       const fieldErrors = errors[firstField];
       if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+        console.log(`✅ Extracted first field error (${firstField}):`, fieldErrors[0]);
         return fieldErrors[0];
       }
       if (typeof fieldErrors === 'string') {
+        console.log(`✅ Extracted first field error (${firstField}):`, fieldErrors);
         return fieldErrors;
       }
     }
 
+    console.log('⚠️ Could not extract any field errors, using fallback:', this.message);
     return this.message;
   }
 }
@@ -261,4 +340,54 @@ export const STORAGE_KEYS = APP_CONFIG.STORAGE;
 export const clearAuthData = async (): Promise<void> => {
   const keys = Object.values(STORAGE_KEYS);
   await AsyncStorage.multiRemove(keys);
+};
+
+/**
+ * Handle API errors and return user-friendly error messages
+ *
+ * This function analyzes the error object and returns appropriate error messages
+ * based on HTTP status codes:
+ * - 401/403: Authentication errors
+ * - 400-499: Client errors (user's fault)
+ * - 500-599: Server errors (backend issue)
+ * - 0 or undefined: Network errors
+ *
+ * @param error - The error object from API call
+ * @param defaultMessage - Optional default message if no specific error is found
+ * @returns Error object with user-friendly message
+ */
+export const handleApiError = (error: any, defaultMessage?: string): Error => {
+  console.error('API Error:', error);
+
+  // Authentication errors
+  if (error?.status === 401 || error?.status === 403) {
+    return new Error('Authentication failed. Please log in again.');
+  }
+
+  // Client errors (400-499) - user's fault
+  if (error?.status >= 400 && error?.status < 500) {
+    // Try to get detailed message from ApiError class
+    const message = error?.getConciseMessage?.() ||
+                   error?.getDetailedMessage?.() ||
+                   error?.message ||
+                   'Invalid request. Please check your input and try again.';
+    return new Error(message);
+  }
+
+  // Server errors (500-599) - backend issue
+  if (error?.status >= 500) {
+    return new Error('Server error. Please try again later or contact support.');
+  }
+
+  // Network errors (no status code or 0)
+  if (error?.status === 0 || !error?.status) {
+    return new Error('Network error. Please check your internet connection.');
+  }
+
+  // Unknown error - use provided default or generic message
+  return new Error(
+    error?.message ||
+    defaultMessage ||
+    'An unexpected error occurred. Please try again.'
+  );
 };

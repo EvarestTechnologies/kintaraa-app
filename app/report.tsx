@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +28,7 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useIncidents } from '@/providers/IncidentProvider';
+import { useToast } from '@/providers/ToastProvider';
 
 const incidentTypes = [
   { id: 'physical', title: 'Physical Violence', color: '#E53935' },
@@ -51,6 +51,7 @@ const supportServices = [
 
 export default function ReportScreen() {
   const { createIncident, isCreating, createError } = useIncidents();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -64,7 +65,7 @@ export default function ReportScreen() {
       description: '',
     },
     description: '',
-    severity: '',
+    severity: 'medium', // Default severity
     supportServices: [] as string[],
     urgencyLevel: 'routine' as 'immediate' | 'urgent' | 'routine',
     providerPreferences: {
@@ -107,25 +108,80 @@ export default function ReportScreen() {
     try {
       const { status } = await Audio.requestPermissionsAsync();
       setHasAudioPermission(status === 'granted');
-      
+
       if (status !== 'granted') {
-        Alert.alert(
+        toast.showError(
           'Permission Required',
-          'Audio recording permission is needed to use voice reporting feature.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Settings', onPress: () => {} }
-          ]
+          'Audio recording permission is needed to use voice reporting feature. Please enable it in your device settings.',
+          5000
         );
       }
+      return status === 'granted';
     } catch (error) {
       console.error('Error requesting audio permissions:', error);
+      toast.showError('Permission Error', 'Failed to request audio permissions. Please try again.');
+      return false;
     }
   };
 
   const totalSteps = 5;
 
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        // Incident type is required
+        if (!reportData.type) {
+          return { isValid: false, message: 'Please select an incident type to continue.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 2:
+        // Only date and description are required (time and location are optional)
+        if (!reportData.incidentDate) {
+          return { isValid: false, message: 'Please select the incident date.' };
+        }
+        if (!reportData.description && !reportData.voiceRecording) {
+          return { isValid: false, message: 'Please provide a description or voice recording of the incident.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 3:
+        // Support services are required
+        if (reportData.supportServices.length === 0) {
+          return { isValid: false, message: 'Please select at least one support service.' };
+        }
+        return { isValid: true, message: '' };
+
+      case 4:
+        // Communication preferences - no strict validation needed (defaults are set)
+        return { isValid: true, message: '' };
+
+      case 5:
+        // Review step - final validation (time and location are optional)
+        if (!reportData.type || !reportData.incidentDate) {
+          return { isValid: false, message: 'Missing required information. Please review all steps.' };
+        }
+        if (!reportData.description && !reportData.voiceRecording) {
+          return { isValid: false, message: 'Description is required.' };
+        }
+        if (reportData.supportServices.length === 0) {
+          return { isValid: false, message: 'At least one support service is required.' };
+        }
+        return { isValid: true, message: '' };
+
+      default:
+        return { isValid: true, message: '' };
+    }
+  };
+
   const handleNext = () => {
+    // Validate current step before proceeding
+    const validation = validateCurrentStep();
+    if (!validation.isValid) {
+      toast.showError('Required Field', validation.message);
+      return;
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -143,7 +199,7 @@ export default function ReportScreen() {
 
   const handleSubmit = async () => {
     if (createError) {
-      Alert.alert('Error', createError);
+      toast.showError('Submission Error', createError);
       return;
     }
 
@@ -174,19 +230,28 @@ export default function ReportScreen() {
 
       console.log('Incident submitted successfully');
 
-      Alert.alert(
+      // Show success toast
+      toast.showSuccess(
         'Report Submitted',
         'Your report has been submitted successfully. You will receive updates on the progress of your case.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(dashboard)/survivor/reports'),
-          },
-        ]
+        7000
       );
-    } catch (error) {
+
+      // Navigate back after a short delay to allow toast to be seen
+      setTimeout(() => {
+        router.replace('/(dashboard)/survivor/reports');
+      }, 1500);
+    } catch (error: any) {
       console.error('Error submitting incident:', error);
-      Alert.alert('Error', `Failed to submit report: ${error}`);
+
+      // Extract user-friendly error message
+      const errorMessage = error?.message || 'An unexpected error occurred. Please try again.';
+
+      toast.showError(
+        'Failed to Submit Report',
+        errorMessage,
+        10000 // Show error for 10 seconds
+      );
     }
   };
 
@@ -220,7 +285,7 @@ export default function ReportScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required to get your current location.');
+        toast.showError('Permission Denied', 'Location permission is required to get your current location. Please enable it in settings.');
         return;
       }
 
@@ -230,7 +295,7 @@ export default function ReportScreen() {
         longitude: location.coords.longitude,
       });
 
-      const formattedAddress = address[0] 
+      const formattedAddress = address[0]
         ? `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''} ${address[0].postalCode || ''}`.trim()
         : `${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`;
 
@@ -242,9 +307,11 @@ export default function ReportScreen() {
         },
         description: reportData.location.description,
       });
+
+      toast.showSuccess('Location Updated', 'Your current location has been added');
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Unable to get your current location. Please enter it manually.');
+      toast.showError('Location Error', 'Unable to get your current location. Please enter it manually.');
     }
   };
 
@@ -274,8 +341,10 @@ export default function ReportScreen() {
   const startRecording = async () => {
     try {
       if (!hasAudioPermission) {
-        await requestAudioPermissions();
-        return;
+        const result = await requestAudioPermissions();
+        if (!result) {
+          return;
+        }
       }
 
       await Audio.setAudioModeAsync({
@@ -298,9 +367,11 @@ export default function ReportScreen() {
 
       // Store interval reference for cleanup
       (newRecording as any).durationInterval = interval;
+
+      toast.showSuccess('Recording Started', 'Your voice recording has started');
     } catch (error) {
       console.error('Failed to start recording:', error);
-      Alert.alert('Error', 'Failed to start recording. Please try again.');
+      toast.showError('Recording Error', 'Failed to start recording. Please check your microphone and try again.');
     }
   };
 
@@ -315,27 +386,29 @@ export default function ReportScreen() {
 
       setIsRecording(false);
       await recording.stopAndUnloadAsync();
-      
+
       const uri = recording.getURI();
       if (uri) {
         updateReportData('voiceRecording', {
           uri,
           duration: recordingDuration,
         });
-        
+
+        toast.showSuccess('Recording Saved', 'Your voice recording has been saved successfully');
+
         // Auto-transcribe the recording
         await transcribeRecording(uri);
       }
-      
+
       setRecording(null);
-      
+
       // Reset audio mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
       });
     } catch (error) {
       console.error('Failed to stop recording:', error);
-      Alert.alert('Error', 'Failed to stop recording.');
+      toast.showError('Error', 'Failed to stop recording. Please try again.');
     }
   };
 
@@ -351,7 +424,7 @@ export default function ReportScreen() {
         { uri: reportData.voiceRecording.uri },
         { shouldPlay: true }
       );
-      
+
       setSound(newSound);
       setIsPlaying(true);
 
@@ -366,7 +439,7 @@ export default function ReportScreen() {
       });
     } catch (error) {
       console.error('Failed to play recording:', error);
-      Alert.alert('Error', 'Failed to play recording.');
+      toast.showError('Playback Error', 'Failed to play recording. Please try again.');
     }
   };
 
@@ -381,27 +454,20 @@ export default function ReportScreen() {
     }
   };
 
-  const deleteRecording = () => {
-    Alert.alert(
-      'Delete Recording',
-      'Are you sure you want to delete this voice recording?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            if (sound) {
-              sound.unloadAsync();
-              setSound(null);
-            }
-            setIsPlaying(false);
-            setPlaybackPosition(0);
-            updateReportData('voiceRecording', undefined);
-          },
-        },
-      ]
-    );
+  const deleteRecording = async () => {
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+        setSound(null);
+      }
+      setIsPlaying(false);
+      setPlaybackPosition(0);
+      updateReportData('voiceRecording', undefined);
+      toast.showSuccess('Recording Deleted', 'Your voice recording has been deleted');
+    } catch (error) {
+      console.error('Failed to delete recording:', error);
+      toast.showError('Delete Error', 'Failed to delete recording. Please try again.');
+    }
   };
 
   const transcribeRecording = async (uri: string) => {
@@ -458,7 +524,7 @@ export default function ReportScreen() {
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>What type of incident occurred?</Text>
             <Text style={styles.stepDescription}>
-              Select the category that best describes the incident
+              Please select the category that best describes the incident
             </Text>
             <View style={styles.incidentTypes}>
               {incidentTypes.map((type) => (
@@ -575,7 +641,7 @@ export default function ReportScreen() {
 
             <View style={styles.inputGroup}>
               <View style={styles.descriptionHeader}>
-                <Text style={styles.inputLabel}>Description</Text>
+                <Text style={styles.inputLabel}>Description (Text or Voice Recording)</Text>
                 <TouchableOpacity
                   style={styles.voiceButton}
                   onPress={() => setShowVoiceRecorder(!showVoiceRecorder)}
@@ -684,7 +750,7 @@ export default function ReportScreen() {
                 style={styles.textArea}
                 value={reportData.description}
                 onChangeText={(value) => updateReportData('description', value)}
-                placeholder={reportData.voiceRecording ? "Add additional details (optional)" : "Describe what happened (optional)"}
+                placeholder={reportData.voiceRecording ? "Add additional details (optional)" : "Describe what happened (required, or use voice recording)"}
                 placeholderTextColor="#D8CEE8"
                 multiline
                 numberOfLines={4}
@@ -699,7 +765,7 @@ export default function ReportScreen() {
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>What support do you need?</Text>
             <Text style={styles.stepDescription}>
-              Select all services that you would like to access
+              Select at least one service you would like to access
             </Text>
             <View style={styles.supportServices}>
               {supportServices.map((service) => (
@@ -877,15 +943,24 @@ export default function ReportScreen() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
+        // Incident type is required
         return reportData.type !== '';
       case 2:
-        return true; // All fields are optional in step 2
+        // Only date and description are required (time and location are optional)
+        return reportData.incidentDate !== '' &&
+               (reportData.description !== '' || reportData.voiceRecording !== undefined);
       case 3:
-        return true; // Support services are optional
+        // At least one support service is required
+        return reportData.supportServices.length > 0;
       case 4:
-        return true; // Communication preferences are optional
+        // Communication preferences - always allow proceed (defaults are set)
+        return true;
       case 5:
-        return true; // Review step
+        // Review step - all required fields must be filled
+        return reportData.type !== '' &&
+               reportData.incidentDate !== '' &&
+               (reportData.description !== '' || reportData.voiceRecording !== undefined) &&
+               reportData.supportServices.length > 0;
       default:
         return false;
     }

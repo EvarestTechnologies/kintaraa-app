@@ -1,0 +1,76 @@
+# Offline-First Configuration for Kintaraa App
+# Only configurable values that may need tuning across environments
+
+# Feature Flags
+features:
+  offline_mode_enabled: true
+  background_sync_enabled: true
+  encryption_enabled: true
+  conflict_resolution_enabled: true
+
+# Cache Configuration
+cache:
+  # Cache duration in milliseconds
+  query_cache_time: 86400000      # 24 hours
+  query_stale_time: 300000        # 5 minutes
+  persisted_cache_max_age: 604800000  # 7 days
+
+  # Cache versioning (increment to invalidate cache)
+  version: "1.0.0"
+
+# Retry Configuration
+retry:
+  max_attempts: 5
+  base_delay_ms: 1000
+  max_delay_ms: 30000
+  backoff_multiplier: 2
+
+# Sync Configuration
+sync:
+  # Background sync settings
+  background_interval_seconds: 900  # 15 minutes
+
+  # Manual sync settings
+  manual_debounce_ms: 2000
+
+  # Operation priorities (higher number = higher priority)
+  priorities:
+    critical: 100      # CREATE_INCIDENT, CREATE_SAFETY_PLAN
+    high: 85          # UPDATE_INCIDENT, ACCEPT_ASSIGNMENT
+    medium: 70        # CREATE_WELLBEING_LOG, UPDATE_SAFETY_PLAN
+    low: 50           # UPDATE_PROFILE, SEND_MESSAGE
+
+# Network Configuration
+network:
+  polling_interval_ms: 5000
+  connection_timeout_ms: 10000
+
+# Conflict Resolution Strategy
+conflict:
+  # Options: "server-wins", "client-wins", "last-write-wins", "merge"
+  default_strategy: "last-write-wins"
+
+# UI Preferences
+ui:
+  show_offline_indicator: true
+  show_pending_count: true
+  show_sync_button: true
+  toast_duration_ms: 3000
+
+# Security Settings
+security:
+  # Auto-logout after being offline (milliseconds)
+  offline_timeout_ms: 604800000  # 7 days
+
+  # Rate limiting
+  max_sync_operations_per_minute: 60
+
+# Logging
+logging:
+  enabled: true
+  level: "info"  # "debug", "info", "warn", "error"
+
+  # File logging
+  write_to_file: true
+  max_file_size_kb: 500  # Max log file size before rotation
+  max_files: 3  # Keep last 3 log files

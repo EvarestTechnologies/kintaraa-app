@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React from "react";
@@ -6,12 +5,23 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
 import { SafetyProvider } from "@/providers/SafetyProvider";
 import { RecommendationProvider } from "@/providers/RecommendationProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
+import {
+  createOfflineQueryClient,
+  createQueryPersister,
+  setupNetworkDetection,
+  getPersistOptions,
+} from "@/config/queryPersistence";
+import { syncService } from "@/services/syncService";
+import { offlineConfig } from "@/utils/configLoader";
+import { logger } from "@/utils/logger";
 
 
 // Error Boundary Component
@@ -70,24 +80,28 @@ const errorStyles = StyleSheet.create({
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 3,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+// Create offline-capable QueryClient and persister
+const queryClient = createOfflineQueryClient();
+const queryPersister = createQueryPersister();
+
+// Setup network detection for React Query
+setupNetworkDetection();
+
+// Initialize sync service
+syncService.initialize(queryClient);
 
 function RootLayoutNav() {
+  console.log('📱 RootLayoutNav rendering Stack...');
+
   return (
-    <Stack screenOptions={{ 
+    <Stack screenOptions={{
       headerBackTitle: "Back",
       headerStyle: {
         backgroundColor: '#F5F0FF',
       },
       headerTintColor: '#341A52',
     }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(dashboard)" options={{ headerShown: false }} />
@@ -105,13 +119,6 @@ function RootLayoutNav() {
       }} />
       <Stack.Screen name="recommendations" options={{
         title: "AI Recommendations",
-        headerStyle: {
-          backgroundColor: '#F5F0FF',
-        },
-        headerTintColor: '#341A52',
-      }} />
-      <Stack.Screen name="integration-test" options={{
-        title: "Integration Testing",
         headerStyle: {
           backgroundColor: '#F5F0FF',
         },
@@ -140,30 +147,74 @@ export default function RootLayout() {
     hideSplash();
   }, []);
 
-  console.log('RootLayout rendering...');
+  // Register background sync if enabled
+  React.useEffect(() => {
+    const registerSync = async () => {
+      if (offlineConfig.get('features').background_sync_enabled) {
+        try {
+          await syncService.registerBackgroundSync();
+          logger.offline.info('Background sync registered');
+        } catch (error) {
+          logger.offline.error('Failed to register background sync', error);
+        }
+      }
+    };
 
-  // Temporarily simplify to test basic functionality
+    registerSync();
+
+    // Cleanup on unmount
+    return () => {
+      if (offlineConfig.get('features').background_sync_enabled) {
+        syncService.unregisterBackgroundSync().catch((error) => {
+          logger.offline.error('Failed to unregister background sync', error);
+        });
+      }
+    };
+  }, []);
+
+  console.log('🚀 RootLayout rendering...');
+
+  // Add error handler for uncaught errors
+  React.useEffect(() => {
+    const errorHandler = (error: Error, isFatal?: boolean) => {
+      console.error('💥 Uncaught error:', error, 'isFatal:', isFatal);
+    };
+
+    if (__DEV__) {
+      // @ts-ignore
+      ErrorUtils.setGlobalHandler(errorHandler);
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={styles.container}>
-            <AuthProvider>
-              <SafetyProvider>
-                <IncidentProvider>
-                  <ProviderContext>
-                    <WellbeingProvider>
-                      <RecommendationProvider>
-                        <RootLayoutNav />
-                        <StatusBar style={styles.statusBar} />
-                      </RecommendationProvider>
-                    </WellbeingProvider>
-                  </ProviderContext>
-                </IncidentProvider>
-              </SafetyProvider>
-            </AuthProvider>
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: queryPersister,
+            ...getPersistOptions(),
+          }}
+        >
+          <ToastProvider>
+            <GestureHandlerRootView style={styles.container}>
+              <AuthProvider>
+                <SafetyProvider>
+                  <IncidentProvider>
+                    <ProviderContext>
+                      <WellbeingProvider>
+                        <RecommendationProvider>
+                          <RootLayoutNav />
+                          <StatusBar style={styles.statusBar} />
+                        </RecommendationProvider>
+                      </WellbeingProvider>
+                    </ProviderContext>
+                  </IncidentProvider>
+                </SafetyProvider>
+              </AuthProvider>
+            </GestureHandlerRootView>
+          </ToastProvider>
+        </PersistQueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
