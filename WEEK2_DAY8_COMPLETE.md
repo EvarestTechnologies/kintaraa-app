@@ -45,20 +45,47 @@ Cause: Nullish coalescing operator (??) requires Node 14+
 
 **Commit**: `3864666` - "chore: add .nvmrc for consistent Node version"
 
+#### 3. Mobile Network Access Issue
+**Problem**: Mobile device couldn't reach `localhost` backend
+```
+Mobile app tried to call: http://127.0.0.1:8000/api (unreachable from phone)
+Network IP detected: 192.168.0.12
+```
+
+**Solution**: Updated Django backend `.env` configuration
+```bash
+# Added network IP to allowed hosts
+ALLOWED_HOSTS=localhost,127.0.0.1,192.168.0.12
+
+# Added Expo ports and network IP to CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8081,http://127.0.0.1:8081,http://192.168.0.12:8081
+```
+
+**Result**: Mobile app now successfully connects to backend via local network IP
+
 ---
 
 ## 🧪 Testing Results
 
-### Login Flow ✅
-**Test User**: `healthcare@kintara.com` / `Test123!@#`
+### Login Flow ✅ (Web & Mobile Tested)
+
+**Platform Testing:**
+- ✅ **Web**: Tested on `http://localhost:8081`
+- ✅ **Mobile**: Tested with Expo Go on physical device
+
+**Test Users (Verified Working):**
+- ✅ `healthcare@kintara.com` / `Test123!@#` - Redirects to healthcare dashboard
+- ✅ `survivor@kintara.com` / `Test123!@#` - Redirects to survivor dashboard
+- ✅ `dispatcher@kintara.com` / `Test123!@#` - ⚠️ Working but redirects to survivor dashboard (routing bug)
+- ✅ `gbv.rescue@kintara.com` / `Test123!@#` - Redirects to GBV rescue dashboard
 
 **Steps Verified:**
 1. ✅ User enters credentials on login screen
-2. ✅ POST request sent to `http://127.0.0.1:8000/api/auth/login/`
+2. ✅ POST request sent to backend (web: `http://127.0.0.1:8000/api`, mobile: `http://192.168.0.12:8000/api`)
 3. ✅ Backend returns 200 OK with JWT tokens
 4. ✅ Tokens stored in AsyncStorage
 5. ✅ User data cached in React Query
-6. ✅ User redirected to healthcare provider dashboard
+6. ✅ User redirected to dashboard (with one routing bug for dispatcher)
 7. ✅ No errors in console
 
 **API Configuration (Verified in Console):**
@@ -107,6 +134,8 @@ POST http://127.0.0.1:8000/api/auth/login/ 200 OK
 ## 🔧 Technical Details
 
 ### Files Modified
+
+**Frontend:**
 1. **constants/config.ts**
    - Changed `const Flag = false` to `const Flag = true`
    - Enables development mode for local backend
@@ -114,6 +143,13 @@ POST http://127.0.0.1:8000/api/auth/login/ 200 OK
 2. **.nvmrc** (new file)
    - Contains "20" to specify Node.js version
    - Ensures all developers use compatible Node version
+
+**Backend:**
+3. **kintara-backend/.env**
+   - Added `192.168.0.12` to ALLOWED_HOSTS
+   - Added Expo ports (8081) to CORS_ALLOWED_ORIGINS
+   - Added network IP to CSRF_TRUSTED_ORIGINS
+   - Enables mobile device access to backend
 
 ### Development Environment
 - **Node.js**: v20.20.0 (via nvm)
@@ -153,6 +189,18 @@ npx expo start --web --offline --clear
 - Use `--clear` flag when config changes
 - Hot reload doesn't always pick up constant changes
 
+### 4. Mobile Testing Requires Network Configuration
+- Mobile devices can't access `localhost` on your computer
+- Backend must listen on `0.0.0.0` (all interfaces)
+- ALLOWED_HOSTS and CORS must include network IP
+- Expo automatically detects local network IP for mobile
+- Web uses `127.0.0.1`, mobile uses `192.168.x.x`
+
+### 5. Verify Test Data Exists
+- Documentation listed credentials that weren't seeded
+- Only 7 users actually exist in database
+- Always check actual database state vs documentation
+
 ---
 
 ## ✅ Day 8 Success Criteria - ALL MET
@@ -172,21 +220,32 @@ npx expo start --web --offline --clear
 
 ---
 
+## 🐛 Known Issues
+
+### Dispatcher Dashboard Routing Bug
+**Issue**: Dispatcher role redirects to survivor dashboard instead of dispatcher dashboard
+**Impact**: Medium - dispatcher can log in but sees wrong interface
+**Status**: Documented, needs fixing
+**Location**: Likely in `app/(tabs)/_layout.tsx` route redirection logic
+
 ## 🚀 Next Steps (Day 9)
+
+### High Priority
+- [ ] **Fix dispatcher routing bug** - Redirect to correct dashboard
+- [ ] **Test incident creation** from mobile app
+- [ ] **Connect IncidentProvider** to real API endpoints
 
 ### Remaining Authentication Tests
 - [ ] Test registration flow for all roles
-- [ ] Test other user logins (survivor, dispatcher, legal)
 - [ ] Verify token refresh flow (wait 30min or mock)
 - [ ] Test logout flow with token blacklist
 - [ ] Test biometric authentication (mobile only)
 
 ### Incident Management Integration
 - [ ] Remove mock data from IncidentProvider
-- [ ] Connect to incidents API endpoints
-- [ ] Test incident creation from mobile app
-- [ ] Verify incident listing
+- [ ] Test incident listing
 - [ ] Test incident assignment to providers
+- [ ] Verify provider notifications
 
 ### Additional Testing
 - [ ] Test on mobile device (not just web)
