@@ -25,7 +25,7 @@ interface EmergencyCase {
 }
 
 export default function EmergencyCases() {
-  const { assignedCases } = useProvider();
+  const { assignedCases, pendingAssignments } = useProvider();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -34,114 +34,70 @@ export default function EmergencyCases() {
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [emergencyCases, setEmergencyCases] = useState<EmergencyCase[]>([]);
 
-  // Mock emergency cases data with enhanced fields
-  const mockCases: EmergencyCase[] = [
-    {
-      id: 'emergency-1',
-      caseNumber: 'EMG-241210001',
-      survivorName: 'Anonymous Survivor',
-      location: '123 Main St, Brooklyn, NY',
-      priority: 'critical',
-      status: 'pending',
-      reportedAt: '2024-12-10T14:30:00Z',
-      description: 'Immediate physical danger reported. Suspect still on premises.',
-      responseTeam: 'Team Alpha',
-      estimatedArrival: '8 minutes',
-      contactNumber: '+1-555-****-**01',
-      lastContact: '2024-12-10T14:28:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T14:30:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported via hotline',
-          user: 'Operator-001'
-        }
-      ]
-    },
-    {
-      id: 'emergency-2',
-      caseNumber: 'EMG-241210002',
-      survivorName: 'Maria Rodriguez',
-      location: '456 Oak Ave, Manhattan, NY',
-      priority: 'high',
-      status: 'responding',
-      reportedAt: '2024-12-10T13:45:00Z',
-      description: 'Escalating domestic violence situation. Survivor in safe room.',
-      responseTeam: 'Team Beta',
-      estimatedArrival: 'On scene',
-      contactNumber: '+1-555-****-**02',
-      lastContact: '2024-12-10T13:50:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T13:45:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported',
-          user: 'Operator-002'
-        },
-        {
-          timestamp: '2024-12-10T13:48:00Z',
-          action: 'Team Dispatched',
-          details: 'Team Beta dispatched to location',
-          user: 'Dispatcher-001'
-        }
-      ]
-    },
-    {
-      id: 'emergency-3',
-      caseNumber: 'EMG-241210003',
-      survivorName: 'Sarah Johnson',
-      location: '789 Pine St, Queens, NY',
-      priority: 'medium',
-      status: 'resolved',
-      reportedAt: '2024-12-10T12:15:00Z',
-      description: 'Survivor safely relocated to shelter. Follow-up scheduled.',
-      responseTeam: 'Team Gamma',
-      contactNumber: '+1-555-****-**03',
-      lastContact: '2024-12-10T15:30:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T12:15:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported',
-          user: 'Operator-003'
-        },
-        {
-          timestamp: '2024-12-10T14:20:00Z',
-          action: 'Case Resolved',
-          details: 'Survivor safely relocated to shelter',
-          user: 'Team Gamma'
-        }
-      ]
-    },
-    {
-      id: 'emergency-4',
-      caseNumber: 'EMG-241210004',
-      survivorName: 'Anonymous Survivor',
-      location: 'Location withheld for safety',
-      priority: 'critical',
-      status: 'pending',
-      reportedAt: '2024-12-10T14:45:00Z',
-      description: 'Sexual assault reported. Medical attention required.',
-      responseTeam: 'Team Alpha',
-      estimatedArrival: '12 minutes',
-      contactNumber: '+1-555-****-**04',
-      lastContact: '2024-12-10T14:43:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T14:45:00Z',
-          action: 'Case Created',
-          details: 'Critical emergency case - sexual assault reported',
-          user: 'Operator-001'
-        }
-      ]
-    }
-  ];
-
-  // Initialize cases with state management
+  // Convert real assignments to emergency cases format
   React.useEffect(() => {
-    setEmergencyCases(mockCases);
-  }, []);
+    // Debug: Log first assignment to see date format
+    if (pendingAssignments && pendingAssignments.length > 0) {
+      console.log('🔍 First pending assignment:', {
+        assignedAt: pendingAssignments[0].assignedAt,
+        assignedAtType: typeof pendingAssignments[0].assignedAt,
+        caseNumber: pendingAssignments[0].caseNumber,
+      });
+    }
 
+    // Map pending assignments (CaseAssignment type)
+    const pendingCases: EmergencyCase[] = (pendingAssignments || [])
+      .filter(assignment => assignment.priority === 'critical' || assignment.priority === 'high')
+      .map(assignment => ({
+        id: assignment.id,
+        caseNumber: assignment.caseNumber,
+        survivorName: 'Anonymous Survivor', // Real data doesn't expose survivor identity
+        location: 'Location secured', // Real data protects location
+        priority: assignment.priority as 'critical' | 'high' | 'medium',
+        status: 'pending' as const,
+        reportedAt: assignment.assignedAt, // Already ISO string from backend
+        description: `${assignment.serviceType} - Emergency response required`,
+        responseTeam: undefined,
+        estimatedArrival: `${assignment.estimatedResponseTime || 15} minutes`,
+        contactNumber: '+1-555-****-**XX', // Protected
+        lastContact: assignment.assignedAt, // Already ISO string from backend
+        activityLog: [{
+          timestamp: assignment.assignedAt, // Already ISO string from backend
+          action: 'Case Assigned',
+          details: 'Case assigned to provider via automated routing',
+          user: 'System'
+        }]
+      }));
+
+    // Map assigned cases (Incident type)
+    const activeCases: EmergencyCase[] = (assignedCases || [])
+      .filter(incident => incident.priority === 'critical' || incident.priority === 'high')
+      .map(incident => ({
+        id: incident.id,
+        caseNumber: incident.caseNumber,
+        survivorName: 'Anonymous Survivor',
+        location: incident.location?.address || 'Location secured',
+        priority: incident.priority as 'critical' | 'high' | 'medium',
+        status: incident.status === 'in_progress' ? 'responding' as const :
+                incident.status === 'completed' ? 'resolved' as const : 'pending' as const,
+        reportedAt: incident.createdAt,
+        description: incident.description || 'Emergency response required',
+        responseTeam: incident.status === 'in_progress' || incident.status === 'completed' ? 'Response Team' : undefined,
+        estimatedArrival: incident.status === 'assigned' ? '15 minutes' : undefined,
+        contactNumber: '+1-555-****-**XX',
+        lastContact: incident.updatedAt,
+        activityLog: [{
+          timestamp: incident.createdAt,
+          action: 'Case Created',
+          details: 'Case assigned to provider',
+          user: 'System'
+        }]
+      }));
+
+    setEmergencyCases([...pendingCases, ...activeCases]);
+  }, [pendingAssignments, assignedCases]);
+
+  // Filter emergency cases based on search and priority
   const filteredCases = emergencyCases.filter(emergencyCase => {
     const matchesSearch = emergencyCase.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          emergencyCase.survivorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -272,12 +228,19 @@ export default function EmergencyCases() {
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Unknown time';
+      }
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Unknown time';
+    }
   };
 
   return (
