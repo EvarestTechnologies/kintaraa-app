@@ -67,9 +67,17 @@ export default function DashboardOverview() {
   };
 
   // Map backend stats to component format
+  // Status meanings:
+  // - new: Newly created, not yet in dispatcher queue
+  // - pending_dispatcher_review: In dispatcher queue, awaiting assignment
+  // - assigned: Assigned to provider (provider hasn't accepted yet)
+  // - in_progress: Provider accepted and working on case
+  // - completed: Case work completed
+  // - closed: Case fully closed
   const stats: DispatcherStats = {
     totalCases: dashboardStats?.total_cases || allCases.length || 0,
-    newCases: dashboardStats?.cases_by_status?.new || 0,
+    // "New Cases" shows cases not yet assigned (pending_dispatcher_review)
+    newCases: dashboardStats?.pending_dispatcher_review || 0,
     pendingAssignment: dashboardStats?.pending_dispatcher_review || 0,
     assignedCases: dashboardStats?.cases_by_status?.assigned || 0,
     inProgressCases: dashboardStats?.cases_by_status?.in_progress || 0,
@@ -171,10 +179,24 @@ export default function DashboardOverview() {
       style={styles.statCard}
       activeOpacity={0.7}
       onPress={() => {
-        if (item.id === 'new' || item.id === 'pending') {
-          router.push('/(dashboard)/dispatcher/cases?filter=new');
-        } else if (item.id === 'assigned') {
+        if (item.id === 'total') {
+          // Total cases - show all cases
+          router.push('/(dashboard)/dispatcher/cases');
+        } else if (item.id === 'new') {
+          // New cases - show pending_dispatcher_review (cases not yet assigned)
           router.push('/(dashboard)/dispatcher/assignments');
+        } else if (item.id === 'pending') {
+          // Pending assignment - cases awaiting dispatcher to assign a provider
+          router.push('/(dashboard)/dispatcher/assignments');
+        } else if (item.id === 'assigned') {
+          // Assigned - cases assigned to providers, awaiting provider acceptance
+          router.push('/(dashboard)/dispatcher/cases?filter=assigned');
+        } else if (item.id === 'progress') {
+          // In progress - cases being worked on by providers
+          router.push('/(dashboard)/dispatcher/cases?filter=in_progress');
+        } else if (item.id === 'completed') {
+          // Completed cases
+          router.push('/(dashboard)/dispatcher/cases?filter=completed');
         }
       }}
     >
@@ -232,14 +254,15 @@ export default function DashboardOverview() {
             <TouchableOpacity
               style={styles.notificationButton}
               onPress={() => {
-                // Navigate to notifications
+                // Navigate to pending assignments
+                router.push('/(dashboard)/dispatcher/assignments');
               }}
             >
               <Bell size={24} color="#FFFFFF" />
-              {stats.urgentCases > 0 && (
+              {stats.pendingAssignment > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>
-                    {stats.urgentCases}
+                    {stats.pendingAssignment}
                   </Text>
                 </View>
               )}
@@ -257,15 +280,19 @@ export default function DashboardOverview() {
           </View>
         </View>
 
-        {/* Urgent Alert */}
-        {stats.urgentCases > 0 && (
-          <View style={styles.urgentAlert}>
+        {/* Pending Alert */}
+        {stats.pendingAssignment > 0 && (
+          <TouchableOpacity
+            style={styles.urgentAlert}
+            onPress={() => router.push('/(dashboard)/dispatcher/assignments')}
+            activeOpacity={0.7}
+          >
             <AlertTriangle size={20} color="#FF6B35" />
             <Text style={styles.urgentAlertText}>
-              {stats.urgentCases} urgent case{stats.urgentCases > 1 ? 's' : ''}{' '}
-              require immediate attention
+              {stats.pendingAssignment} case{stats.pendingAssignment > 1 ? 's' : ''}{' '}
+              awaiting assignment
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Quick Actions */}

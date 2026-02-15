@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -8,12 +8,13 @@ import { getAllCases } from '@/services/dispatcher';
 
 export default function DispatcherCases() {
   const router = useRouter();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch all cases from dispatcher API
+  // Fetch cases from dispatcher API with optional filter
   const { data: incidents = [], isLoading, refetch } = useQuery({
-    queryKey: ['dispatcher-all-cases'],
-    queryFn: () => getAllCases(),
+    queryKey: ['dispatcher-all-cases', filter],
+    queryFn: () => getAllCases(filter ? { status: filter } : undefined),
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
@@ -23,6 +24,23 @@ export default function DispatcherCases() {
     setRefreshing(false);
   };
 
+  // Get header title based on filter
+  const getHeaderTitle = () => {
+    if (filter === 'new') return 'New Cases';
+    if (filter === 'assigned') return 'Assigned Cases';
+    if (filter === 'in_progress') return 'Cases In Progress';
+    if (filter === 'completed') return 'Completed Cases';
+    return 'All Cases';
+  };
+
+  const getSectionTitle = () => {
+    if (filter === 'new') return `New Cases (${incidents.length})`;
+    if (filter === 'assigned') return `Assigned to Providers (${incidents.length})`;
+    if (filter === 'in_progress') return `Cases In Progress (${incidents.length})`;
+    if (filter === 'completed') return `Completed Cases (${incidents.length})`;
+    return `All Incidents (${incidents.length})`;
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -30,7 +48,7 @@ export default function DispatcherCases() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Cases</Text>
+        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -40,7 +58,7 @@ export default function DispatcherCases() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.sectionTitle}>All Incidents ({incidents.length})</Text>
+        <Text style={styles.sectionTitle}>{getSectionTitle()}</Text>
 
         {isLoading && incidents.length === 0 ? (
           <View style={styles.emptyState}>
