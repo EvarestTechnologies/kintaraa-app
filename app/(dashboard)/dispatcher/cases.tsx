@@ -78,8 +78,31 @@ export default function DispatcherCases() {
                 <Text style={styles.caseDescription} numberOfLines={2}>
                   {incident.description}
                 </Text>
+
+                {/* Show assigned provider info for in_progress and assigned cases */}
+                {incident.assignedProviders && incident.assignedProviders.length > 0 && (
+                  <View style={styles.providerInfo}>
+                    <View style={styles.providerHeader}>
+                      <Text style={styles.providerLabel}>Assigned Provider:</Text>
+                    </View>
+                    {incident.assignedProviders.map((provider) => (
+                      <View key={provider.provider_id} style={styles.providerDetails}>
+                        <View style={styles.providerRow}>
+                          <Text style={styles.providerName}>{provider.provider_name}</Text>
+                          <View style={[styles.providerTypeBadge, { backgroundColor: getProviderTypeColor(provider.provider_type) }]}>
+                            <Text style={styles.providerTypeText}>{provider.provider_type}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.providerAssignedDate}>
+                          Accepted: {new Date(provider.assigned_at).toLocaleDateString()} at {new Date(provider.assigned_at).toLocaleTimeString()}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 <Text style={styles.caseDate}>
-                  {new Date(incident.createdAt).toLocaleDateString()}
+                  Reported: {new Date(incident.createdAt).toLocaleDateString()}
                 </Text>
               </View>
             ))}
@@ -105,6 +128,19 @@ function getStatusColor(status: string) {
     closed: '#999',
   };
   return colors[status] || '#999';
+}
+
+function getProviderTypeColor(providerType: string) {
+  const colors: Record<string, string> = {
+    gbv_rescue: '#DC2626',
+    healthcare: '#059669',
+    legal: '#7C3AED',
+    police: '#1E40AF',
+    counseling: '#DB2777',
+    social: '#EA580C',
+    chw: '#10B981',
+  };
+  return colors[providerType] || '#6A2CB0';
 }
 
 const styles = StyleSheet.create({
@@ -191,5 +227,51 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#999',
+  },
+  providerInfo: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  providerHeader: {
+    marginBottom: 8,
+  },
+  providerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+  },
+  providerDetails: {
+    marginBottom: 4,
+  },
+  providerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  providerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+  },
+  providerTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  providerTypeText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  providerAssignedDate: {
+    fontSize: 11,
+    color: '#6B7280',
   },
 });
