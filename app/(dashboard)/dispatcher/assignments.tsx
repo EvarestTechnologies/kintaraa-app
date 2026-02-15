@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Clock, AlertTriangle, User } from 'lucide-react-native';
+import { ArrowLeft, Clock, AlertTriangle, User, X, Briefcase, CheckCircle2 } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getAllCases } from '@/services/dispatcher';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAllCases, getAvailableProviders, assignProviderToCase } from '@/services/dispatcher';
 
 export default function DispatcherAssignments() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
+  const [showProviderModal, setShowProviderModal] = useState(false);
 
   // Fetch cases pending assignment
   const { data: allCases = [], isLoading, refetch } = useQuery({
@@ -17,23 +20,60 @@ export default function DispatcherAssignments() {
     refetchInterval: 10000,
   });
 
+  // Fetch available providers for assignment
+  const { data: providers = [] } = useQuery({
+    queryKey: ['available-providers-for-assignment'],
+    queryFn: () => getAvailableProviders({ available_only: true }),
+    enabled: showProviderModal,
+  });
+
+  // Mutation for assigning provider
+  const assignMutation = useMutation({
+    mutationFn: ({ caseId, providerId }: { caseId: string; providerId: string }) =>
+      assignProviderToCase(caseId, providerId, 'Manual assignment by dispatcher'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispatcher-pending-cases'] });
+      queryClient.invalidateQueries({ queryKey: ['dispatcher-all-cases'] });
+      queryClient.invalidateQueries({ queryKey: ['dispatcher-dashboard'] });
+      setShowProviderModal(false);
+      setSelectedCase(null);
+      Alert.alert('Success', 'Provider assigned successfully!');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to assign provider');
+    },
+  });
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   };
 
-  const handleAssignCase = (_caseId: string, caseNumber: string) => {
+  const handleAssignCase = (incident: any) => {
+    setSelectedCase(incident);
+    setShowProviderModal(true);
+  };
+
+  const handleSelectProvider = (providerId: string) => {
+    if (!selectedCase) return;
+
     Alert.alert(
-      'Assign Provider',
-      `Provider selection for case ${caseNumber}.\n\nThis feature will allow you to:\n• View available providers\n• See provider specializations\n• Check provider capacity\n• Manually assign to selected provider`,
+      'Confirm Assignment',
+      `Assign this provider to case ${selectedCase.caseNumber}?`,
       [
-        { text: 'OK', style: 'default' },
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Assign',
+          onPress: () => {
+            assignMutation.mutate({
+              caseId: selectedCase.id,
+              providerId,
+            });
+          },
+        },
       ]
     );
-
-    // TODO: Navigate to provider selection screen when implemented
-    // router.push('/(dashboard)/dispatcher/providers');
   };
 
   return (
@@ -96,7 +136,7 @@ export default function DispatcherAssignments() {
                   </Text>
                   <TouchableOpacity
                     style={styles.assignButton}
-                    onPress={() => handleAssignCase(incident.id, incident.caseNumber)}
+                    onPress={() => handleAssignCase(incident)}
                   >
                     <User size={16} color="#FFFFFF" />
                     <Text style={styles.assignButtonText}>Assign Provider</Text>
@@ -114,6 +154,81 @@ export default function DispatcherAssignments() {
           </>
         )}
       </ScrollView>
+
+      {/* Provider Selection Modal */}
+      <Modal
+        visible={showProviderModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowProviderModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>Select Provider</Text>
+              <Text style={styles.modalSubtitle}>
+                Case: {selectedCase?.caseNumber}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowProviderModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {providers.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No available providers</Text>
+                <Text style={styles.emptySubtext}>
+                  All providers are currently at capacity
+                </Text>
+              </View>
+            ) : (
+              providers.map((provider) => (
+                <TouchableOpacity
+                  key={provider.id}
+                  style={styles.providerOption}
+                  onPress={() => handleSelectProvider(provider.id)}
+                  disabled={assignMutation.isPending}
+                >
+                  <View style={styles.providerOptionHeader}>
+                    <View style={styles.providerOptionInfo}>
+                      <View style={styles.providerNameRow}>
+                        <User size={18} color="#6A2CB0" />
+                        <Text style={styles.providerOptionName}>
+                          {provider.full_name}
+                        </Text>
+                      </View>
+                      <View style={styles.providerTypeRow}>
+                        <Briefcase size={14} color="#666" />
+                        <Text style={styles.providerOptionType}>
+                          {provider.provider_type_display}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.providerAvailableBadge}>
+                      <CheckCircle2 size={16} color="#10B981" />
+                    </View>
+                  </View>
+
+                  <View style={styles.providerOptionStats}>
+                    <Text style={styles.providerOptionStat}>
+                      Case Load: {provider.profile?.current_case_load || 0}/
+                      {provider.profile?.max_case_load || 10}
+                    </Text>
+                    <Text style={styles.providerOptionStat}>
+                      Acceptance: {Math.round((provider.profile?.acceptance_rate || 0) * 100)}%
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -258,5 +373,98 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#BBB',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#6A2CB0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  providerOption: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  providerOptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  providerOptionInfo: {
+    flex: 1,
+  },
+  providerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  providerOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  providerTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  providerOptionType: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  providerAvailableBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerOptionStats: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  providerOptionStat: {
+    fontSize: 13,
+    color: '#6B7280',
   },
 });
