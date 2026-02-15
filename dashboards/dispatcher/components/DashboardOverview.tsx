@@ -23,8 +23,9 @@ import {
   MapPin,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
-import { useIncidents } from '@/providers/IncidentProvider';
 import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { getDispatcherDashboard, getAllCases } from '@/services/dispatcher';
 
 const { width } = Dimensions.get('window');
 
@@ -41,27 +42,42 @@ interface DispatcherStats {
 
 export default function DashboardOverview() {
   const { user } = useAuth();
-  const { incidents, isLoading, refetch } = useIncidents();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch dispatcher dashboard stats from real API
+  const { data: dashboardStats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+    queryKey: ['dispatcher-dashboard'],
+    queryFn: getDispatcherDashboard,
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  // Fetch all cases for dispatcher view
+  const { data: allCases = [], isLoading: casesLoading, refetch: refetchCases } = useQuery({
+    queryKey: ['dispatcher-all-cases'],
+    queryFn: () => getAllCases(),
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  const isLoading = statsLoading || casesLoading;
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetchStats(), refetchCases()]);
     setRefreshing(false);
   };
 
-  // Calculate dispatcher-specific stats
+  // Map backend stats to component format
   const stats: DispatcherStats = {
-    totalCases: incidents.length,
-    newCases: incidents.filter(i => i.status === 'new').length,
-    pendingAssignment: incidents.filter(i => i.status === 'new').length,
-    assignedCases: incidents.filter(i => i.status === 'assigned').length,
-    inProgressCases: incidents.filter(i => i.status === 'in_progress').length,
-    completedCases: incidents.filter(i => i.status === 'completed').length,
-    urgentCases: incidents.filter(
-      i => i.urgencyLevel === 'immediate' || i.urgencyLevel === 'urgent'
-    ).length,
-    responseTime: '15 min',
+    totalCases: dashboardStats?.total_cases || allCases.length || 0,
+    newCases: dashboardStats?.cases_by_status?.new || 0,
+    pendingAssignment: dashboardStats?.pending_dispatcher_review || 0,
+    assignedCases: dashboardStats?.cases_by_status?.assigned || 0,
+    inProgressCases: dashboardStats?.cases_by_status?.in_progress || 0,
+    completedCases: dashboardStats?.cases_by_status?.completed || 0,
+    urgentCases: (dashboardStats?.cases_by_urgency?.urgent || 0) + (dashboardStats?.cases_by_urgency?.immediate || 0),
+    responseTime: dashboardStats?.average_response_time_minutes
+      ? `${Math.round(dashboardStats.average_response_time_minutes)} min`
+      : '--',
   };
 
   const statCards = [
