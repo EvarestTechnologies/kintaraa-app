@@ -20,12 +20,105 @@ export default function DispatcherAssignments() {
     refetchInterval: 10000,
   });
 
-  // Fetch available providers for assignment
-  const { data: providers = [] } = useQuery({
+  // Fetch available providers for assignment (filtered by incident needs)
+  const { data: allProviders = [] } = useQuery({
     queryKey: ['available-providers-for-assignment'],
     queryFn: () => getAvailableProviders({ available_only: true }),
     enabled: showProviderModal,
   });
+
+  // Map incident type and support services to provider types
+  const getRelevantProviderTypes = (incident: any): string[] => {
+    if (!incident) return [];
+
+    const providerTypes = new Set<string>();
+
+    // Always include GBV rescue for all cases
+    providerTypes.add('gbv_rescue');
+
+    // Based on incident type
+    switch (incident.type) {
+      case 'physical':
+        providerTypes.add('healthcare');
+        providerTypes.add('police');
+        providerTypes.add('counseling');
+        break;
+      case 'sexual':
+        providerTypes.add('healthcare');
+        providerTypes.add('police');
+        providerTypes.add('counseling');
+        providerTypes.add('legal');
+        break;
+      case 'emotional':
+        providerTypes.add('counseling');
+        providerTypes.add('social');
+        break;
+      case 'economic':
+        providerTypes.add('social');
+        providerTypes.add('legal');
+        break;
+      case 'online':
+        providerTypes.add('police');
+        providerTypes.add('legal');
+        providerTypes.add('counseling');
+        break;
+      case 'femicide':
+        providerTypes.add('police');
+        providerTypes.add('healthcare');
+        providerTypes.add('legal');
+        providerTypes.add('counseling');
+        break;
+    }
+
+    // Based on support services requested
+    if (incident.supportServices) {
+      const services = Array.isArray(incident.supportServices)
+        ? incident.supportServices
+        : [];
+
+      services.forEach((service: string) => {
+        switch (service.toLowerCase()) {
+          case 'medical':
+          case 'healthcare':
+            providerTypes.add('healthcare');
+            providerTypes.add('chw');
+            break;
+          case 'legal':
+          case 'legal_aid':
+            providerTypes.add('legal');
+            break;
+          case 'police':
+          case 'law_enforcement':
+            providerTypes.add('police');
+            break;
+          case 'counseling':
+          case 'therapy':
+          case 'mental_health':
+            providerTypes.add('counseling');
+            break;
+          case 'social':
+          case 'social_services':
+          case 'shelter':
+            providerTypes.add('social');
+            providerTypes.add('gbv_rescue');
+            break;
+          case 'community':
+            providerTypes.add('chw');
+            break;
+        }
+      });
+    }
+
+    return Array.from(providerTypes);
+  };
+
+  // Filter providers based on incident needs
+  const providers = selectedCase
+    ? allProviders.filter(provider => {
+        const relevantTypes = getRelevantProviderTypes(selectedCase);
+        return relevantTypes.includes(provider.provider_type);
+      })
+    : allProviders;
 
   // Mutation for assigning provider
   const assignMutation = useMutation({
@@ -179,15 +272,34 @@ export default function DispatcherAssignments() {
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {selectedCase && (
+              <View style={styles.filterInfo}>
+                <Text style={styles.filterInfoText}>
+                  Showing providers for: <Text style={styles.filterInfoBold}>{selectedCase.type}</Text> incident
+                </Text>
+                {selectedCase.supportServices && selectedCase.supportServices.length > 0 && (
+                  <Text style={styles.filterInfoSubtext}>
+                    Services needed: {selectedCase.supportServices.join(', ')}
+                  </Text>
+                )}
+              </View>
+            )}
+
             {providers.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No available providers</Text>
+                <Text style={styles.emptyText}>No matching providers available</Text>
                 <Text style={styles.emptySubtext}>
-                  All providers are currently at capacity
+                  {allProviders.length > 0
+                    ? 'No providers match this incident type. Try viewing all providers in the Providers tab.'
+                    : 'All providers are currently at capacity'}
                 </Text>
               </View>
             ) : (
-              providers.map((provider) => (
+              <>
+                <Text style={styles.providerCount}>
+                  {providers.length} relevant provider{providers.length !== 1 ? 's' : ''} available
+                </Text>
+                {providers.map((provider) => (
                 <TouchableOpacity
                   key={provider.id}
                   style={styles.providerOption}
@@ -224,7 +336,8 @@ export default function DispatcherAssignments() {
                     </Text>
                   </View>
                 </TouchableOpacity>
-              ))
+              ))}
+            </>
             )}
           </ScrollView>
         </View>
@@ -410,6 +523,34 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 16,
+  },
+  filterInfo: {
+    backgroundColor: '#F0F9FF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  filterInfoText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  filterInfoBold: {
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  filterInfoSubtext: {
+    fontSize: 12,
+    color: '#60A5FA',
+    fontStyle: 'italic',
+  },
+  providerCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 12,
   },
   providerOption: {
     backgroundColor: '#FFFFFF',
