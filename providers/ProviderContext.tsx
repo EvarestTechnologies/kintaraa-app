@@ -23,11 +23,16 @@ export interface CaseAssignment {
   caseNumber: string;
   providerId: string;
   assignedAt: string;
+  reportedAt: string; // When incident was originally submitted
   acceptedAt?: string;
   status: 'pending' | 'accepted' | 'declined';
   priority: 'low' | 'medium' | 'high' | 'critical';
   serviceType: string;
   estimatedResponseTime?: number;
+  survivorName: string;
+  isAnonymous: boolean;
+  location?: string;
+  description?: string;
 }
 
 export interface ProviderNotification {
@@ -468,24 +473,47 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           console.log('🔍 First raw API assignment:', {
             assigned_at: assignedCases[0].assigned_at,
             date_submitted: assignedCases[0].date_submitted,
+            incident_date: assignedCases[0].incident_date,
+            incident_time: assignedCases[0].incident_time,
+            last_updated: assignedCases[0].last_updated,
             case_number: assignedCases[0].case_number,
           });
         }
 
         // Map backend response to CaseAssignment format
-        const assignments: CaseAssignment[] = assignedCases.map(incident => ({
-          id: incident.id,
-          incidentId: incident.id,
-          caseNumber: incident.case_number,
-          providerId: user.id,
-          assignedAt: incident.assigned_at || incident.date_submitted,
-          status: 'pending',
-          priority: incident.urgency_level === 'immediate' ? 'critical' as const :
-                    incident.urgency_level === 'urgent' ? 'high' as const : 'medium' as const,
-          serviceType: incident.type,
-          estimatedResponseTime: incident.urgency_level === 'immediate' ? 15 :
-                                  incident.urgency_level === 'urgent' ? 30 : 60,
-        }));
+        const assignments: CaseAssignment[] = assignedCases.map(incident => {
+          // Construct reportedAt from incident_date and incident_time if available
+          let reportedAt = incident.date_submitted;
+          if (!reportedAt && incident.incident_date) {
+            // Use incident_date with time, defaulting to noon if incident_time is not available
+            const time = incident.incident_time || '12:00:00';
+            reportedAt = `${incident.incident_date}T${time}`;
+          }
+          if (!reportedAt) {
+            // Stable fallback to avoid changing timestamps on every render
+            const fallbackDate = incident.last_updated || new Date().toISOString().split('T')[0];
+            reportedAt = `${fallbackDate}T12:00:00Z`;
+          }
+
+          return {
+            id: incident.id,
+            incidentId: incident.id,
+            caseNumber: incident.case_number,
+            providerId: user.id,
+            assignedAt: incident.assigned_at || reportedAt, // Use reportedAt as fallback for assignedAt
+            reportedAt: reportedAt,
+            status: 'pending',
+            priority: incident.urgency_level === 'immediate' ? 'critical' as const :
+                      incident.urgency_level === 'urgent' ? 'high' as const : 'medium' as const,
+            serviceType: incident.type,
+            estimatedResponseTime: incident.urgency_level === 'immediate' ? 15 :
+                                    incident.urgency_level === 'urgent' ? 30 : 60,
+            survivorName: incident.survivor_name,
+            isAnonymous: incident.is_anonymous,
+            location: incident.location?.address,
+            description: incident.description,
+          };
+        });
 
         return assignments;
       } catch (error) {

@@ -47,6 +47,8 @@ export interface AssignedCase {
     description?: string;
   };
   support_services: string[];
+  is_anonymous: boolean;
+  survivor_name: string;
   date_submitted: string;
   last_updated: string;
   assignment_status?: 'pending' | 'accepted' | 'rejected';

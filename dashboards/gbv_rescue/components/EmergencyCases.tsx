@@ -51,18 +51,18 @@ export default function EmergencyCases() {
       .map(assignment => ({
         id: assignment.id,
         caseNumber: assignment.caseNumber,
-        survivorName: 'Anonymous Survivor', // Real data doesn't expose survivor identity
-        location: 'Location secured', // Real data protects location
+        survivorName: assignment.survivorName, // Real survivor name from API
+        location: assignment.location || 'Location not specified',
         priority: assignment.priority as 'critical' | 'high' | 'medium',
         status: 'pending' as const,
-        reportedAt: assignment.assignedAt, // Already ISO string from backend
-        description: `${assignment.serviceType} - Emergency response required`,
+        reportedAt: assignment.reportedAt, // When incident was originally submitted
+        description: assignment.description || `${assignment.serviceType} - Emergency response required`,
         responseTeam: undefined,
         estimatedArrival: `${assignment.estimatedResponseTime || 15} minutes`,
         contactNumber: '+1-555-****-**XX', // Protected
-        lastContact: assignment.assignedAt, // Already ISO string from backend
+        lastContact: assignment.assignedAt, // When assigned to this provider
         activityLog: [{
-          timestamp: assignment.assignedAt, // Already ISO string from backend
+          timestamp: assignment.assignedAt, // When assigned to this provider
           action: 'Case Assigned',
           details: 'Case assigned to provider via automated routing',
           user: 'System'
