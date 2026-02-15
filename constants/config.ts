@@ -6,7 +6,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const Flag = false
+const Flag = true
 // Environment detection
 export const isDevelopment = Flag;
 export const isProduction = !Flag;

@@ -6,6 +6,7 @@ import { useIncidents, Incident } from './IncidentProvider';
 import { ProviderRoutingService, ProviderAssignment } from '@/services/providerRouting';
 import { NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
+import { getAssignedCases, acceptAssignment as acceptAssignmentAPI, rejectAssignment as rejectAssignmentAPI } from '@/services/assignments';
 
 export interface ProviderStats {
   totalCases: number;
@@ -19,13 +20,19 @@ export interface ProviderStats {
 export interface CaseAssignment {
   id: string;
   incidentId: string;
+  caseNumber: string;
   providerId: string;
   assignedAt: string;
+  reportedAt: string; // When incident was originally submitted
   acceptedAt?: string;
   status: 'pending' | 'accepted' | 'declined';
   priority: 'low' | 'medium' | 'high' | 'critical';
   serviceType: string;
   estimatedResponseTime?: number;
+  survivorName: string;
+  isAnonymous: boolean;
+  location?: string;
+  description?: string;
 }
 
 export interface ProviderNotification {
@@ -65,13 +72,13 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
 
   // Poll for provider assignments from routing service
   useEffect(() => {
-    if (!providerProfile?.id) return;
+    if (!providerProfile?.id || !user?.role) return;
 
     // Register this provider with the routing service
     ProviderRoutingService.registerCurrentProvider({
       id: providerProfile.id,
       name: providerProfile.name,
-      type: providerProfile.type,
+      type: user.role as any, // Use user role as provider type
       isAvailable: true,
       location: providerProfile.location
     });
@@ -93,7 +100,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     }, 5000); // Poll every 5 seconds instead of 2
 
     return () => clearInterval(interval);
-  }, [providerProfile?.id, providerProfile?.name, providerProfile?.type]); // Add stable dependencies
+  }, [providerProfile?.id, providerProfile?.name, user?.role]); // Add stable dependencies
 
   // Get assigned cases for this provider
   const assignedCases = useMemo(() => {
@@ -110,7 +117,11 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     console.log('Routed incidents for provider:', routedIncidents.length);
     console.log('Provider assignments:', providerAssignments.length);
 
-    // Add dummy cases for testing search and filter functionality
+    // Return only real incidents from backend (no mock data)
+    return routedIncidents;
+
+    // REMOVED: Mock data - now using real backend assignments
+    // eslint-disable-next-line no-unreachable
     if (user?.role === 'provider' && providerProfile) {
       const dummyCases = [
         {
@@ -142,7 +153,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
               createdAt: new Date().toISOString(),
             }
           ],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-10T08:30:00Z',
           updatedAt: new Date().toISOString(),
         },
@@ -168,14 +179,14 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
             {
               id: 'msg-2',
               incidentId: 'dummy-2',
-              senderId: providerProfile.userId,
+              senderId: providerProfile?.userId || '',
               senderRole: 'provider' as const,
               content: 'I have reviewed your case and scheduled a counseling session for tomorrow.',
               type: 'text' as const,
               createdAt: new Date(Date.now() - 3600000).toISOString(),
             }
           ],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-09T14:15:00Z',
           updatedAt: new Date(Date.now() - 3600000).toISOString(),
         },
@@ -197,7 +208,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: true,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-08T10:00:00Z',
           updatedAt: '2024-12-08T18:30:00Z',
         },
@@ -220,7 +231,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: false,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-07T16:45:00Z',
           updatedAt: '2024-12-07T16:45:00Z',
         },
@@ -252,7 +263,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
               createdAt: new Date(Date.now() - 7200000).toISOString(),
             }
           ],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-06T11:20:00Z',
           updatedAt: new Date(Date.now() - 7200000).toISOString(),
         },
@@ -275,7 +286,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: false,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-05T09:15:00Z',
           updatedAt: '2024-12-05T17:30:00Z',
         },
@@ -307,7 +318,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
               createdAt: '2024-12-04T07:00:00Z',
             }
           ],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-04T07:00:00Z',
           updatedAt: '2024-12-04T07:00:00Z',
         },
@@ -330,7 +341,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: true,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-03T13:45:00Z',
           updatedAt: '2024-12-03T15:20:00Z',
         },
@@ -353,7 +364,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: false,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-02T10:30:00Z',
           updatedAt: '2024-12-02T16:45:00Z',
         },
@@ -375,7 +386,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: false,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-12-01T12:00:00Z',
           updatedAt: '2024-12-01T12:00:00Z',
         },
@@ -401,14 +412,14 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
             {
               id: 'msg-5',
               incidentId: 'dummy-11',
-              senderId: providerProfile.userId,
+              senderId: providerProfile?.userId || '',
               senderRole: 'provider' as const,
               content: 'Safety plan has been updated. Please check in daily.',
               type: 'text' as const,
               createdAt: new Date(Date.now() - 86400000).toISOString(),
             }
           ],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-11-30T08:15:00Z',
           updatedAt: new Date(Date.now() - 86400000).toISOString(),
         },
@@ -431,7 +442,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
           isAnonymous: true,
           evidence: [],
           messages: [],
-          assignedProviderId: providerProfile.id,
+          assignedProviderId: providerProfile?.id || '',
           createdAt: '2024-11-29T14:30:00Z',
           updatedAt: '2024-11-29T14:30:00Z',
         }
@@ -443,39 +454,75 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     return routedIncidents;
   }, [incidents, providerProfile, user?.role, providerAssignments]);
 
-  // Get pending case assignments
+  // Get pending case assignments from backend API
   const pendingAssignmentsQuery = useQuery({
-    queryKey: ['pending-assignments', user?.id, user?.role, providerProfile?.id],
+    queryKey: ['pending-assignments', user?.id, user?.role],
     queryFn: async () => {
       if (!user || user.role !== 'provider') return [];
-      
-      // Mock pending assignments for demo
-      const mockAssignments: CaseAssignment[] = [
-        {
-          id: 'assign-1',
-          incidentId: '3',
-          providerId: providerProfile?.id || 'provider-1',
-          assignedAt: new Date().toISOString(),
-          status: 'pending',
-          priority: 'high',
-          serviceType: 'medical',
-          estimatedResponseTime: 30,
-        },
-        {
-          id: 'assign-2',
-          incidentId: '4',
-          providerId: providerProfile?.id || 'provider-1',
-          assignedAt: new Date(Date.now() - 3600000).toISOString(),
-          status: 'pending',
-          priority: 'medium',
-          serviceType: 'counseling',
-          estimatedResponseTime: 60,
+
+      console.log('🔄 Fetching assigned cases from API (status: pending)...');
+
+      try {
+        // Get all assigned cases with 'pending' status from backend
+        const assignedCases = await getAssignedCases('pending');
+
+        console.log('✅ Successfully fetched pending assignments:', assignedCases.length);
+
+        // Debug: Log first assignment raw data
+        if (assignedCases.length > 0) {
+          console.log('🔍 First raw API assignment:', {
+            assigned_at: assignedCases[0].assigned_at,
+            date_submitted: assignedCases[0].date_submitted,
+            incident_date: assignedCases[0].incident_date,
+            incident_time: assignedCases[0].incident_time,
+            last_updated: assignedCases[0].last_updated,
+            case_number: assignedCases[0].case_number,
+          });
         }
-      ];
-      
-      return mockAssignments;
+
+        // Map backend response to CaseAssignment format
+        const assignments: CaseAssignment[] = assignedCases.map(incident => {
+          // Construct reportedAt from incident_date and incident_time if available
+          let reportedAt = incident.date_submitted;
+          if (!reportedAt && incident.incident_date) {
+            // Use incident_date with time, defaulting to noon if incident_time is not available
+            const time = incident.incident_time || '12:00:00';
+            reportedAt = `${incident.incident_date}T${time}`;
+          }
+          if (!reportedAt) {
+            // Stable fallback to avoid changing timestamps on every render
+            const fallbackDate = incident.last_updated || new Date().toISOString().split('T')[0];
+            reportedAt = `${fallbackDate}T12:00:00Z`;
+          }
+
+          return {
+            id: incident.id,
+            incidentId: incident.id,
+            caseNumber: incident.case_number,
+            providerId: user.id,
+            assignedAt: incident.assigned_at || reportedAt, // Use reportedAt as fallback for assignedAt
+            reportedAt: reportedAt,
+            status: 'pending',
+            priority: incident.urgency_level === 'immediate' ? 'critical' as const :
+                      incident.urgency_level === 'urgent' ? 'high' as const : 'medium' as const,
+            serviceType: incident.type,
+            estimatedResponseTime: incident.urgency_level === 'immediate' ? 15 :
+                                    incident.urgency_level === 'urgent' ? 30 : 60,
+            survivorName: incident.survivor_name,
+            isAnonymous: incident.is_anonymous,
+            location: incident.location?.address,
+            description: incident.description,
+          };
+        });
+
+        return assignments;
+      } catch (error) {
+        console.error('❌ Error fetching pending assignments:', error);
+        return [];
+      }
     },
     enabled: !!user && user.role === 'provider',
+    refetchInterval: 5000, // Poll every 5 seconds for new assignments
   });
 
   // Calculate provider statistics
@@ -488,58 +535,58 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
     totalMessages: assignedCases.reduce((total, incident) => total + incident.messages.length, 0),
   }), [assignedCases, providerProfile]);
 
-  // Accept case assignment
+  // Accept case assignment - call backend API
   const acceptAssignmentMutation = useMutation({
-    mutationFn: async (assignmentId: string) => {
-      if (!user || !providerProfile) throw new Error('Provider not found');
-      
-      const assignments = pendingAssignmentsQuery.data || [];
-      const assignment = assignments.find(a => a.id === assignmentId);
-      if (!assignment) throw new Error('Assignment not found');
-      
-      // Update assignment status
-      const updatedAssignments = assignments.map(a => 
-        a.id === assignmentId 
-          ? { ...a, status: 'accepted' as const, acceptedAt: new Date().toISOString() }
-          : a
-      );
-      
-      // In a real app, this would update the backend
-      
+    mutationFn: async (incidentId: string) => {
+      if (!user || user.role !== 'provider') throw new Error('Provider not found');
+
+      console.log('🔄 Accepting assignment for incident:', incidentId);
+
+      // Call backend API to accept assignment
+      const result = await acceptAssignmentAPI(incidentId, 'Accepted assignment');
+
+      console.log('✅ Assignment accepted:', result);
+
       // Add notification
       const notification: ProviderNotification = {
         id: Date.now().toString(),
         type: 'status_update',
         title: 'Case Accepted',
-        message: `You have accepted case assignment for incident ${assignment.incidentId}`,
-        incidentId: assignment.incidentId,
+        message: `You have accepted case assignment for incident ${incidentId}`,
+        incidentId: incidentId,
         isRead: false,
         createdAt: new Date().toISOString(),
       };
-      
+
       setNotifications(prev => [notification, ...prev]);
-      
-      return assignment;
+
+      return result;
     },
     onSuccess: () => {
+      // Refresh both pending assignments and incidents
       queryClient.invalidateQueries({ queryKey: ['pending-assignments', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
     },
   });
 
-  // Decline case assignment
+  // Decline/reject case assignment - call backend API
   const declineAssignmentMutation = useMutation({
-    mutationFn: async (assignmentId: string) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const assignments = pendingAssignmentsQuery.data || [];
-      const updatedAssignments = assignments.filter(a => a.id !== assignmentId);
-      
-      // In a real app, this would update the backend
-      
-      return assignmentId;
+    mutationFn: async ({ incidentId, reason }: { incidentId: string; reason: string }) => {
+      if (!user || user.role !== 'provider') throw new Error('User not authenticated');
+
+      console.log('🔄 Rejecting assignment for incident:', incidentId);
+
+      // Call backend API to reject assignment
+      const result = await rejectAssignmentAPI(incidentId, reason || 'Not available at this time');
+
+      console.log('✅ Assignment rejected:', result);
+
+      return result;
     },
     onSuccess: () => {
+      // Refresh pending assignments
       queryClient.invalidateQueries({ queryKey: ['pending-assignments', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
     },
   });
 

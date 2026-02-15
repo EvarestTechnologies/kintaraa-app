@@ -17,10 +17,12 @@ import {
 
 export default function DashboardOverview() {
   const { user } = useAuth();
-  const { stats, assignedCases } = useProvider();
+  const { stats, assignedCases, pendingAssignments } = useProvider();
 
   // GBV Rescue specific metrics
-  const emergencyCases = assignedCases.filter(c => c.priority === 'critical' && ['assigned', 'in_progress'].includes(c.status));
+  // Include both pending assignments and assigned cases
+  const allCases = [...assignedCases, ...(pendingAssignments || [])];
+  const emergencyCases = allCases.filter(c => c.priority === 'critical');
   const hotlineCalls = 47; // Mock data
   const safeHouseBeds = { occupied: 12, total: 20 };
   const responseTime = 8; // minutes average

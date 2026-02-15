@@ -634,6 +634,12 @@ export default function ReportsScreen() {
                   {/* Survivors should not see priority/severity status */}
                 </View>
 
+                {incident.description && (
+                  <Text style={styles.reportDescription} numberOfLines={2}>
+                    {incident.description}
+                  </Text>
+                )}
+
                 <View style={styles.reportDetails}>
                   <View style={styles.reportStatus}>
                     {getStatusIcon(incident.status)}
@@ -642,11 +648,18 @@ export default function ReportsScreen() {
                     </Text>
                   </View>
                   <Text style={styles.reportDate}>
-                    {new Date(incident.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {incident.incidentDate
+                      ? new Date(incident.incidentDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                      : new Date(incident.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                    }
                   </Text>
                 </View>
 
@@ -804,6 +817,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#341A52',
+  },
+  reportDescription: {
+    fontSize: 14,
+    color: '#49455A',
+    lineHeight: 20,
+    marginBottom: 12,
   },
   severityBadge: {
     paddingHorizontal: 8,
