@@ -143,16 +143,23 @@ const transformApiIncidentToFrontend = (apiIncident: IncidentsAPI.IncidentRespon
  * Transform frontend CreateIncidentData to API payload
  */
 const transformFrontendToApiPayload = (data: CreateIncidentData): IncidentsAPI.CreateIncidentPayload => {
+  // Use description as address if no address provided
+  const address = data.location?.address || data.location?.description || 'Location provided';
+
+  // Use actual coordinates if available, otherwise use default Kenya coordinates
+  const latitude = data.location?.coordinates?.latitude || -1.2921;  // Nairobi default
+  const longitude = data.location?.coordinates?.longitude || 36.8219;  // Nairobi default
+
   return {
     type: data.type as any,
     incident_date: data.incidentDate || new Date().toISOString().split('T')[0],
     incident_time: data.incidentTime || new Date().toISOString().split('T')[1].split('.')[0],
     description: data.description || '',
     location: {
-      address: data.location?.address || '',
+      address: address,
       coordinates: {
-        latitude: data.location?.coordinates?.latitude || 0,
-        longitude: data.location?.coordinates?.longitude || 0,
+        latitude: latitude,
+        longitude: longitude,
       },
       description: data.location?.description,
     },
