@@ -62,6 +62,34 @@ export const getDispatcherDashboard = async (): Promise<DispatcherDashboardStats
 };
 
 /**
+ * Transform backend incident data to frontend Incident type
+ */
+const transformIncidentData = (backendData: any): Incident => {
+  return {
+    id: backendData.id,
+    caseNumber: backendData.case_number,
+    survivorId: backendData.survivor?.id || backendData.survivor_id,
+    type: backendData.type,
+    status: backendData.status,
+    priority: backendData.severity || 'medium',
+    incidentDate: backendData.incident_date,
+    incidentTime: backendData.incident_time,
+    location: backendData.location,
+    description: backendData.description,
+    severity: backendData.severity,
+    supportServices: backendData.support_services || [],
+    urgencyLevel: backendData.urgency_level,
+    providerPreferences: backendData.provider_preferences,
+    isAnonymous: backendData.is_anonymous || false,
+    evidence: [],
+    messages: [],
+    assignedProviderId: backendData.assigned_provider?.id,
+    createdAt: backendData.date_submitted || backendData.created_at,
+    updatedAt: backendData.last_updated || backendData.updated_at,
+  };
+};
+
+/**
  * Get all cases in the system (for dispatcher view)
  *
  * @param filters - Optional filters for cases
@@ -85,7 +113,13 @@ export const getAllCases = async (filters?: {
   const queryString = params.toString();
   const endpoint = queryString ? `/dispatch/cases/?${queryString}` : '/dispatch/cases/';
 
-  return apiRequest(endpoint, { method: 'GET' });
+  const data = await apiRequest(endpoint, { method: 'GET' });
+
+  // Transform backend data to match frontend Incident type
+  if (Array.isArray(data)) {
+    return data.map(transformIncidentData);
+  }
+  return [];
 };
 
 /**
@@ -95,7 +129,8 @@ export const getAllCases = async (filters?: {
  * @returns Full incident details with assignments
  */
 export const getCaseDetail = async (incidentId: string): Promise<Incident> => {
-  return apiRequest(`/dispatch/cases/${incidentId}/`, { method: 'GET' });
+  const data = await apiRequest(`/dispatch/cases/${incidentId}/`, { method: 'GET' });
+  return transformIncidentData(data);
 };
 
 /**

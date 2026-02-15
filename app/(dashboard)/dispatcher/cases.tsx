@@ -1,13 +1,27 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useIncidents } from '@/providers/IncidentProvider';
 import { ArrowLeft } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { getAllCases } from '@/services/dispatcher';
 
 export default function DispatcherCases() {
   const router = useRouter();
-  const { incidents } = useIncidents();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch all cases from dispatcher API
+  const { data: incidents = [], isLoading, refetch } = useQuery({
+    queryKey: ['dispatcher-all-cases'],
+    queryFn: () => getAllCases(),
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -20,31 +34,44 @@ export default function DispatcherCases() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <Text style={styles.sectionTitle}>All Incidents ({incidents.length})</Text>
 
-        {incidents.map((incident) => (
-          <View key={incident.id} style={styles.caseCard}>
-            <View style={styles.caseHeader}>
-              <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(incident.status) }]}>
-                <Text style={styles.statusText}>{incident.status}</Text>
-              </View>
-            </View>
-            <Text style={styles.caseType}>{incident.type}</Text>
-            <Text style={styles.caseDescription} numberOfLines={2}>
-              {incident.description}
-            </Text>
-            <Text style={styles.caseDate}>
-              {new Date(incident.createdAt).toLocaleDateString()}
-            </Text>
-          </View>
-        ))}
-
-        {incidents.length === 0 && (
+        {isLoading && incidents.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No cases found</Text>
+            <ActivityIndicator size="large" color="#6A2CB0" />
           </View>
+        ) : (
+          <>
+            {incidents.map((incident) => (
+              <View key={incident.id} style={styles.caseCard}>
+                <View style={styles.caseHeader}>
+                  <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(incident.status) }]}>
+                    <Text style={styles.statusText}>{incident.status}</Text>
+                  </View>
+                </View>
+                <Text style={styles.caseType}>{incident.type}</Text>
+                <Text style={styles.caseDescription} numberOfLines={2}>
+                  {incident.description}
+                </Text>
+                <Text style={styles.caseDate}>
+                  {new Date(incident.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+            ))}
+
+            {incidents.length === 0 && !isLoading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No cases found</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
