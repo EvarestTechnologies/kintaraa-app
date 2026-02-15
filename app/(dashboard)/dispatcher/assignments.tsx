@@ -1,11 +1,40 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Clock, AlertTriangle, User } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { getAllCases } from '@/services/dispatcher';
 
 export default function DispatcherAssignments() {
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch cases pending assignment
+  const { data: allCases = [], isLoading, refetch } = useQuery({
+    queryKey: ['dispatcher-pending-cases'],
+    queryFn: () => getAllCases({ status: 'pending_dispatcher_review' }),
+    refetchInterval: 10000,
+  });
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const handleAssignCase = (_caseId: string, caseNumber: string) => {
+    Alert.alert(
+      'Assign Provider',
+      `Provider selection for case ${caseNumber}.\n\nThis feature will allow you to:\n• View available providers\n• See provider specializations\n• Check provider capacity\n• Manually assign to selected provider`,
+      [
+        { text: 'OK', style: 'default' },
+      ]
+    );
+
+    // TODO: Navigate to provider selection screen when implemented
+    // router.push('/(dashboard)/dispatcher/providers');
+  };
 
   return (
     <View style={styles.container}>
@@ -14,24 +43,88 @@ export default function DispatcherAssignments() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Manage Assignments</Text>
+        <Text style={styles.headerTitle}>Pending Assignments</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>🚧 Coming Soon</Text>
-          <Text style={styles.infoText}>
-            This page will allow you to:
-          </Text>
-          <Text style={styles.infoListItem}>• View pending case assignments</Text>
-          <Text style={styles.infoListItem}>• Assign providers to routine cases</Text>
-          <Text style={styles.infoListItem}>• Monitor provider availability</Text>
-          <Text style={styles.infoListItem}>• Track assignment response times</Text>
-        </View>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <Text style={styles.sectionTitle}>
+          Cases Awaiting Assignment ({allCases.length})
+        </Text>
+
+        {isLoading && allCases.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color="#6A2CB0" />
+          </View>
+        ) : (
+          <>
+            {allCases.map((incident) => (
+              <View key={incident.id} style={styles.caseCard}>
+                <View style={styles.caseHeader}>
+                  <View>
+                    <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
+                    <View style={styles.urgencyBadge}>
+                      <AlertTriangle size={14} color={getUrgencyColor(incident.urgencyLevel)} />
+                      <Text style={[styles.urgencyText, { color: getUrgencyColor(incident.urgencyLevel) }]}>
+                        {incident.urgencyLevel?.toUpperCase() || 'ROUTINE'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Clock size={20} color="#999" />
+                </View>
+
+                <Text style={styles.caseType}>{incident.type}</Text>
+                <Text style={styles.caseDescription} numberOfLines={2}>
+                  {incident.description}
+                </Text>
+
+                <View style={styles.servicesRow}>
+                  <Text style={styles.servicesLabel}>Services needed:</Text>
+                  <Text style={styles.servicesText} numberOfLines={1}>
+                    {incident.supportServices?.join(', ') || 'None specified'}
+                  </Text>
+                </View>
+
+                <View style={styles.caseFooter}>
+                  <Text style={styles.caseDate}>
+                    {new Date(incident.createdAt).toLocaleDateString()} {new Date(incident.createdAt).toLocaleTimeString()}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.assignButton}
+                    onPress={() => handleAssignCase(incident.id, incident.caseNumber)}
+                  >
+                    <User size={16} color="#FFFFFF" />
+                    <Text style={styles.assignButtonText}>Assign Provider</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {allCases.length === 0 && !isLoading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No cases pending assignment</Text>
+                <Text style={styles.emptySubtext}>All cases have been assigned to providers</Text>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   );
+}
+
+function getUrgencyColor(urgency?: string) {
+  const colors: Record<string, string> = {
+    immediate: '#E53935',
+    urgent: '#FF8F00',
+    routine: '#43A047',
+  };
+  return colors[urgency || 'routine'] || '#43A047';
 }
 
 const styles = StyleSheet.create({
@@ -59,28 +152,111 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  infoBox: {
-    backgroundColor: '#E3F2FD',
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 16,
   },
-  infoTitle: {
+  caseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  caseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  caseNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1565C0',
-    marginBottom: 8,
+    color: '#6A2CB0',
+    marginBottom: 4,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#1565C0',
-    marginBottom: 8,
+  urgencyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  infoListItem: {
+  urgencyText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  caseType: {
     fontSize: 14,
-    color: '#1565C0',
-    marginLeft: 8,
-    marginTop: 4,
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'capitalize',
+  },
+  caseDescription: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  servicesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
+  servicesLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginRight: 8,
+  },
+  servicesText: {
+    fontSize: 13,
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  caseFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  caseDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  assignButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6A2CB0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  assignButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emptyState: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#BBB',
   },
 });
