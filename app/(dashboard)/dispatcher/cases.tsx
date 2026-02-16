@@ -5,11 +5,14 @@ import { ArrowLeft } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getAllCases } from '@/services/dispatcher';
+import CaseDetailsModal, { CaseDetails } from '@/app/components/_CaseDetailsModal';
 
 export default function DispatcherCases() {
   const router = useRouter();
   const { filter } = useLocalSearchParams<{ filter?: string }>();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Fetch cases from dispatcher API with optional filter
   const { data: incidents = [], isLoading, refetch } = useQuery({
@@ -41,6 +44,36 @@ export default function DispatcherCases() {
     return `All Incidents (${incidents.length})`;
   };
 
+  // Convert dispatcher incident to CaseDetails format for modal
+  const convertToCaseDetails = (incident: any): CaseDetails => {
+    return {
+      id: incident.id,
+      incidentId: incident.id,
+      caseNumber: incident.caseNumber,
+      type: incident.type,
+      status: incident.status,
+      description: incident.description,
+      incidentDate: incident.createdAt,
+      incidentTime: incident.createdAt,
+      location: incident.location?.address || 'Location not provided',
+      urgencyLevel: incident.urgencyLevel || 'routine',
+      supportServices: incident.supportServices || [],
+      assignedAt: incident.assignedProviders?.[0]?.assigned_at || incident.createdAt,
+    };
+  };
+
+  // Handle case card click
+  const handleCaseClick = (incident: any) => {
+    setSelectedCase(convertToCaseDetails(incident));
+    setModalVisible(true);
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedCase(null);
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -67,7 +100,12 @@ export default function DispatcherCases() {
         ) : (
           <>
             {incidents.map((incident) => (
-              <View key={incident.id} style={styles.caseCard}>
+              <TouchableOpacity
+                key={incident.id}
+                style={styles.caseCard}
+                onPress={() => handleCaseClick(incident)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.caseHeader}>
                   <Text style={styles.caseNumber}>{incident.caseNumber}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(incident.status) }]}>
@@ -104,7 +142,7 @@ export default function DispatcherCases() {
                 <Text style={styles.caseDate}>
                   Reported: {new Date(incident.createdAt).toLocaleDateString()}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
 
             {incidents.length === 0 && !isLoading && (
@@ -115,6 +153,13 @@ export default function DispatcherCases() {
           </>
         )}
       </ScrollView>
+
+      {/* Case Details Modal - Read-only for dispatcher */}
+      <CaseDetailsModal
+        visible={modalVisible}
+        case_={selectedCase}
+        onClose={handleCloseModal}
+      />
     </View>
   );
 }

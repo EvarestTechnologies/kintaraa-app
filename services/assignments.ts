@@ -174,6 +174,30 @@ export const getAvailableProviders = async (
 };
 
 /**
+ * Update incident status (provider endpoint)
+ *
+ * @param incidentId - The incident ID to update
+ * @param status - New status for the incident
+ * @param notes - Optional notes about the status change
+ * @returns Updated incident data
+ */
+export const updateIncidentStatus = async (
+  incidentId: string,
+  status: string,
+  notes?: string
+): Promise<any> => {
+  const endpoint = `/providers/cases/${incidentId}/status/`;
+
+  return apiRequest(endpoint, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status,
+      notes,
+    }),
+  });
+};
+
+/**
  * Get assignment statistics for provider dashboard
  * (If backend endpoint exists)
  */
