@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import ClientsList from '@/dashboards/counseling/components/ClientsList';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MyCases from '@/app/components/_MyCases';
 
 export default function ClientsScreen() {
-  console.log('👥 ClientsScreen - Counseling Clients');
+  console.log('👥 ClientsScreen - Counseling My Cases');
 
   return (
-    <View style={styles.container}>
-      <ClientsList />
-    </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <MyCases />
+    </SafeAreaView>
   );
 }
 

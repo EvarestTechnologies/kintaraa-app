@@ -36,7 +36,7 @@ export default function HealthcareTabLayout() {
       <Tabs.Screen
         name="patients"
         options={{
-          title: 'Patients',
+          title: 'My Cases',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
         }}
       />
