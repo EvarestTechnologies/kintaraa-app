@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import ProviderNotificationFab from '@/app/components/_ProviderNotificationFab';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, Home, DollarSign, Calendar, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
@@ -176,6 +177,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, onNavigate
         </View>
       </View>
       </ScrollView>
+
+      {/* Notification FAB for pending case assignments */}
+      <ProviderNotificationFab />
     </SafeAreaView>
   );
 };

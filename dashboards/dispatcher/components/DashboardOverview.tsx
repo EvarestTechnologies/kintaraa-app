@@ -95,7 +95,7 @@ export default function DashboardOverview() {
       value: stats.totalCases,
       icon: ClipboardList,
       color: '#6A2CB0',
-      gradient: ['#6A2CB0', '#8B5CF6'],
+      gradient: ['#6A2CB0', '#8B5CF6'] as const,
     },
     {
       id: 'new',
@@ -103,7 +103,7 @@ export default function DashboardOverview() {
       value: stats.newCases,
       icon: AlertTriangle,
       color: '#E24B95',
-      gradient: ['#E24B95', '#F472B6'],
+      gradient: ['#E24B95', '#F472B6'] as const,
     },
     {
       id: 'pending',
@@ -111,7 +111,7 @@ export default function DashboardOverview() {
       value: stats.pendingAssignment,
       icon: Clock,
       color: '#FF6B35',
-      gradient: ['#FF6B35', '#FB923C'],
+      gradient: ['#FF6B35', '#FB923C'] as const,
     },
     {
       id: 'assigned',
@@ -119,7 +119,7 @@ export default function DashboardOverview() {
       value: stats.assignedCases,
       icon: Users,
       color: '#4ECDC4',
-      gradient: ['#4ECDC4', '#67E8F9'],
+      gradient: ['#4ECDC4', '#67E8F9'] as const,
     },
     {
       id: 'progress',
@@ -127,7 +127,7 @@ export default function DashboardOverview() {
       value: stats.inProgressCases,
       icon: Activity,
       color: '#FFE66D',
-      gradient: ['#FFE66D', '#FDE047'],
+      gradient: ['#FFE66D', '#FDE047'] as const,
     },
     {
       id: 'completed',
@@ -135,7 +135,7 @@ export default function DashboardOverview() {
       value: stats.completedCases,
       icon: CheckCircle2,
       color: '#95E1D3',
-      gradient: ['#95E1D3', '#A7F3D0'],
+      gradient: ['#95E1D3', '#A7F3D0'] as const,
     },
   ];
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking, ActivityIndicator } from 'react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { Siren, AlertTriangle, Clock, MapPin, User, Phone, Search, Filter, Users, MessageCircle, X, Send } from 'lucide-react-native';
 
@@ -25,7 +25,7 @@ interface EmergencyCase {
 }
 
 export default function EmergencyCases() {
-  const { assignedCases, pendingAssignments } = useProvider();
+  const { assignedCases, pendingAssignments, acceptAssignment, isAccepting } = useProvider();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -33,6 +33,7 @@ export default function EmergencyCases() {
   const [showDispatchModal, setShowDispatchModal] = useState<boolean>(false);
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [emergencyCases, setEmergencyCases] = useState<EmergencyCase[]>([]);
+  const [acceptingCaseId, setAcceptingCaseId] = useState<string | null>(null);
 
   // Convert real assignments to emergency cases format
   React.useEffect(() => {
@@ -141,41 +142,75 @@ export default function EmergencyCases() {
     setShowContactModal(true);
   };
 
-  const dispatchTeam = (teamId: string) => {
+  const dispatchTeam = async (teamId: string) => {
     if (!selectedCase) return;
 
     const team = availableTeams.find(t => t.id === teamId);
     if (!team) return;
 
-    // Update case with dispatch information
-    setEmergencyCases(prev => prev.map(case_ =>
-      case_.id === selectedCase.id
-        ? {
-            ...case_,
-            status: 'responding' as const,
-            responseTeam: team.name,
-            estimatedArrival: team.eta,
-            activityLog: [
-              ...case_.activityLog,
-              {
-                timestamp: new Date().toISOString(),
-                action: 'Team Dispatched',
-                details: `${team.name} dispatched to location - ETA: ${team.eta}`,
-                user: 'Dispatcher-001'
-              }
-            ]
-          }
-        : case_
-    ));
+    // Find the incident ID from pending assignments
+    const pendingAssignment = pendingAssignments.find(a => a.id === selectedCase.id);
 
-    setShowDispatchModal(false);
-    setSelectedCase(null);
+    if (pendingAssignment) {
+      // This is a pending assignment - accept it via backend API
+      setAcceptingCaseId(selectedCase.id);
 
-    Alert.alert(
-      'Team Dispatched Successfully',
-      `${team.name} has been dispatched to ${selectedCase.location}. ETA: ${team.eta}`,
-      [{ text: 'OK' }]
-    );
+      try {
+        console.log('🚨 GBV Rescue accepting assignment:', pendingAssignment.incidentId);
+
+        // Accept the assignment via backend API
+        await acceptAssignment(pendingAssignment.incidentId);
+
+        console.log('✅ Assignment accepted successfully');
+
+        Alert.alert(
+          'Team Dispatched Successfully',
+          `${team.name} has been dispatched and assignment accepted. The case is now in progress.`,
+          [{ text: 'OK' }]
+        );
+      } catch (error) {
+        console.error('❌ Error accepting assignment:', error);
+        Alert.alert(
+          'Error',
+          'Failed to accept assignment. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setAcceptingCaseId(null);
+        setShowDispatchModal(false);
+        setSelectedCase(null);
+      }
+    } else {
+      // This is an already accepted case - just update local UI
+      setEmergencyCases(prev => prev.map(case_ =>
+        case_.id === selectedCase.id
+          ? {
+              ...case_,
+              status: 'responding' as const,
+              responseTeam: team.name,
+              estimatedArrival: team.eta,
+              activityLog: [
+                ...case_.activityLog,
+                {
+                  timestamp: new Date().toISOString(),
+                  action: 'Team Dispatched',
+                  details: `${team.name} dispatched to location - ETA: ${team.eta}`,
+                  user: 'GBV-Rescue-Team'
+                }
+              ]
+            }
+          : case_
+      ));
+
+      setShowDispatchModal(false);
+      setSelectedCase(null);
+
+      Alert.alert(
+        'Team Dispatched Successfully',
+        `${team.name} has been dispatched to ${selectedCase.location}. ETA: ${team.eta}`,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const contactSurvivor = (method: 'call' | 'sms' | 'secure') => {
@@ -401,15 +436,21 @@ export default function EmergencyCases() {
 
               <View style={styles.teamsSection}>
                 <Text style={styles.modalSectionTitle}>Available Teams</Text>
+                {acceptingCaseId && (
+                  <View style={styles.acceptingBanner}>
+                    <ActivityIndicator size="small" color="#6A2CB0" />
+                    <Text style={styles.acceptingText}>Accepting assignment and dispatching team...</Text>
+                  </View>
+                )}
                 {availableTeams.map((team) => (
                   <TouchableOpacity
                     key={team.id}
                     style={[
                       styles.teamCard,
-                      team.status === 'busy' && styles.teamCardDisabled
+                      (team.status === 'busy' || acceptingCaseId) && styles.teamCardDisabled
                     ]}
-                    onPress={() => team.status === 'available' && dispatchTeam(team.id)}
-                    disabled={team.status === 'busy'}
+                    onPress={() => team.status === 'available' && !acceptingCaseId && dispatchTeam(team.id)}
+                    disabled={team.status === 'busy' || !!acceptingCaseId}
                   >
                     <View style={styles.teamInfo}>
                       <Text style={styles.teamName}>{team.name}</Text>
@@ -854,5 +895,20 @@ const styles = StyleSheet.create({
   contactMethodDescription: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  acceptingBanner: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  acceptingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6A2CB0',
+    flex: 1,
   },
 });

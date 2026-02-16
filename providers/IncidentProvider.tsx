@@ -39,6 +39,12 @@ export interface Incident {
   evidence: Evidence[];
   messages: Message[];
   assignedProviderId?: string;
+  assignedProviders?: Array<{
+    provider_id: string;
+    provider_name: string;
+    provider_type: string;
+    assigned_at: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }

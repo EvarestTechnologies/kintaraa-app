@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shield, FileText, Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react-native';
+import ProviderNotificationFab from '@/app/components/_ProviderNotificationFab';
 import NewCaseModal from './NewCaseModal';
 import NewEvidenceModal from './NewEvidenceModal';
 import NewReportModal from './NewReportModal';
@@ -273,6 +274,9 @@ const DashboardOverview: React.FC = () => {
         }}
         cases={mockCases}
       />
+
+      {/* Notification FAB for pending case assignments */}
+      <ProviderNotificationFab />
     </SafeAreaView>
   );
 };
