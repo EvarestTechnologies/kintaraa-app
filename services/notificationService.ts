@@ -17,6 +17,8 @@ export interface SurvivorNotification {
 }
 
 export class NotificationService {
+  // Store survivor notifications in memory (in real app, this would be in database/storage)
+  private static survivorNotifications: SurvivorNotification[] = [];
 
   /**
    * Create notifications for providers when incident is routed
@@ -477,5 +479,49 @@ export class NotificationService {
       caseUpdates: notifications.filter(n => n.type === 'case_update'),
       messages: notifications.filter(n => n.type === 'message'),
     };
+  }
+
+  // ===== SURVIVOR NOTIFICATION STORAGE METHODS =====
+
+  /**
+   * Store a survivor notification
+   */
+  static storeSurvivorNotification(notification: SurvivorNotification): void {
+    this.survivorNotifications.unshift(notification); // Add to beginning for newest first
+    console.log('Stored survivor notification:', notification.title);
+  }
+
+  /**
+   * Get survivor notifications for a specific incident
+   */
+  static getSurvivorNotifications(incidentId: string): SurvivorNotification[] {
+    return this.survivorNotifications.filter(n => n.incidentId === incidentId);
+  }
+
+  /**
+   * Get all survivor notifications for a survivor (across all their incidents)
+   */
+  static getAllSurvivorNotifications(survivorIncidentIds: string[]): SurvivorNotification[] {
+    return this.survivorNotifications.filter(n =>
+      n.incidentId && survivorIncidentIds.includes(n.incidentId)
+    );
+  }
+
+  /**
+   * Mark survivor notification as read
+   */
+  static markSurvivorNotificationRead(notificationId: string): void {
+    const notification = this.survivorNotifications.find(n => n.id === notificationId);
+    if (notification) {
+      notification.isRead = true;
+    }
+  }
+
+  /**
+   * Get unread survivor notification count
+   */
+  static getUnreadSurvivorNotificationCount(survivorIncidentIds: string[]): number {
+    return this.getAllSurvivorNotifications(survivorIncidentIds)
+      .filter(n => !n.isRead).length;
   }
 }

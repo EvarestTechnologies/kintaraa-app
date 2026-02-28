@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,21 +22,28 @@ import {
   XCircle,
   AlertTriangle,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { router } from 'expo-router';
+import { AppointmentStatusService } from '@/services/appointmentStatusService';
 import type { Appointment, Patient } from '../index';
 import AppointmentSchedulingModal from './AppointmentSchedulingModal';
 import PatientSelectionModal from './PatientSelectionModal';
+import AppointmentRescheduleModal from './AppointmentRescheduleModal';
 
-type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+type AppointmentStatus = 'pending' | 'scheduled' | 'confirmed' | 'declined' | 'reschedule_requested' | 'rescheduled' | 'in_progress' | 'completed' | 'cancelled';
 type AppointmentType = 'consultation' | 'follow_up' | 'emergency' | 'therapy';
 type AppointmentMode = 'in_person' | 'video_call' | 'phone_call';
-type FilterType = 'all' | 'today' | 'upcoming' | 'completed' | 'cancelled';
+type FilterType = 'all' | 'today' | 'upcoming' | 'completed' | 'cancelled' | 'needs_attention';
 
 const statusConfig = {
+  pending: { color: '#F59E0B', icon: Clock, label: 'Pending' },
   scheduled: { color: '#F59E0B', icon: Clock, label: 'Scheduled' },
   confirmed: { color: '#10B981', icon: CheckCircle, label: 'Confirmed' },
+  declined: { color: '#EF4444', icon: XCircle, label: 'Declined' },
+  reschedule_requested: { color: '#F59E0B', icon: Clock, label: 'Reschedule Requested' },
+  rescheduled: { color: '#3B82F6', icon: Clock, label: 'Rescheduled' },
   in_progress: { color: '#3B82F6', icon: Clock, label: 'In Progress' },
   completed: { color: '#059669', icon: CheckCircle, label: 'Completed' },
   cancelled: { color: '#EF4444', icon: XCircle, label: 'Cancelled' },
@@ -59,6 +66,7 @@ const filterOptions: { key: FilterType; label: string }[] = [
   { key: 'all', label: 'All Appointments' },
   { key: 'today', label: 'Today' },
   { key: 'upcoming', label: 'Upcoming' },
+  { key: 'needs_attention', label: 'Needs Attention' },
   { key: 'completed', label: 'Completed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
@@ -71,6 +79,20 @@ export default function AppointmentsList() {
   const [showPatientSelection, setShowPatientSelection] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedAppointmentForReschedule, setSelectedAppointmentForReschedule] = useState<Appointment | null>(null);
+  const [statusUpdates, setStatusUpdates] = useState(AppointmentStatusService.getRecentStatusUpdates());
+  const [needsAttention, setNeedsAttention] = useState(AppointmentStatusService.getStatusUpdatesNeedingAttention());
+
+  // Poll for status updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStatusUpdates(AppointmentStatusService.getRecentStatusUpdates());
+      setNeedsAttention(AppointmentStatusService.getStatusUpdatesNeedingAttention());
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Transform cases to appointments
   const appointments: Appointment[] = useMemo(() => {
@@ -88,8 +110,11 @@ export default function AppointmentsList() {
         const modes: AppointmentMode[] = ['in_person', 'video_call', 'phone_call'];
         const statuses: AppointmentStatus[] = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled'];
         
+        const appointmentId = `${case_.id}-apt-${i}`;
+        const liveStatus = AppointmentStatusService.getAppointmentStatus(appointmentId);
+
         appointmentsList.push({
-          id: `${case_.id}-apt-${i}`,
+          id: appointmentId,
           patientName: `Patient ${case_.caseNumber.split('-')[2] || index + 1}`,
           patientId: case_.id,
           type: types[i % types.length],
@@ -97,7 +122,7 @@ export default function AppointmentsList() {
           date: appointmentDate.toISOString().split('T')[0],
           time: `${9 + (i * 2)}:${i % 2 === 0 ? '00' : '30'}`,
           duration: 30 + (i * 15),
-          status: statuses[i % statuses.length],
+          status: liveStatus !== 'pending' ? liveStatus : statuses[i % statuses.length],
           location: case_.location?.address || case_.location?.description || 'Location not specified',
           notes: i === 0 ? 'Initial consultation' : `Follow-up session ${i}`,
           priority: (['low', 'medium', 'high', 'urgent'] as const)[i % 4],
@@ -106,10 +131,10 @@ export default function AppointmentsList() {
       }
     });
     
-    return appointmentsList.sort((a, b) => 
+    return appointmentsList.sort((a, b) =>
       new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime()
     );
-  }, [assignedCases]);
+  }, [assignedCases, statusUpdates]);
 
   // Transform cases to patients for appointment scheduling
   const patients: Patient[] = useMemo(() => {
@@ -145,6 +170,11 @@ export default function AppointmentsList() {
           const aptDateTime = new Date(`${apt.date} ${apt.time}`);
           return aptDateTime > now && apt.status !== 'cancelled' && apt.status !== 'completed';
         });
+        break;
+      case 'needs_attention':
+        filtered = filtered.filter(apt =>
+          apt.status === 'declined' || apt.status === 'reschedule_requested'
+        );
         break;
       case 'completed':
         filtered = filtered.filter(apt => apt.status === 'completed');
@@ -255,6 +285,45 @@ export default function AppointmentsList() {
     return aptDateTime > new Date() && appointment.status !== 'cancelled' && appointment.status !== 'completed';
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  const handleRescheduleAppointment = (appointment: Appointment) => {
+    setSelectedAppointmentForReschedule(appointment);
+    setShowRescheduleModal(true);
+  };
+
+  const handleRescheduleConfirmed = (appointmentId: string, newDate: string, newTime: string, reason?: string) => {
+    // The AppointmentRescheduleModal already updates the status via AppointmentStatusService
+    // Just show success feedback and close modal
+    setShowRescheduleModal(false);
+    setSelectedAppointmentForReschedule(null);
+
+    // Force refresh of appointments to show updated status
+    setStatusUpdates(AppointmentStatusService.getRecentStatusUpdates());
+    setNeedsAttention(AppointmentStatusService.getStatusUpdatesNeedingAttention());
+  };
+
+  const handleAlertCardPress = (update: any) => {
+    // Find the appointment that needs attention
+    const appointment = appointments.find(apt => apt.id === update.appointmentId);
+    if (appointment && appointment.status === 'reschedule_requested') {
+      handleRescheduleAppointment(appointment);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -314,6 +383,52 @@ export default function AppointmentsList() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        )}
+
+        {/* Status Alerts */}
+        {needsAttention.length > 0 && (
+          <View style={styles.alertsContainer}>
+            <View style={styles.alertHeader}>
+              <AlertTriangle color="#F59E0B" size={16} />
+              <Text style={styles.alertTitle}>
+                {needsAttention.length} appointment{needsAttention.length > 1 ? 's' : ''} need{needsAttention.length === 1 ? 's' : ''} attention
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.alertsList}>
+              {needsAttention.map((update) => (
+                <TouchableOpacity
+                  key={update.appointmentId}
+                  style={styles.alertCard}
+                  onPress={() => handleAlertCardPress(update)}
+                >
+                  <Text style={styles.alertCardTitle}>
+                    {update.newStatus === 'declined' ? 'Appointment Declined' : 'Reschedule Requested'}
+                  </Text>
+                  <Text style={styles.alertCardSubtitle}>
+                    Appointment {update.appointmentId.split('-')[2]}
+                  </Text>
+                  {update.reason && (
+                    <Text style={styles.alertCardReason}>
+                      Reason: {update.reason}
+                    </Text>
+                  )}
+                  {update.rescheduleDetails && (
+                    <Text style={styles.alertCardDetails}>
+                      Requested: {update.rescheduleDetails.newDate} at {update.rescheduleDetails.newTime}
+                    </Text>
+                  )}
+                  <Text style={styles.alertCardTime}>
+                    {formatTimeAgo(update.updatedAt)}
+                  </Text>
+                  {update.newStatus === 'reschedule_requested' && (
+                    <View style={styles.alertCardAction}>
+                      <Text style={styles.alertCardActionText}>Tap to reschedule</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         )}
       </View>
 
@@ -422,8 +537,18 @@ export default function AppointmentsList() {
 
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
+                {appointment.status === 'reschedule_requested' && (
+                  <TouchableOpacity
+                    style={styles.rescheduleButton}
+                    onPress={() => handleRescheduleAppointment(appointment)}
+                  >
+                    <RotateCcw color="#FFFFFF" size={16} />
+                    <Text style={styles.rescheduleButtonText}>Reschedule</Text>
+                  </TouchableOpacity>
+                )}
+
                 {isUpcoming(appointment) && (appointment.mode === 'video_call' || appointment.mode === 'phone_call') && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.joinButton}
                     onPress={() => handleJoinCall(appointment)}
                   >
@@ -437,8 +562,8 @@ export default function AppointmentsList() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.viewButton}
                   onPress={() => handleAppointmentPress(appointment)}
                 >
@@ -467,6 +592,17 @@ export default function AppointmentsList() {
           setSelectedPatient(null);
         }}
         onSchedule={handleAppointmentScheduled}
+      />
+
+      {/* Appointment Reschedule Modal */}
+      <AppointmentRescheduleModal
+        visible={showRescheduleModal}
+        appointment={selectedAppointmentForReschedule}
+        onClose={() => {
+          setShowRescheduleModal(false);
+          setSelectedAppointmentForReschedule(null);
+        }}
+        onReschedule={handleRescheduleConfirmed}
       />
     </SafeAreaView>
   );
@@ -708,5 +844,91 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  alertsContainer: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    margin: 16,
+    padding: 16,
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  alertsList: {
+    marginTop: 8,
+  },
+  alertCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 12,
+    minWidth: 200,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  alertCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  alertCardSubtitle: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  alertCardReason: {
+    fontSize: 10,
+    color: '#374151',
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  alertCardDetails: {
+    fontSize: 10,
+    color: '#059669',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  alertCardTime: {
+    fontSize: 9,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  alertCardAction: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#E0E7FF',
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  alertCardActionText: {
+    fontSize: 9,
+    color: '#3730A3',
+    fontWeight: '500',
+  },
+  rescheduleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  rescheduleButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

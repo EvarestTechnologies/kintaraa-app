@@ -26,10 +26,14 @@ import {
   Activity,
   Trash2,
   MoreHorizontal,
+  Settings,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SurvivorNotification, NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
+import { AppointmentStatusService } from '@/services/appointmentStatusService';
+import AppointmentConfirmationModal from './AppointmentConfirmationModal';
+import ReminderPreferencesModal from './ReminderPreferencesModal';
 
 const { width } = Dimensions.get('window');
 
@@ -44,17 +48,33 @@ export default function SurvivorNotificationFab({
   const [scaleAnim] = useState(new Animated.Value(1));
   const [notifications, setNotifications] = useState<SurvivorNotification[]>([]);
   const [clearedNotifications, setClearedNotifications] = useState<string[]>([]);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedAppointmentNotification, setSelectedAppointmentNotification] = useState<SurvivorNotification | null>(null);
+  const [showReminderPreferences, setShowReminderPreferences] = useState(false);
 
-  // Get live notifications from ProviderResponseService
+  // Get live notifications from both services
   useEffect(() => {
+    // Get notifications from both services
     const liveNotifications = ProviderResponseService.getAllSurvivorNotifications();
-    setNotifications(liveNotifications);
+    // Get appointment notifications from NotificationService (for dummy incidents)
+    const appointmentNotifications = NotificationService.getAllSurvivorNotifications([
+      'dummy-1', 'dummy-2', 'dummy-3', 'dummy-4', 'dummy-5',
+      'dummy-6', 'dummy-7', 'dummy-8', 'dummy-9', 'dummy-10',
+      'dummy-11', 'dummy-12'
+    ]);
+
+    setNotifications([...liveNotifications, ...appointmentNotifications]);
 
     // Poll for new notifications every 5 seconds
     const interval = setInterval(() => {
-      const updatedNotifications = ProviderResponseService.getAllSurvivorNotifications();
-      setNotifications(updatedNotifications);
-    }, 5000);
+      const updatedLiveNotifications = ProviderResponseService.getAllSurvivorNotifications();
+      const updatedAppointmentNotifications = NotificationService.getAllSurvivorNotifications([
+        'dummy-1', 'dummy-2', 'dummy-3', 'dummy-4', 'dummy-5',
+        'dummy-6', 'dummy-7', 'dummy-8', 'dummy-9', 'dummy-10',
+        'dummy-11', 'dummy-12'
+      ]);
+      setNotifications([...updatedLiveNotifications, ...updatedAppointmentNotifications]);
+    }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -145,8 +165,17 @@ export default function SurvivorNotificationFab({
   };
 
   const handleNotificationPress = (notification: SurvivorNotification) => {
-    // Mark as read
+    // Mark as read in both services
     ProviderResponseService.markSurvivorNotificationRead(notification.id);
+    NotificationService.markSurvivorNotificationRead(notification.id);
+
+    // If this is an appointment notification, show the appointment confirmation modal
+    if (notification.type === 'appointment') {
+      setSelectedAppointmentNotification(notification);
+      setShowAppointmentModal(true);
+      setShowNotifications(false);
+      return;
+    }
 
     if (onNotificationPress) {
       onNotificationPress(notification);
@@ -175,6 +204,7 @@ export default function SurvivorNotificationFab({
     activeNotifications.forEach(notification => {
       if (!notification.isRead) {
         ProviderResponseService.markSurvivorNotificationRead(notification.id);
+        NotificationService.markSurvivorNotificationRead(notification.id);
       }
     });
   };
@@ -225,6 +255,51 @@ export default function SurvivorNotificationFab({
   const sortedNotifications = activeNotifications
     .sort((a, b) => NotificationService.getSurvivorNotificationPriority(b) - NotificationService.getSurvivorNotificationPriority(a));
 
+  // Appointment confirmation modal handlers
+  const handleAppointmentConfirm = (appointmentId: string) => {
+    // Update appointment status in the service
+    AppointmentStatusService.processSurvivorAppointmentResponse(appointmentId, 'confirm');
+
+    Alert.alert(
+      'Appointment Confirmed',
+      'Your appointment has been confirmed. The provider has been notified and you will receive a reminder before the scheduled time.',
+      [{ text: 'OK' }]
+    );
+    setShowAppointmentModal(false);
+    setSelectedAppointmentNotification(null);
+  };
+
+  const handleAppointmentDecline = (appointmentId: string, reason: string) => {
+    // Update appointment status in the service
+    AppointmentStatusService.processSurvivorAppointmentResponse(appointmentId, 'decline', reason);
+
+    Alert.alert(
+      'Appointment Declined',
+      `Your appointment has been declined. Reason: ${reason}. The provider has been notified and may contact you to reschedule.`,
+      [{ text: 'OK' }]
+    );
+    setShowAppointmentModal(false);
+    setSelectedAppointmentNotification(null);
+  };
+
+  const handleAppointmentReschedule = (appointmentId: string, newDate: string, newTime: string, reason: string) => {
+    // Update appointment status in the service
+    AppointmentStatusService.processSurvivorAppointmentResponse(
+      appointmentId,
+      'reschedule',
+      reason,
+      { newDate, newTime }
+    );
+
+    Alert.alert(
+      'Reschedule Request Sent',
+      `Your reschedule request for ${newDate} at ${newTime} has been sent to the provider. Reason: ${reason}. They will confirm the new time shortly.`,
+      [{ text: 'OK' }]
+    );
+    setShowAppointmentModal(false);
+    setSelectedAppointmentNotification(null);
+  };
+
   return (
     <>
       {/* Floating Action Button */}
@@ -272,6 +347,12 @@ export default function SurvivorNotificationFab({
                   <Text style={styles.markAllText}>Mark All Read</Text>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                onPress={() => setShowReminderPreferences(true)}
+                style={styles.settingsButton}
+              >
+                <Settings size={20} color="#6B7280" />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowNotifications(false)}
                 style={styles.closeButton}
@@ -378,6 +459,27 @@ export default function SurvivorNotificationFab({
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Appointment Confirmation Modal */}
+      <AppointmentConfirmationModal
+        visible={showAppointmentModal}
+        notification={selectedAppointmentNotification}
+        onClose={() => {
+          setShowAppointmentModal(false);
+          setSelectedAppointmentNotification(null);
+        }}
+        onConfirm={handleAppointmentConfirm}
+        onDecline={handleAppointmentDecline}
+        onReschedule={handleAppointmentReschedule}
+      />
+
+      {/* Reminder Preferences Modal */}
+      <ReminderPreferencesModal
+        visible={showReminderPreferences}
+        onClose={() => setShowReminderPreferences(false)}
+        userId="survivor-1"
+        userType="survivor"
+      />
     </>
   );
 }
@@ -467,6 +569,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 2,
+  },
+  settingsButton: {
+    padding: 8,
   },
   closeButton: {
     padding: 8,
