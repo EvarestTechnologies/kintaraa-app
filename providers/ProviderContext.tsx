@@ -7,6 +7,7 @@ import { ProviderRoutingService, ProviderAssignment } from '@/services/providerR
 import { NotificationService } from '@/services/notificationService';
 import { ProviderResponseService } from '@/services/providerResponseService';
 import { getAssignedCases, acceptAssignment as acceptAssignmentAPI, rejectAssignment as rejectAssignmentAPI, updateIncidentStatus } from '@/services/assignments';
+import { useProviderWebSocket } from '@/hooks/useProviderWebSocket';
 
 export interface ProviderStats {
   totalCases: number;
@@ -66,6 +67,9 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<ProviderNotification[]>([]);
   const [providerAssignments, setProviderAssignments] = useState<ProviderAssignment[]>([]);
+
+  // WebSocket-primary real-time updates; polling below acts as 60-second fallback
+  useProviderWebSocket();
 
   // Get provider profile
   const providerProfile = providers.find(p => p.userId === user?.id);
@@ -156,7 +160,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 5000, // Poll every 5 seconds for updates
+    refetchInterval: 60_000, // 60-second safety-net fallback (WS handles real-time)
   });
 
   // Get assigned cases for this provider
@@ -233,7 +237,7 @@ export const [ProviderContext, useProvider] = createContextHook(() => {
       }
     },
     enabled: !!user && user.role === 'provider',
-    refetchInterval: 5000, // Poll every 5 seconds for new assignments
+    refetchInterval: 60_000, // 60-second safety-net fallback (WS handles real-time)
   });
 
   // Calculate provider statistics
