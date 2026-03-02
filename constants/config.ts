@@ -54,12 +54,37 @@ const getApiBaseUrl = (): string => {
   }
 };
 
+/**
+ * Get the WebSocket base URL (no /api suffix — WS routes from root).
+ *
+ * - Web (localhost): ws://127.0.0.1:8000
+ * - Mobile (development): ws://<DYNAMIC_IP>:8000
+ * - Production: wss://api-kintara.onrender.com
+ */
+const getWsBaseUrl = (): string => {
+  if (isProduction) {
+    return 'wss://api-kintara.onrender.com';
+  }
+
+  const backendPort = 8000;
+
+  if (Platform.OS === 'web') {
+    return `ws://127.0.0.1:${backendPort}`;
+  } else {
+    const localIP = getLocalDevIP();
+    return `ws://${localIP}:${backendPort}`;
+  }
+};
+
 // API Configuration
 export const APP_CONFIG = {
   // API Settings
   API: {
     // Automatically select the right URL based on platform and environment
     BASE_URL: getApiBaseUrl(),
+
+    // WebSocket base URL (no /api suffix — WS routes from root)
+    WS_BASE_URL: getWsBaseUrl(),
 
     // Production URL
     PROD_BASE_URL: 'https://api-kintara.onrender.com/api',
@@ -92,7 +117,7 @@ export const APP_CONFIG = {
     ANONYMOUS_REPORTING: true,
     OFFLINE_MODE: false, // Future feature
     PUSH_NOTIFICATIONS: true,
-    REAL_TIME_MESSAGING: false, // Will be enabled with WebSocket implementation
+    REAL_TIME_MESSAGING: true, // Enabled via Django Channels WebSocket
   },
   
   // App Metadata

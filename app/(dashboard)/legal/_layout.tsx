@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Scale, FileText, Building, User } from 'lucide-react-native';
+import { Home, Scale, FileText, Building, User, MessageCircle } from 'lucide-react-native';
 
 export default function LegalTabLayout() {
   console.log('⚖️ LegalTabLayout - Rendering Legal Dashboard');
@@ -52,6 +52,13 @@ export default function LegalTabLayout() {
         options={{
           title: 'Court',
           tabBarIcon: ({ color, size }) => <Building color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Users, HandHeart, BookOpen, User } from 'lucide-react-native';
+import { Home, Users, HandHeart, BookOpen, User, MessageCircle } from 'lucide-react-native';
 
 export default function SocialTabLayout() {
   console.log('🤝 SocialTabLayout - Rendering Social Dashboard');
@@ -52,6 +52,13 @@ export default function SocialTabLayout() {
         options={{
           title: 'Resources',
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen

@@ -1,12 +1,12 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { IncidentProvider } from "@/providers/IncidentProvider";
 import { ProviderContext } from "@/providers/ProviderContext";
 import { WellbeingProvider } from "@/providers/WellbeingProvider";
@@ -79,6 +79,68 @@ const errorStyles = StyleSheet.create({
 });
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Registers for Expo push notifications and handles notification taps.
+ *
+ * Uses dynamic import of expo-notifications so the app still boots if the
+ * package is not yet installed.  Run the following to enable push:
+ *   npx expo install expo-notifications
+ */
+function PushNotificationSetup() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!user) return; // only register when authenticated
+
+    let subscription: { remove: () => void } | null = null;
+
+    const setup = async () => {
+      try {
+        // Push notifications don't work in Expo Go (SDK 53+); skip silently
+        const Constants = await import('expo-constants').then(m => m.default);
+        if (Constants.appOwnership === 'expo') return;
+
+        // Dynamic import — won't crash if expo-notifications isn't installed
+        const Notifications = await import('expo-notifications').catch(() => null);
+        if (!Notifications) return;
+
+        // Request permission
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') return;
+
+        // Obtain Expo push token
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+
+        // Register with backend
+        const { registerPushToken } = await import('@/services/messaging');
+        await registerPushToken(tokenData.data, platform);
+
+        // Handle notification taps → navigate to messages screen
+        subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+          const data = response.notification.request.content.data as Record<string, unknown>;
+          const incidentId = data?.incidentId as string | undefined;
+          if (incidentId) {
+            router.push(`/messages/${incidentId}`);
+          }
+        });
+      } catch (err) {
+        // Non-critical — log and continue
+        console.warn('[PushNotificationSetup] Failed to register:', err);
+      }
+    };
+
+    setup();
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [user, router]);
+
+  return null;
+}
 
 // Create offline-capable QueryClient and persister
 const queryClient = createOfflineQueryClient();
@@ -204,6 +266,7 @@ export default function RootLayout() {
                     <ProviderContext>
                       <WellbeingProvider>
                         <RecommendationProvider>
+                          <PushNotificationSetup />
                           <RootLayoutNav />
                           <StatusBar style={styles.statusBar} />
                         </RecommendationProvider>

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Users, UserPlus, MapPin, User } from 'lucide-react-native';
+import { Home, Users, UserPlus, MapPin, User, MessageCircle } from 'lucide-react-native';
 
 export default function CHWTabLayout() {
   console.log('🏥 CHWTabLayout - Rendering Community Health Worker Dashboard');
@@ -52,6 +52,13 @@ export default function CHWTabLayout() {
         options={{
           title: 'Locations',
           tabBarIcon: ({ color, size }) => <MapPin color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen
