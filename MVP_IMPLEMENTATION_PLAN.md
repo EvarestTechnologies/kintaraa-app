@@ -1,8 +1,9 @@
 # Kintaraa MVP Implementation Plan
 ## 3-Dashboard System: Survivor, Dispatch Center & GBV Rescue
 
-**Target Date**: January 15, 2026
-**Days Available**: 20 days (December 26, 2025 - January 15, 2026)
+**Target Date**: January 15, 2026 (original) — revised to March 21, 2026
+**Current Date**: March 7, 2026
+**Days Remaining**: ~14 days to complete MVP
 **Scope**: Functional Survivor Dashboard + GBV Center Dispatch Dashboard + GBV Rescue Dashboard with real backend integration
 
 ---
@@ -10,986 +11,505 @@
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
-2. [Critical Issues Found](#2-critical-issues-found)
-3. [MVP Scope Definition](#3-mvp-scope-definition)
-4. [Architecture Decision](#4-architecture-decision)
-5. [Implementation Phases](#5-implementation-phases)
-6. [Detailed Task Breakdown](#6-detailed-task-breakdown)
-7. [Testing Strategy](#7-testing-strategy)
-8. [Risk Mitigation](#8-risk-mitigation)
-9. [Post-MVP Roadmap](#9-post-mvp-roadmap)
+2. [Current State — As of March 7, 2026](#2-current-state--as-of-march-7-2026)
+3. [What Has Been Completed](#3-what-has-been-completed)
+4. [What Is Remaining](#4-what-is-remaining)
+5. [MVP Scope Definition](#5-mvp-scope-definition)
+6. [Architecture Decision](#6-architecture-decision)
+7. [Remaining Implementation Plan](#7-remaining-implementation-plan)
+8. [Testing Strategy](#8-testing-strategy)
+9. [Risk Mitigation](#9-risk-mitigation)
+10. [Post-MVP Roadmap](#10-post-mvp-roadmap)
 
 ---
 
 ## 1. Executive Summary
 
-### 1.1 Current State
+### 1.1 Progress Since Plan Was Written (Dec 26, 2025)
 
-**Frontend (React Native)**:
-- ✅ 98% complete UI/UX implementation
-- ❌ Using mock data (AsyncStorage)
-- ❌ No real backend integration
-- ❌ Zero test coverage
-- ⚠️ Large unmaintainable files (36K+ lines)
+The MVP has made significant progress. The project is now at approximately **70% overall completion** with the backend infrastructure, authentication, incident management, provider assignment, and messaging backend all functional. The critical remaining work is:
 
-**Backend (Django)**:
-- ✅ 95% complete authentication system
-- ✅ 70% complete incident reporting
-- ❌ 0% provider management
-- ❌ 0% messaging system
-- ❌ 0% real-time features
-- ❌ Critical security gaps
-- ❌ Zero test coverage
+1. **Frontend messaging integration** — backend is complete, frontend still uses mock data
+2. **Push notifications** — backend infrastructure exists, frontend registration not done
+3. **Dispatcher routing bug** — login redirects to wrong dashboard
+4. **End-to-end testing** — integration testing across all flows
+5. **Deployment** — production environment not yet configured
 
-### 1.2 Gap Analysis
+### 1.2 Updated Status Summary
 
-| Feature | Frontend | Backend | Gap |
-|---------|----------|---------|-----|
-| User Authentication | ✅ Complete | ✅ Complete | ✅ Ready to integrate |
-| Incident Reporting | ✅ Complete | ✅ Mostly done | ⚠️ Voice upload incomplete |
-| Case Assignment | ✅ UI ready | ❌ No API | ❌ Backend needed |
-| Messaging | ✅ UI ready | ❌ No WebSocket | ❌ Backend needed |
-| File Upload (Evidence) | ✅ UI ready | ❌ No API | ❌ Backend needed |
-| Notifications | ✅ UI ready | ❌ No FCM | ❌ Backend needed |
-| Provider Dashboard | ✅ UI ready | ❌ No models | ❌ Backend needed |
-| GBV Rescue Features | ✅ UI ready | ❌ No models | ❌ Backend needed |
-
-### 1.3 MVP Strategy
-
-**Decision**: **DO NOT separate apps** for MVP. Focus on getting **3 dashboards working end-to-end** in the existing monolith.
-
-**Rationale**:
-- 20 days is insufficient for app separation + feature development
-- Separation adds complexity (3 codebases, 3 deployments)
-- Can separate post-MVP when stable
-- Faster time to market with monolith
-- Dispatch center is critical for quality control and coordination
-
-**MVP Features** (Minimal Viable):
-1. ✅ User authentication (3 roles: survivor, dispatcher, provider)
-2. ✅ Survivor creates incident
-3. ✅ **Dispatch center receives and assigns cases** (NEW)
-4. ✅ Hybrid assignment: auto-assign urgent, manual for routine
-5. ✅ GBV Rescue accepts/views assigned cases
-6. ✅ Basic messaging (HTTP polling, NOT WebSocket)
-7. ✅ Case status updates
-8. ✅ Push notifications (basic)
-9. ✅ **Dispatch monitoring and coordination** (NEW)
-
-**Deferred to Post-MVP**:
-- ❌ Real-time WebSocket messaging
-- ❌ Other 6 provider types (healthcare, legal, police, counseling, social, CHW)
-- ❌ Wellbeing tracking
-- ❌ Appointments
-- ❌ Evidence file uploads (beyond voice)
-- ❌ App separation
+| Component | Original Status | Current Status | Gap |
+|-----------|----------------|----------------|-----|
+| Backend Auth | 95% | ✅ 100% | Done |
+| Backend Incidents | 70% | ✅ 100% | Done |
+| Backend Assignment | 0% | ✅ 100% | Done |
+| Backend Dispatch API | 0% | ✅ 100% | Done |
+| Backend Messaging | 0% | ✅ 100% | Done |
+| Backend Push Notifications | 0% | ✅ 90% | Celery tasks ready, FCM via Expo |
+| Backend WebSocket | 0% | ✅ 85% | ProviderConsumer implemented |
+| Backend Provider Profiles | 0% | ✅ 100% | Done |
+| Frontend Auth | ✅ | ✅ 100% | Fully integrated |
+| Frontend Incidents | ✅ | ✅ 100% | Fully integrated |
+| Frontend Assignment | ✅ UI | ✅ 100% | Fully integrated |
+| Frontend Dispatcher Dashboard | ✅ UI | ✅ 95% | Routing bug remaining |
+| Frontend Messaging | ✅ UI | ❌ 20% | Not integrated with backend |
+| Frontend Push Notifications | ✅ UI | ❌ 10% | Token registration not done |
+| Deployment | 0% | ❌ 0% | Not started |
+| Tests | 0% | ❌ 5% | Minimal test coverage |
 
 ---
 
-## 2. Critical Issues Found
+## 2. Current State — As of March 7, 2026
 
-### 2.1 Security Issues (MUST FIX IMMEDIATELY)
+### 2.1 Backend (kintara-backend)
 
-| Issue | Severity | Location | Impact |
-|-------|----------|----------|--------|
-| **AllowAny Permissions** | 🔴 CRITICAL | `backend/kintara/settings.py:169` | Anyone can access all endpoints |
-| **No Rate Limiting** | 🔴 CRITICAL | Settings | API abuse, DDoS risk |
-| **Weak Secret Key** | 🟡 HIGH | `settings.py:17` | Session/token security |
-| **No Input Sanitization** | 🟡 HIGH | All serializers | XSS risk |
-| **File Upload No Validation** | 🟡 HIGH | Voice upload | Malware risk |
+**Location**: `/home/athooh/Documents/Work/Evarest/kintara-backend`
+**Stack**: Django 4.2.24 + PostgreSQL + Redis + Celery + Django Channels
 
-### 2.2 Backend Missing Features
+**Confirmed Working (from code analysis + commit history):**
 
-| Feature | Status | Required For |
-|---------|--------|--------------|
-| CaseAssignment model | ❌ Missing | Provider assignment |
-| **Dispatcher role & permissions** | ❌ Missing | Dispatch dashboard |
-| **Dispatch dashboard API** | ❌ Missing | Central command center |
-| **Hybrid assignment service** | ❌ Missing | Auto + manual assignment |
-| ChatRoom & Message models | ❌ Missing | Messaging |
-| Evidence model | ❌ Missing | File uploads |
-| Notification model | ❌ Missing | Push notifications |
-| GBVRescueResponse model | ❌ Missing | GBV Rescue dashboard |
-| Provider assignment API | ❌ Missing | Auto-routing |
-| Messaging API | ❌ Missing | Communication |
-| FCM integration | ❌ Missing | Push notifications |
+#### Apps Implemented
+- `apps/authentication/` — Full JWT auth, user roles (survivor, provider, dispatcher, admin), biometric support
+- `apps/incidents/` — Full CRUD, CaseAssignment model, accept/reject workflow, HybridAssignmentService
+- `apps/dispatch/` — Full dispatcher API (dashboard stats, case management, manual assignment, reassignment)
+- `apps/providers/` — ProviderProfile model, assigned-cases endpoint, available providers endpoint
+- `apps/messaging/` — **FULLY IMPLEMENTED** (contrary to earlier analysis): Conversation, Message, MessageReadReceipt, CaseActivity, PushToken models; full REST API + WebSocket consumer; Celery tasks for push notifications; encryption at rest (Fernet/AES-128)
 
-### 2.3 Frontend Issues
+#### Key Backend Endpoints
+```
+Authentication:
+  POST /api/auth/login/
+  POST /api/auth/register/
+  POST /api/auth/logout/
+  POST /api/auth/refresh/
+  GET  /api/auth/me/
 
-| Issue | Severity | Location | Impact |
-|-------|----------|----------|--------|
-| **No Backend Integration** | 🔴 CRITICAL | All API calls | Using mock data |
-| **Large Component Files** | 🟡 HIGH | `survivor/*.tsx` (36K lines) | Unmaintainable |
-| **No Tests** | 🟡 HIGH | Entire codebase | Quality risk |
-| **Provider Routing in Frontend** | 🟡 HIGH | `services/providerRouting.ts` | Should be backend |
+Incidents (Survivor):
+  GET    /api/incidents/
+  POST   /api/incidents/
+  GET    /api/incidents/{id}/
+  PATCH  /api/incidents/{id}/
+  DELETE /api/incidents/{id}/
+  GET    /api/incidents/stats/
+  POST   /api/incidents/upload-voice/
+  POST   /api/incidents/{id}/assign/
+  PATCH  /api/incidents/{id}/accept/
+  PATCH  /api/incidents/{id}/reject/
+  GET    /api/incidents/{id}/activity/
+
+Providers:
+  GET    /api/providers/assigned-cases/
+  GET    /api/providers/available/
+  PATCH  /api/providers/cases/{id}/status/
+
+Dispatch:
+  GET    /api/dispatch/dashboard/
+  GET    /api/dispatch/cases/
+  POST   /api/dispatch/cases/{id}/assign/
+  POST   /api/dispatch/cases/{id}/reassign/
+
+Messaging:
+  GET    /api/messaging/conversations/
+  GET    /api/messaging/conversations/{id}/
+  POST   /api/messaging/conversations/{id}/send_message/
+  POST   /api/messaging/conversations/{id}/mark-all-read/
+  GET    /api/messaging/conversations/{id}/unread-count/
+  GET    /api/messaging/conversations/{id}/messages/
+  PATCH  /api/messaging/messages/{id}/
+  DELETE /api/messaging/messages/{id}/
+  POST   /api/messaging/messages/{id}/read/
+  POST   /api/messaging/push-token/
+
+WebSocket:
+  ws/providers/ — Real-time provider notifications (case_assigned, case_updated)
+```
+
+#### Backend Architecture Highlights
+- **Dual status system**: `Incident.status` + `CaseAssignment.status` for flexible workflow
+- **Hybrid assignment**: All incidents queued for dispatcher manual assignment (full control)
+- **Message encryption**: Fernet AES-128 encryption at rest for all message content
+- **Automatic conversation creation**: Signal fires when provider accepts → conversation auto-created
+- **WebSocket**: `ProviderConsumer` — providers get real-time push on new assignments (no polling needed)
+- **Expo push notifications**: Celery tasks call `https://exp.host/--/api/v2/push/send` directly
+- **CaseActivity timeline**: Full audit trail of case events for dispatcher oversight
+- **Soft delete**: Incidents and messages use soft delete (recoverable)
+
+#### Test Accounts (Active)
+| Role | Email | Password | Type |
+|------|-------|----------|------|
+| Survivor | survivor@kintara.com | survivor123 | - |
+| Dispatcher | dispatcher@kintara.com | dispatcher123 | - |
+| Healthcare | healthcare@kintara.com | provider123 | healthcare |
+| GBV Rescue | gbv@kintara.com | provider123 | gbv_rescue |
+| Legal | legal@kintara.com | provider123 | legal |
+| Police | police@kintara.com | provider123 | police |
+| Counseling | counseling@kintara.com | provider123 | counseling |
+| Social | social@kintara.com | provider123 | social |
+| CHW | chw@kintara.com | provider123 | chw |
+
+### 2.2 Frontend (kintaraa-app)
+
+**Location**: `/home/athooh/Documents/Work/Evarest/kintaraa-app`
+**Stack**: React Native 0.81.4 + Expo SDK 54 + TypeScript + NativeWind
+
+**Confirmed Working:**
+- Authentication (login/logout/register) — fully integrated with backend
+- Incident creation/listing/details — fully integrated
+- Provider assignment workflow — all 7 provider types, NotificationFab, accept/reject via real API
+- Dispatcher dashboard — case management, manual assignment, provider status display
+- API client (`services/api.ts`) — JWT bearer tokens, token refresh on 401
+- Assignment service (`services/assignments.ts`) — all assignment endpoints
+- Dispatcher service (`services/dispatcher.ts`) — full dispatcher API
+
+**Known Remaining Issues:**
+- Messaging screen (`app/messages/[id].tsx`) — uses `incident.messages` from local state, **not calling backend messaging API**
+- Dispatcher login routing bug — redirects to survivor dashboard instead of dispatcher dashboard
+- Push notification token registration — `services/notificationService.ts` exists but token is not registered with backend on login
+- Voice recording upload — endpoint exists but never tested end-to-end
 
 ---
 
-## 3. MVP Scope Definition
+## 3. What Has Been Completed
 
-### 3.1 In-Scope Features
+### Week 1 (Feb 15, 2026) — Backend Setup
+- [x] Docker infrastructure: PostgreSQL, Redis, Django all running
+- [x] Database migrations applied
+- [x] Test data seeded (9 test accounts, sample incidents)
+- [x] API documentation at `/swagger/` and `/redoc/`
+- [x] Frontend API URL updated to `http://localhost:8000/api`
+- [x] Node.js v20 configured via `.nvmrc`
 
-#### **Survivor Dashboard** (Core Flow)
+### Week 2 Day 8 — Authentication Integration
+- [x] Login flow end-to-end (web + mobile)
+- [x] JWT token storage in AsyncStorage
+- [x] Token refresh on 401
+- [x] Environment detection fixed (dev vs prod URL)
+- [x] Mobile network access configured (network IP in ALLOWED_HOSTS)
 
-```
-1. Registration/Login
-   → Email + password
-   → Biometric unlock (if enabled)
+### Week 2 Day 9 — Incident Management Integration
+- [x] Incident creation from mobile app
+- [x] Incident listing with full details
+- [x] Backend serializer updated (description + incident_date in list response)
+- [x] Location validation fixed (defaults to Nairobi if no GPS)
 
-2. Create Incident Report
-   → Incident type selection
-   → Description (text + voice)
-   → Location (GPS coordinates)
-   → Severity/urgency selection
-   → Submit → Auto-assigns to GBV Rescue
+### Week 2 Day 10 — Provider Assignment Integration
+- [x] All 7 provider types functional
+- [x] `_ProviderNotificationFab.tsx` shared component (notification bell, accept/reject modal)
+- [x] Dispatcher dashboard shows all cases with provider details
+- [x] Color-coded provider badges
+- [x] Real-time polling: providers (5s), dispatcher (10s)
+- [x] Centralized dispatcher queue — all incidents require dispatcher assignment
+- [x] Test accounts reset with correct credentials
 
-3. View My Cases
-   → List all incidents
-   → Filter by status
-   → View case details
-   → See assigned provider info
-
-4. Message Provider
-   → Send text messages
-   → View message history
-   → Get notifications on new messages
-
-5. Track Case Status
-   → See status updates (new → assigned → in_progress → completed)
-   → Receive push notifications on status changes
-```
-
-#### **GBV Center Dispatch Dashboard** (Command Center) - NEW
-
-```
-1. Login (as dispatcher/admin)
-   → GBV Center staff access
-
-2. View ALL Incidents
-   → See all cases (not just assigned)
-   → Unassigned urgent cases highlighted
-   → Filter by status/urgency/date
-   → Real-time updates
-
-3. Assign Cases to Providers
-   → View provider availability and capacity
-   → See algorithm recommendations
-   → Manually assign/reassign cases
-   → Override auto-assignments
-
-4. Monitor Active Cases
-   → Real-time case tracking
-   → Provider status (on-site, en route, available)
-   → Response time tracking
-   → Multi-provider coordination
-
-5. Dashboard Statistics
-   → System-wide metrics
-   → Provider performance
-   → Response time analytics
-   → Case volume trends
-```
-
-#### **GBV Rescue Dashboard** (First Responder)
-
-```
-1. Login (as provider)
-   → Provider account setup
-
-2. View Assigned Cases
-   → List of cases assigned to me
-   → Filter by urgency/status
-   → Sort by date
-
-3. Case Management
-   → Accept assignment
-   → View survivor info (anonymized if needed)
-   → View incident details
-   → Update case status
-   → Add response notes
-
-4. Messaging
-   → Message survivor
-   → View conversation history
-
-5. Dashboard Stats
-   → Total active cases
-   → Cases by urgency
-   → Response time metrics
-```
-
-### 3.2 MVP User Stories
-
-**Survivor User Stories**:
-- **US-1**: As a survivor, I can register and login so I can access the app
-- **US-2**: As a survivor, I can report an incident so I can get help
-- **US-3**: As a survivor, I can see my reported cases so I can track progress
-- **US-4**: As a survivor, I can message my assigned provider so I can communicate
-- **US-5**: As a survivor, I can receive notifications when my case is updated
-
-**Dispatcher User Stories** (NEW):
-- **US-6**: As a dispatcher, I can login to access the GBV Center command dashboard
-- **US-7**: As a dispatcher, I can see ALL incoming cases so I can monitor the system
-- **US-8**: As a dispatcher, I can view unassigned urgent cases so I can prioritize them
-- **US-9**: As a dispatcher, I can assign cases to available providers so cases get handled
-- **US-10**: As a dispatcher, I can reassign cases if needed so I can optimize response
-- **US-11**: As a dispatcher, I can see provider availability so I can make informed assignments
-- **US-12**: As a dispatcher, I can override auto-assignments so I have control
-- **US-13**: As a dispatcher, I can monitor active cases in real-time so I can coordinate response
-
-**GBV Rescue Provider User Stories**:
-- **US-14**: As a GBV Rescue provider, I can login to access my dashboard
-- **US-15**: As a GBV Rescue provider, I can see assigned cases so I can respond
-- **US-16**: As a GBV Rescue provider, I can accept a case assignment
-- **US-17**: As a GBV Rescue provider, I can update case status to track progress
-- **US-18**: As a GBV Rescue provider, I can message survivors so I can provide support
-
-### 3.3 MVP Success Criteria
-
-**Technical**:
-- ✅ All API endpoints return real data (no mocks)
-- ✅ Frontend successfully calls backend APIs
-- ✅ User can complete full incident reporting flow
-- ✅ Provider can accept and manage cases
-- ✅ Messaging works (HTTP polling with 30s refresh)
-- ✅ Push notifications delivered
-- ✅ No critical security vulnerabilities
-- ✅ API response time < 500ms (p95)
-
-**Functional**:
-- ✅ Survivor can register → login → report incident → see assignment → message provider
-- ✅ **Dispatcher can login → view all cases → assign to provider → monitor response**
-- ✅ Provider can login → see assigned cases → accept case → update status → message survivor
-- ✅ All users receive notifications
-- ✅ Case status flows correctly (new → dispatcher review → assigned → in_progress → completed)
-- ✅ **Hybrid assignment works (auto-assign urgent, manual for routine)**
+### Backend Messaging (most recent — commit `8ce816b` merge)
+- [x] Conversation model (OneToOne with Incident)
+- [x] Message model (Fernet-encrypted content)
+- [x] MessageReadReceipt model
+- [x] CaseActivity timeline model
+- [x] PushToken model
+- [x] Full REST API for conversations + messages
+- [x] WebSocket ProviderConsumer (real-time case assignment notifications)
+- [x] Signal: auto-create conversation when provider accepts assignment
+- [x] Signal: auto-close conversation when incident completed/closed
+- [x] Celery tasks for Expo push notifications
+- [x] NotificationService: notify on new message, assignment, status change
+- [x] Encryption service (Fernet AES-128)
+- [x] ActivityLogService for audit trail
+- [x] Database migrations applied
 
 ---
 
-## 4. Architecture Decision
+## 4. What Is Remaining
 
-### 4.1 Keep Monolith for MVP
+### 4.1 Critical (P0) — Blocking MVP
 
-**Decision**: Use existing `kintaraa-app` as monolith with role-based routing
+| Task | Effort | Owner |
+|------|--------|-------|
+| **Frontend: Connect messaging screen to backend API** | 4-6h | Frontend |
+| **Frontend: Fix dispatcher routing bug** | 30m | Frontend |
+| **Frontend: Register push token with backend on login** | 1-2h | Frontend |
+| **End-to-end integration test: full survivor flow** | 2h | Both |
+| **End-to-end integration test: full dispatcher flow** | 2h | Both |
+| **End-to-end integration test: full provider flow** | 2h | Both |
 
-**Why**:
-- ⏱️ **Time constraint**: 20 days insufficient for separation + features
-- 🚀 **Faster delivery**: Single codebase, single deployment
-- 🔧 **Less complexity**: No need to sync 2 apps
-- 📦 **Smaller risk**: Proven architecture already exists
-- 🔄 **Reversible**: Can separate post-MVP
+### 4.2 Important (P1) — Should Have for MVP
 
-### 4.2 API Strategy
+| Task | Effort | Owner |
+|------|--------|-------|
+| Implement WebSocket in frontend (replace provider polling) | 3-4h | Frontend |
+| Test voice recording upload end-to-end | 1h | Both |
+| Handle frontend message encryption/decryption | 2h | Frontend |
+| Display case activity timeline in survivor/provider views | 3h | Frontend |
+| Add unread message badge on case cards | 1h | Frontend |
+| Improve error messages for API failures | 2h | Frontend |
 
-**Base URL**: `https://api-kintara.onrender.com/api/v1/`
+### 4.3 Deployment (P0 for launch)
 
-**Authentication**: JWT Bearer tokens
-```
-Authorization: Bearer {access_token}
-```
+| Task | Effort | Owner |
+|------|--------|-------|
+| Backend: Configure production settings | 2h | Backend |
+| Backend: Deploy to Render.com | 2h | Backend |
+| Backend: Set up S3 for voice recordings | 2h | Backend |
+| Backend: Configure Celery worker in production | 1h | Backend |
+| Backend: Run migrations on production DB | 30m | Backend |
+| Frontend: Update API URL for production | 30m | Frontend |
+| Frontend: Build production app (EAS build) | 1h | Frontend |
+| Frontend: Test on production backend | 2h | Both |
 
-**Messaging**: HTTP Polling (NOT WebSocket for MVP)
-```
-Frontend polls every 30 seconds:
-GET /api/v1/messages/?since={last_message_timestamp}
-```
+### 4.4 Testing (P1)
 
----
-
-## 5. Implementation Phases
-
-### Phase 1: Foundation & Security (Days 1-3)
-
-**Goal**: Fix critical security issues, set up development environment
-
-**Backend Tasks**:
-1. ✅ Fix AllowAny permissions → IsAuthenticated
-2. ✅ Add rate limiting (DRF throttling)
-3. ✅ Enforce strong SECRET_KEY
-4. ✅ Add input sanitization
-5. ✅ Set up PostgreSQL locally
-6. ✅ Configure Redis
-7. ✅ Create .env file with all secrets
-
-**Frontend Tasks**:
-1. ✅ Update API client to use real backend URL
-2. ✅ Implement token storage (SecureStore)
-3. ✅ Add token refresh logic
-4. ✅ Add error handling for API calls
-5. ✅ Test authentication flow with backend
-
-**Deliverables**:
-- ✅ Backend with proper security
-- ✅ Frontend can authenticate with backend
-- ✅ Tokens stored securely
+| Task | Effort |
+|------|--------|
+| Backend: Write model tests (target 60% coverage) | 4h |
+| Backend: Write API tests for critical endpoints | 4h |
+| Frontend: Manual test checklist execution | 4h |
+| Fix bugs found during testing | variable |
 
 ---
 
-### Phase 2: Dispatch Dashboard & Provider Assignment (Days 4-8) - EXTENDED
+## 5. MVP Scope Definition
 
-**Goal**: Implement GBV Center Dispatch Dashboard with hybrid assignment flow
+### 5.1 In-Scope (Confirmed Active)
 
-**Backend Tasks**:
+#### Survivor Dashboard — COMPLETE
+- Registration/Login with JWT ✅
+- Create incident report (text, voice, location, urgency) ✅
+- View my cases (list + details) ✅
+- Track case status ✅
+- See assigned provider ✅
+- Message provider ❌ **Needs frontend integration**
+- Receive push notifications ❌ **Needs token registration**
 
-1. **Create CaseAssignment model** (`apps/incidents/models.py`)
-   ```python
-   class CaseAssignment(BaseModel):
-       incident = ForeignKey(Incident, on_delete=CASCADE)
-       provider = ForeignKey(User, on_delete=CASCADE)
-       status = CharField(max_length=20, choices=[
-           ('pending', 'Pending'),
-           ('accepted', 'Accepted'),
-           ('rejected', 'Rejected'),
-       ])
-       assigned_at = DateTimeField(auto_now_add=True)
-       accepted_at = DateTimeField(null=True, blank=True)
-       rejected_at = DateTimeField(null=True, blank=True)
-       notes = TextField(blank=True)
-   ```
+#### GBV Center Dispatch Dashboard — COMPLETE
+- Login as dispatcher ✅ (routing bug blocks redirect)
+- View ALL incoming cases ✅
+- Filter by status/urgency ✅
+- Manually assign cases to any of 7 provider types ✅
+- Reassign cases ✅
+- View provider availability + capacity ✅
+- Monitor active cases with provider details ✅
+- Dashboard statistics ✅
 
-2. **Create assignment service** (`apps/incidents/services.py`)
-   ```python
-   def auto_assign_incident(incident):
-       """Auto-assign incident to available GBV Rescue provider"""
-       # Find first available GBV Rescue provider
-       provider = User.objects.filter(
-           role='provider',
-           provider_type='gbv_rescue',
-           is_active=True
-       ).first()
+#### GBV Rescue / All Provider Dashboards — COMPLETE
+- Login as provider ✅
+- Notification bell with pending assignments ✅
+- Accept/reject assignment via modal ✅
+- Case moves to in_progress on accept ✅
+- Message survivor ❌ **Needs frontend integration**
+- Update case status ✅ (endpoint exists, UI needs testing)
 
-       if provider:
-           assignment = CaseAssignment.objects.create(
-               incident=incident,
-               provider=provider,
-               status='pending'
-           )
-           # Trigger notification to provider
-           return assignment
-       return None
-   ```
-
-3. **Add assignment endpoints**
-   ```python
-   # Survivor endpoints
-   POST   /api/v1/incidents/        → Auto-assigns on create
-
-   # Provider endpoints
-   GET    /api/v1/provider/cases/              → List assigned cases
-   POST   /api/v1/cases/{id}/accept/           → Accept assignment
-   POST   /api/v1/cases/{id}/reject/           → Reject assignment
-   PATCH  /api/v1/cases/{id}/status/           → Update case status
-   ```
-
-4. **Create Dispatcher role and permissions** (NEW)
-   ```python
-   # apps/authentication/constants.py
-   USER_ROLES = [
-       ('survivor', 'Survivor'),
-       ('provider', 'Service Provider'),
-       ('dispatcher', 'GBV Center Dispatcher'),  # NEW
-       ('admin', 'Administrator'),
-   ]
-
-   # apps/authentication/permissions.py
-   class IsDispatcher(permissions.BasePermission):
-       """Permission for GBV Center dispatchers"""
-       def has_permission(self, request, view):
-           return request.user.role in ['dispatcher', 'admin']
-   ```
-
-5. **Create ProviderProfile model** (NEW - for intelligent assignment)
-   ```python
-   # apps/providers/models.py
-   class ProviderProfile(BaseModel):
-       user = OneToOneField(User, related_name='provider_profile')
-       location = JSONField(default=dict)  # {latitude, longitude}
-       current_case_load = IntegerField(default=0)
-       max_case_load = IntegerField(default=10)
-       is_24_7 = BooleanField(default=False)
-       working_hours_start = TimeField(default=time(8, 0))
-       working_hours_end = TimeField(default=time(17, 0))
-       average_response_time_minutes = IntegerField(default=30)
-   ```
-
-6. **Create hybrid assignment service** (NEW)
-   ```python
-   # apps/incidents/services/assignment.py
-   class HybridAssignmentService:
-       @staticmethod
-       def handle_new_incident(incident):
-           if incident.urgency_level in ['immediate', 'urgent']:
-               # Auto-assign for fast response
-               return ProviderAssignmentService.assign_incident_to_provider(incident)
-           else:
-               # Queue for dispatcher review
-               incident.status = 'pending_dispatcher_review'
-               incident.save()
-               notify_dispatcher_new_case(incident)
-   ```
-
-7. **Create Dispatch Dashboard API** (NEW)
-   ```python
-   # apps/dispatch/views.py
-
-   GET    /api/v1/dispatch/dashboard/           → Dashboard overview + stats
-   GET    /api/v1/dispatch/cases/               → All cases (unfiltered)
-   GET    /api/v1/dispatch/cases/{id}/          → Case details
-   POST   /api/v1/dispatch/cases/{id}/assign/   → Manually assign provider
-   POST   /api/v1/dispatch/cases/{id}/reassign/ → Reassign to different provider
-   GET    /api/v1/dispatch/providers/           → All providers + status
-   GET    /api/v1/dispatch/analytics/           → System analytics
-   ```
-
-**Frontend Tasks**:
-1. Update `IncidentProvider.tsx` to call real API
-2. Remove mock provider routing logic (`services/providerRouting.ts`)
-3. Display assigned provider info in case details
-4. Add provider acceptance UI (for GBV Rescue dashboard)
-5. **Create Dispatch Dashboard screens** (NEW - ~8 hours)
-   - Dashboard overview with statistics
-   - All cases list with filters
-   - Case assignment interface
-   - Provider status view
-6. **Build case assignment UI** (NEW - ~6 hours)
-   - Provider recommendation display
-   - Manual assignment controls
-   - Reassignment interface
-7. **Add real-time monitoring** (NEW - ~4 hours)
-   - Active case tracking
-   - Provider status updates
-   - Polling for dashboard data (every 30s)
-
-**Testing**:
-- ✅ Unit test: CaseAssignment model creation
-- ✅ Unit test: ProviderProfile model
-- ✅ API test: POST /incidents/ creates assignment
-- ✅ API test: Provider can accept/reject
-- ✅ **API test: Dispatcher can view all cases**
-- ✅ **API test: Dispatcher can assign/reassign cases**
-- ✅ **API test: Hybrid assignment works (urgent vs routine)**
-- ✅ Integration test: Full assignment flow
-- ✅ **Integration test: Dispatcher workflow**
-
-**Deliverables**:
-- ✅ **Dispatch Dashboard functional (command center)**
-- ✅ **Dispatcher can view all cases and provider status**
-- ✅ **Dispatcher can manually assign/reassign cases**
-- ✅ **Hybrid assignment: urgent auto-assign, routine manual**
-- ✅ Provider can view assigned cases
-- ✅ Provider can accept/reject assignments
-- ✅ Intelligent assignment algorithm considers location, capacity, urgency
+### 5.2 Deferred to Post-MVP (Unchanged)
+- Real-time WebSocket messaging (HTTP polling is ready)
+- Evidence file uploads (photos/documents)
+- Wellbeing tracking
+- Appointments
+- App separation into Survivor + Provider apps
+- Other provider dashboards (beyond GBV Rescue) for full integration
+- Voice transcription
 
 ---
 
-### Phase 3: Messaging System (Days 9-11) - ADJUSTED
+## 6. Architecture Decision
 
-**Goal**: Basic messaging between survivor and provider
+**Monolith confirmed** — still the right choice. Backend is a single Django project with:
+- `apps/authentication`, `apps/incidents`, `apps/dispatch`, `apps/providers`, `apps/messaging`
+- All connected via shared models and signals
+- Single API base URL: `http://localhost:8000/api` (dev), `https://api-kintara.onrender.com/api` (prod)
+- WebSocket URL: `ws://localhost:8000/ws/` (dev), `wss://api-kintara.onrender.com/ws/` (prod)
 
-**Backend Tasks**:
+**Messaging strategy — Updated**:
+- Backend supports BOTH WebSocket (real-time) and REST polling
+- WebSocket `ProviderConsumer` handles assignment notifications
+- REST API handles conversation/message CRUD
+- Frontend should use REST polling for messages (30s) and WebSocket for assignment notifications
+- This eliminates the 5s polling for assignments (replace with WebSocket)
 
-1. **Create messaging models** (`apps/messaging/models.py`)
-   ```python
-   class ChatRoom(BaseModel):
-       incident = OneToOneField(Incident, on_delete=CASCADE)
-       created_at = DateTimeField(auto_now_add=True)
+---
 
-       class Meta:
-           db_table = 'chat_rooms'
+## 7. Remaining Implementation Plan
 
-   class ChatRoomParticipant(models.Model):
-       room = ForeignKey(ChatRoom, on_delete=CASCADE)
-       user = ForeignKey(User, on_delete=CASCADE)
-       joined_at = DateTimeField(auto_now_add=True)
+### Day 11 (Next) — Messaging Frontend Integration
 
-       class Meta:
-           unique_together = ('room', 'user')
+**Goal**: Connect messaging screen to real backend API
 
-   class Message(BaseModel):
-       room = ForeignKey(ChatRoom, on_delete=CASCADE, related_name='messages')
-       sender = ForeignKey(User, on_delete=CASCADE)
-       content = TextField()
-       sent_at = DateTimeField(auto_now_add=True)
-       read_at = DateTimeField(null=True, blank=True)
-       is_deleted = BooleanField(default=False)
-
-       class Meta:
-           ordering = ['-sent_at']
-   ```
-
-2. **Create messaging API** (`apps/messaging/views.py`)
-   ```python
-   GET    /api/v1/incidents/{id}/messages/     → List messages (paginated)
-   POST   /api/v1/incidents/{id}/messages/     → Send message
-   PATCH  /api/v1/messages/{id}/read/          → Mark as read
-   GET    /api/v1/messages/unread-count/       → Unread count
-   ```
-
-3. **Auto-create ChatRoom** when case assigned (signal handler)
-   ```python
-   @receiver(post_save, sender=CaseAssignment)
-   def create_chat_room(sender, instance, created, **kwargs):
-       if created and instance.status == 'accepted':
-           room = ChatRoom.objects.create(incident=instance.incident)
-           # Add survivor and provider as participants
-           ChatRoomParticipant.objects.create(
-               room=room, user=instance.incident.survivor
-           )
-           ChatRoomParticipant.objects.create(
-               room=room, user=instance.provider
-           )
-   ```
-
-**Frontend Tasks**:
-1. Update `messages/[id].tsx` to call real API
-2. Remove mock message data
-3. **Implement polling** (fetch new messages every 30s)
+**Tasks**:
+1. Create `services/messaging.ts` API service:
    ```typescript
-   useEffect(() => {
-     const interval = setInterval(() => {
-       fetchNewMessages();
-     }, 30000); // 30 seconds
-     return () => clearInterval(interval);
-   }, []);
-   ```
-4. Add optimistic updates (show message immediately)
-5. Display unread message count
+   // GET /api/messaging/conversations/?incident_id={id}
+   export const getConversation = async (incidentId: string) => {...}
 
-**Testing**:
-- ✅ API test: Create message
-- ✅ API test: List messages with pagination
-- ✅ API test: Mark as read
-- ✅ Integration test: Survivor → Provider messaging
+   // POST /api/messaging/conversations/{id}/send_message/
+   export const sendMessage = async (conversationId: string, content: string) => {...}
 
-**Deliverables**:
-- ✅ Survivor can message provider
-- ✅ Provider can message survivor
-- ✅ Message history persists
-- ✅ Unread count shows correctly
+   // GET /api/messaging/conversations/{id}/messages/
+   export const getMessages = async (conversationId: string) => {...}
 
----
+   // POST /api/messaging/conversations/{id}/mark-all-read/
+   export const markAllRead = async (conversationId: string) => {...}
 
-### Phase 4: Notifications (Days 12-13) - ADJUSTED
-
-**Goal**: Push notifications for key events
-
-**Backend Tasks**:
-
-1. **Create Notification model** (`apps/notifications/models.py`)
-   ```python
-   class FCMToken(BaseModel):
-       user = ForeignKey(User, on_delete=CASCADE)
-       token = CharField(max_length=255, unique=True)
-       platform = CharField(max_length=10, choices=[
-           ('ios', 'iOS'),
-           ('android', 'Android'),
-       ])
-       created_at = DateTimeField(auto_now_add=True)
-       last_used = DateTimeField(auto_now=True)
-
-   class Notification(BaseModel):
-       user = ForeignKey(User, on_delete=CASCADE)
-       type = CharField(max_length=50, choices=[
-           ('case_assigned', 'Case Assigned'),
-           ('case_accepted', 'Case Accepted'),
-           ('message_received', 'New Message'),
-           ('status_updated', 'Status Updated'),
-       ])
-       title = CharField(max_length=200)
-       message = TextField()
-       data = JSONField(default=dict)
-       read_at = DateTimeField(null=True, blank=True)
-       sent_at = DateTimeField(auto_now_add=True)
+   // POST /api/messaging/push-token/
+   export const registerPushToken = async (token: string, platform: string) => {...}
    ```
 
-2. **Integrate Firebase Cloud Messaging** (`apps/notifications/fcm.py`)
-   ```python
-   from pyfcm import FCMNotification
+2. Update `app/messages/[id].tsx`:
+   - Query conversation by `incident_id`
+   - Load messages from backend
+   - Send message via API
+   - Poll for new messages (30s interval via React Query)
+   - Mark messages as read on view
 
-   def send_push_notification(user, notification):
-       """Send push notification via FCM"""
-       push_service = FCMNotification(api_key=settings.FCM_SERVER_KEY)
-
-       tokens = FCMToken.objects.filter(user=user).values_list('token', flat=True)
-
-       for token in tokens:
-           result = push_service.notify_single_device(
-               registration_id=token,
-               message_title=notification.title,
-               message_body=notification.message,
-               data_message={
-                   'notification_id': str(notification.id),
-                   'type': notification.type,
-                   **notification.data
-               }
-           )
-   ```
-
-3. **Create notification triggers** (signal handlers)
-   ```python
-   # Incident created → Notify assigned provider
-   @receiver(post_save, sender=CaseAssignment)
-   def notify_provider_assignment(sender, instance, created, **kwargs):
-       if created:
-           notification = Notification.objects.create(
-               user=instance.provider,
-               type='case_assigned',
-               title='New Case Assigned',
-               message=f'Case {instance.incident.case_number} has been assigned to you',
-               data={'incident_id': str(instance.incident.id)}
-           )
-           send_push_notification(instance.provider, notification)
-
-   # Case accepted → Notify survivor
-   # New message → Notify recipient
-   # Status updated → Notify survivor
-   ```
-
-4. **Add notification endpoints**
-   ```python
-   POST   /api/v1/notifications/register-token/  → Save FCM token
-   GET    /api/v1/notifications/                 → List notifications
-   PATCH  /api/v1/notifications/{id}/read/       → Mark as read
-   DELETE /api/v1/notifications/{id}/            → Delete notification
-   GET    /api/v1/notifications/unread-count/    → Unread count
-   ```
-
-**Frontend Tasks**:
-1. Request notification permissions on login
-2. Register FCM token with backend
-3. Handle incoming notifications (foreground + background)
-4. Display notifications in UI
-5. Navigate to relevant screen on tap
-
-**Testing**:
-- ✅ Test FCM token registration
-- ✅ Test notification creation
-- ✅ Test push notification delivery
-- ✅ Integration test: Full notification flow
-
-**Deliverables**:
-- ✅ Push notifications work on iOS + Android
-- ✅ In-app notification list
-- ✅ Unread notification badge
-
----
-
-### Phase 5: GBV Rescue Dashboard (Days 14-15) - ADJUSTED
-
-**Goal**: Complete GBV Rescue provider features
-
-**Backend Tasks**:
-
-1. **Create GBVRescueResponse model** (`apps/providers/models.py`)
-   ```python
-   class GBVRescueResponse(BaseModel):
-       case_assignment = OneToOneField(CaseAssignment, on_delete=CASCADE)
-       response_time = DateTimeField()
-       action_taken = TextField()
-       follow_up_required = BooleanField(default=False)
-       follow_up_notes = TextField(blank=True)
-       status = CharField(max_length=30, choices=[
-           ('dispatched', 'Dispatched'),
-           ('on_site', 'On Site'),
-           ('transport_arranged', 'Transport Arranged'),
-           ('safe_house', 'Safe House Arranged'),
-           ('completed', 'Completed'),
-       ])
-       completed_at = DateTimeField(null=True, blank=True)
-   ```
-
-2. **Add GBV Rescue endpoints** (`apps/providers/views.py`)
-   ```python
-   POST   /api/v1/gbv-rescue/responses/           → Create response
-   GET    /api/v1/gbv-rescue/responses/           → List responses
-   PATCH  /api/v1/gbv-rescue/responses/{id}/      → Update response
-   GET    /api/v1/gbv-rescue/dashboard-stats/     → Stats
-   ```
-
-3. **Dashboard statistics API**
-   ```python
-   GET /api/v1/gbv-rescue/dashboard-stats/
-
-   Response:
-   {
-     "active_cases": 5,
-     "pending_assignments": 2,
-     "completed_today": 3,
-     "urgent_cases": 1,
-     "average_response_time_minutes": 15,
-     "total_responses_this_month": 25
+3. Fix dispatcher routing in `app/(tabs)/_layout.tsx`:
+   ```typescript
+   if (user?.role === 'dispatcher') {
+     router.replace('/(dashboard)/dispatcher');
    }
    ```
 
-**Frontend Tasks**:
-1. Connect GBV Rescue dashboard to real API
-2. Remove mock data from `dashboards/gbv_rescue/`
-3. Implement case acceptance flow
-4. Add response logging form
-5. Display dashboard statistics
-
-**Testing**:
-- ✅ API test: Create GBV response
-- ✅ API test: Dashboard stats calculation
-- ✅ Integration test: Provider workflow
-
-**Deliverables**:
-- ✅ GBV Rescue can log responses
-- ✅ Dashboard shows real statistics
-- ✅ Case management workflow complete
-
----
-
-### Phase 6: Testing & Bug Fixes (Days 16-18) - ADJUSTED
-
-**Goal**: Comprehensive testing and bug fixing
-
-**Backend Testing**:
-
-1. **Write model tests** (`apps/*/tests/test_models.py`)
-   ```python
-   def test_incident_case_number_unique()
-   def test_assignment_creates_chat_room()
-   def test_message_marks_as_read()
-   def test_notification_creation()
-   ```
-
-2. **Write API tests** (`apps/*/tests/test_api.py`)
-   ```python
-   def test_create_incident_authenticated()
-   def test_create_incident_unauthenticated_fails()
-   def test_provider_accept_assignment()
-   def test_send_message_to_assigned_case()
-   def test_cannot_message_unassigned_case()
-   ```
-
-3. **Run coverage report**
-   ```bash
-   pytest --cov=apps --cov-report=html --cov-report=term
-   # Target: 80% coverage on critical paths
-   ```
-
-**Frontend Testing**:
-
-1. **Write component tests**
+4. Register Expo push token on login in `providers/AuthProvider.tsx`:
    ```typescript
-   // __tests__/IncidentReport.test.tsx
-   it('submits incident successfully', async () => {});
-   it('shows validation errors for missing fields', () => {});
+   const token = await Notifications.getExpoPushTokenAsync();
+   await registerPushToken(token.data, Platform.OS);
    ```
 
-2. **Manual testing checklist**:
-   - [ ] Full survivor flow (register → report → message → track)
-   - [ ] Full provider flow (login → accept → respond → message)
-   - [ ] Notifications on both platforms (iOS + Android)
-   - [ ] Offline behavior (show error, retry)
-   - [ ] Voice recording upload
-   - [ ] Multiple simultaneous users
-
-**Performance Testing**:
-- [ ] Load test: 100 concurrent users
-- [ ] API response times < 500ms
-- [ ] Database query optimization
+**Note on encryption**: Backend encrypts messages with Fernet. The REST API decrypts before serializing, so the frontend receives plain text. No client-side decryption needed.
 
 **Deliverables**:
-- ✅ 80%+ test coverage on critical paths
-- ✅ All P0/P1 bugs fixed
-- ✅ Performance benchmarks met
+- Survivor can send message to provider
+- Provider can send message to survivor
+- Messages persist in DB
+- Unread count works
+- Push token registered
 
 ---
 
-### Phase 7: Deployment & Polish (Day 19) - ADJUSTED
+### Day 12 — Fix Known Issues + WebSocket Integration
 
-**Goal**: Deploy to production, final polish
+**Goal**: Fix dispatcher routing, integrate WebSocket for real-time provider notifications
+
+**Tasks**:
+1. Fix dispatcher routing bug (30 min)
+2. Implement WebSocket connection for providers using `hooks/useWebSocket.ts`:
+   ```typescript
+   // Connect to ws/providers/?token={jwt}
+   // Handle: case_assigned → trigger React Query refetch
+   // Handle: case_updated → update local state
+   // Handle: ping → send pong
+   ```
+3. Replace 5s polling in `_ProviderNotificationFab.tsx` with WebSocket events
+4. Test voice recording upload end-to-end
+5. Add unread message count badge to case cards in survivor dashboard
+
+**Deliverables**:
+- Dispatcher routing fixed
+- Real-time assignment notifications (no polling)
+- Voice uploads tested
+
+---
+
+### Day 13 — End-to-End Testing
+
+**Goal**: Validate complete workflows for all 3 roles
+
+**Test Scenarios**:
+
+**Survivor Full Flow**:
+- [ ] Register new account
+- [ ] Login → redirects to survivor dashboard
+- [ ] Create incident (text description, location, urgency)
+- [ ] Incident appears in case list with correct status
+- [ ] Logout
+
+**Dispatcher Full Flow**:
+- [ ] Login → redirects to dispatcher dashboard (after fix)
+- [ ] New incident appears in "Pending Review" queue
+- [ ] Assign to Healthcare provider
+- [ ] Case moves to "Assigned" status
+- [ ] Provider name + badge visible on case card
+
+**Provider Full Flow**:
+- [ ] Login as healthcare@kintara.com
+- [ ] Notification bell shows badge count
+- [ ] Open modal → see case details
+- [ ] Accept assignment → notification disappears from bell
+- [ ] Message screen opens → send message to survivor
+- [ ] Status updates correctly
+
+**Messaging Full Flow**:
+- [ ] Survivor opens assigned case → opens message screen
+- [ ] Send message → appears in conversation
+- [ ] Provider logs in → sees unread message count
+- [ ] Provider replies → survivor sees response
+- [ ] Messages persist after app refresh
+
+**Bug Fix Sprint**:
+- Fix all issues found during testing
+
+---
+
+### Day 14 — Deployment Preparation
 
 **Backend Deployment**:
-
-1. **Set up production environment**
-   - PostgreSQL database (Render.com managed)
-   - Redis instance
-   - Environment variables
-
-2. **Configure production settings**
+1. Update `settings.py` for production:
    ```python
    DEBUG = False
    ALLOWED_HOSTS = ['api-kintara.onrender.com']
-   CORS_ALLOWED_ORIGINS = ['exp://...', 'kintaraa://']
+   CORS_ALLOWED_ORIGINS = ['exp://*', 'kintaraa://*']
    SECURE_SSL_REDIRECT = True
    ```
-
-3. **Set up S3 bucket** for voice recordings
-4. **Configure FCM** for production
-5. **Run migrations** and create superuser
-6. **Deploy backend**
+2. Configure S3 for voice recordings (or use Render disk)
+3. Set `CELERY_BROKER_URL` to production Redis
+4. Enable `CHANNEL_LAYERS` with production Redis for WebSocket
+5. Deploy to Render.com (backend + managed PostgreSQL + Redis)
+6. Run `python manage.py migrate`
+7. Run `python manage.py reset_test_accounts` to create test users in prod
 
 **Frontend Deployment**:
-1. Update API URL in config
-2. Build production app
-   ```bash
-   eas build --platform all --profile production
-   ```
-3. Test production build
-
-**Monitoring**:
-1. Set up error monitoring (Sentry)
-2. Set up uptime monitoring
-3. Create monitoring dashboard
-
-**Documentation**:
-1. API documentation (Swagger)
-2. User guide
-3. Provider onboarding guide
-4. Deployment runbook
-
-**Deliverables**:
-- ✅ Backend deployed to production
-- ✅ Frontend builds successfully
-- ✅ Monitoring in place
-- ✅ Documentation complete
+1. Update `constants/domains/config/ApiConfig.ts` with production URL
+2. Switch `const Flag = false` to use production mode
+3. Run `eas build --platform all --profile production`
+4. Test production build on device
 
 ---
 
-### Phase 8: Launch Preparation (Day 20)
+### Day 15-16 — Final Testing & Bug Fixes
 
-**Goal**: Final checks, prepare for launch
-
-**Pre-Launch Checklist**:
-
-**Backend**:
-- [ ] All environment variables set
-- [ ] Database backups configured
-- [ ] SSL certificate valid
-- [ ] CORS configured correctly
-- [ ] Rate limiting active
-- [ ] Logging working
-- [ ] Error monitoring active
-- [ ] Migrations applied
-
-**Frontend**:
-- [ ] API URLs correct
-- [ ] FCM tokens registering
-- [ ] Push notifications working
-- [ ] Offline errors handled gracefully
-- [ ] Loading states on all API calls
-
-**Testing**:
-- [ ] Run full test suite
-- [ ] Manual smoke test (both roles)
-- [ ] Test on multiple devices
-- [ ] Test notifications
-- [ ] Test offline/online transitions
-
-**Rollout Plan**:
-1. Deploy backend first
-2. Test backend health endpoint
-3. Deploy frontend update
-4. Monitor error rates
-5. Test with pilot users (5 people)
-6. Fix any critical issues
-7. Gradual rollout to all users
+**Pre-launch Checklist**:
+- [ ] All 3 dashboard flows work on production
+- [ ] Messaging works on production
+- [ ] Push notifications delivered on iOS + Android
+- [ ] No P0 bugs
+- [ ] API response times < 500ms
+- [ ] Error states handled gracefully (offline, network error)
 
 ---
 
-## 6. Detailed Task Breakdown
+## 8. Testing Strategy
 
-### 6.1 Backend Tasks (Priority Order)
+### 8.1 Backend Tests (Target: 60% coverage on critical paths)
 
-#### **P0 - Critical (Must Have)** - 47 hours (~6 days)
-
-| Task | Est. | Files |
-|------|------|-------|
-| Fix AllowAny permissions | 1h | `settings.py` |
-| Add rate limiting | 2h | `settings.py` |
-| Create CaseAssignment model | 3h | `apps/incidents/models.py` |
-| Create assignment service | 4h | `apps/incidents/services.py` |
-| Add assignment endpoints | 4h | `apps/incidents/views.py` |
-| Create ChatRoom & Message models | 4h | `apps/messaging/models.py` |
-| Add messaging endpoints | 6h | `apps/messaging/views.py` |
-| Create Notification model | 2h | `apps/notifications/models.py` |
-| Integrate FCM | 4h | `apps/notifications/fcm.py` |
-| Add notification endpoints | 3h | `apps/notifications/views.py` |
-| Create notification triggers | 4h | Signal handlers |
-| Create GBVRescueResponse model | 2h | `apps/providers/models.py` |
-| Add GBV endpoints | 4h | `apps/providers/views.py` |
-| Write critical API tests | 8h | `apps/*/tests/` |
-
-#### **P1 - Important (Should Have)** - 27 hours (~3.5 days)
-
-| Task | Est. | Files |
-|------|------|-------|
-| Add input sanitization | 3h | All serializers |
-| Voice upload completion | 3h | `apps/incidents/views.py` |
-| S3 integration | 4h | Settings, storage |
-| Dashboard stats endpoint | 3h | `apps/providers/views.py` |
-| Message pagination | 2h | `apps/messaging/views.py` |
-| Write model tests | 6h | `apps/*/tests/` |
-| Add database indexes | 2h | Migrations |
-| Documentation (Swagger) | 4h | Settings |
-
----
-
-### 6.2 Frontend Tasks (Priority Order)
-
-#### **P0 - Critical (Must Have)** - 45 hours (~6 days)
-
-| Task | Est. | Files |
-|------|------|-------|
-| Update API client with real URL | 1h | `services/api.ts` |
-| Implement token storage | 2h | `providers/AuthProvider.tsx` |
-| Add token refresh logic | 3h | `services/api.ts` |
-| Connect auth flow to backend | 4h | `app/(auth)/*.tsx` |
-| Connect incident creation | 4h | `providers/IncidentProvider.tsx` |
-| Remove mock provider routing | 2h | Delete `services/providerRouting.ts` |
-| Connect messaging to API | 6h | `app/messages/[id].tsx` |
-| Implement message polling | 3h | Custom hook |
-| Add FCM token registration | 3h | `providers/AuthProvider.tsx` |
-| Handle push notifications | 4h | Notification handler |
-| Connect GBV dashboard | 6h | `dashboards/gbv_rescue/` |
-| Add error handling | 4h | All API calls |
-| Add loading states | 3h | All screens |
-
-#### **P1 - Important (Should Have)** - 32 hours (~4 days)
-
-| Task | Est. | Files |
-|------|------|-------|
-| Refactor large survivor files | 8h | `app/(dashboard)/survivor/*.tsx` |
-| Add optimistic updates | 4h | Message sending |
-| Improve error messages | 3h | Error handling |
-| Add empty states | 3h | All lists |
-| Write component tests | 8h | `__tests__/` |
-| Manual testing | 6h | All flows |
-
----
-
-## 7. Testing Strategy
-
-### 7.1 Backend Test Coverage (Target: 80%)
-
-**Model Tests**:
-```python
-# apps/incidents/tests/test_models.py
-def test_case_number_generation()
-def test_incident_soft_delete()
-def test_assignment_creates_chat_room()
-```
-
-**API Tests**:
+**Priority tests to write**:
 ```python
 # apps/incidents/tests/test_api.py
-def test_create_incident_authenticated()
-def test_create_incident_unauthenticated_fails()
-def test_provider_accept_assignment()
-def test_send_message_to_assigned_case()
+test_create_incident_authenticated()
+test_create_incident_unauthenticated_fails()
+test_incident_queued_for_dispatcher_on_create()
+test_provider_accept_assignment()
+test_provider_reject_assignment()
+test_dispatcher_can_assign_provider()
+test_survivor_cannot_see_others_incidents()
+
+# apps/messaging/tests/test_api.py
+test_send_message_creates_conversation()
+test_only_participants_can_read_messages()
+test_mark_all_read_updates_receipts()
+test_push_token_registration()
+
+# apps/authentication/tests/test_api.py
+test_login_returns_jwt()
+test_logout_blacklists_token()
+test_role_based_permissions()
 ```
 
-**Permission Tests**:
-```python
-# apps/authentication/tests/test_permissions.py
-def test_survivor_cannot_view_others_incidents()
-def test_provider_can_only_view_assigned()
-```
-
-### 7.2 Manual Test Plan
+### 8.2 Manual Test Plan
 
 **Survivor Flow**:
 - [ ] Register with valid email/password
@@ -998,201 +518,214 @@ def test_provider_can_only_view_assigned()
 - [ ] View incident in list
 - [ ] See assigned provider
 - [ ] Send message to provider
-- [ ] Receive push notification
+- [ ] Receive push notification on provider reply
 
 **Provider Flow**:
 - [ ] Login as provider
-- [ ] View assigned cases
+- [ ] See assignment notification (bell icon)
 - [ ] Accept case assignment
 - [ ] Update case status
 - [ ] Send message to survivor
-- [ ] Receive notifications
+- [ ] Receive notification on survivor message
+
+**Dispatcher Flow**:
+- [ ] Login as dispatcher → reaches dispatcher dashboard
+- [ ] View all pending cases
+- [ ] Assign case to provider
+- [ ] See provider accepted status with timestamp
+- [ ] View system statistics
 
 ---
 
-## 8. Risk Mitigation
+## 9. Risk Mitigation
 
-### 8.1 Technical Risks
+### 9.1 Technical Risks
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Backend deployment fails | Medium | High | Test deployment early (Day 10) |
-| FCM not working | Medium | High | Test by Day 11, fallback to in-app only |
-| Database performance issues | Low | Medium | Add indexes early, load test by Day 16 |
-| Token refresh bugs | Medium | High | Test thoroughly, add robust error handling |
+| Messaging encryption breaks frontend | Low | High | Backend decrypts before serializing — frontend receives plain text |
+| WebSocket not supported on Render free tier | Medium | Medium | Fall back to 5s polling (already implemented) |
+| Celery tasks fail in production | Medium | Medium | Log + retry config; push notifications are non-blocking |
+| Voice upload fails (file too large) | Low | Low | Backend validates size and type |
+| Dispatcher routing bug causes confusion | Already exists | Medium | Fix is 30 min — prioritize Day 12 |
 
-### 8.2 Schedule Risks
+### 9.2 Schedule Risks
 
 | Risk | Probability | Mitigation |
 |------|-------------|------------|
-| Features take longer | High | Cut P2 features, focus on P0 only |
-| Testing reveals major bugs | Medium | Allocate 3 full days for bug fixes (Days 14-16) |
-| Deployment issues | Medium | Deploy backend early (Day 10), not Day 17 |
+| Messaging integration takes longer | Medium | Scope to basic send/receive only; skip edit/delete |
+| WebSocket setup complex | Medium | Keep 5s polling as fallback |
+| Deployment issues | Medium | Deploy early (Day 14), leave 2 days for fixes |
 
 ---
 
-## 9. Post-MVP Roadmap
+## 10. Post-MVP Roadmap
 
-### 9.1 Immediate Post-MVP (Weeks 1-4)
+### Immediate Post-MVP (Week 1-2 after launch)
 
-**Week 1-2: Stability**
-- Monitor error rates
-- Fix P1/P2 bugs
-- Collect user feedback
-- Optimize performance
+- Monitor error rates + fix P1/P2 bugs
+- Implement WebSocket-based messaging (replace REST polling)
+- Add evidence file uploads (photos, documents)
+- Add appointment scheduling
+- Wellbeing tracking features
 
-**Week 3-4: Core Features**
-- Implement WebSocket for real-time messaging
-- Add other provider types (healthcare, legal, police)
-- Implement evidence file uploads
-- Add wellbeing tracking
+### Core Features (Month 2)
 
-### 9.2 Long-term (Months 4-6)
+- Other provider dashboards beyond GBV Rescue for full case management
+- Provider performance metrics
+- AI-powered provider recommendations
+- Geolocation-based provider matching
+- Multi-provider coordination on single case
 
-**App Separation**:
-- Separate into Survivor App + Provider Platform
+### Platform (Month 3-6)
+
+- App separation: Survivor App + Provider Platform
 - Independent deployments
 - Optimized bundle sizes
+- Role-specific feature sets
 
 ---
 
-## 10. Environment Setup
+## 11. Environment Setup (Reference)
 
-### 10.1 Backend Setup
-
+### Backend
 ```bash
-# Clone repo
-cd /home/athooh/Documents/kintara-backend
+cd /home/athooh/Documents/Work/Evarest/kintara-backend
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
+# Start all services
+make up          # or: docker-compose up -d
 
-# Install dependencies
-pip install -r requirements.txt
+# View logs
+make logs
 
-# Set up .env
-cp .env.example .env
-# Edit .env with your values
+# Django shell
+make shell
 
-# Run migrations
-python manage.py migrate
+# Create migrations
+make makemigrations
 
-# Create superuser
-python manage.py createsuperuser
+# Apply migrations
+make migrate
 
-# Run server
-python manage.py runserver
+# Seed/reset test accounts
+python manage.py reset_test_accounts
+
+# Start Celery worker
+celery -A kintara worker --loglevel=info
 ```
 
-### 10.2 Frontend Setup
-
+### Frontend
 ```bash
-# Navigate to frontend
-cd /home/athooh/Documents/kintaraa-app
+cd /home/athooh/Documents/Work/Evarest/kintaraa-app
 
-# Install dependencies
-npm install
+# Ensure correct Node version
+source "$HOME/.nvm/nvm.sh" && nvm use 20
 
-# Start dev server
-npx expo start
-```
+# Start web
+npx expo start --web --offline
 
----
+# Start with tunnel (for mobile testing)
+npx expo start --tunnel
 
-## 11. Key API Endpoints
-
-**Authentication**:
-```
-POST   /api/v1/auth/register/
-POST   /api/v1/auth/login/
-POST   /api/v1/auth/refresh/
-POST   /api/v1/auth/logout/
-GET    /api/v1/auth/me/
-```
-
-**Incidents**:
-```
-GET    /api/v1/incidents/
-POST   /api/v1/incidents/
-GET    /api/v1/incidents/{id}/
-PATCH  /api/v1/incidents/{id}/
-GET    /api/v1/incidents/stats/
-```
-
-**Provider Cases**:
-```
-GET    /api/v1/provider/cases/
-POST   /api/v1/cases/{id}/accept/
-POST   /api/v1/cases/{id}/reject/
-PATCH  /api/v1/cases/{id}/status/
-```
-
-**Messaging**:
-```
-GET    /api/v1/incidents/{id}/messages/
-POST   /api/v1/incidents/{id}/messages/
-PATCH  /api/v1/messages/{id}/read/
-GET    /api/v1/messages/unread-count/
-```
-
-**Notifications**:
-```
-POST   /api/v1/notifications/register-token/
-GET    /api/v1/notifications/
-PATCH  /api/v1/notifications/{id}/read/
-```
-
-**GBV Rescue**:
-```
-POST   /api/v1/gbv-rescue/responses/
-GET    /api/v1/gbv-rescue/responses/
-GET    /api/v1/gbv-rescue/dashboard-stats/
+# Clear cache
+npx expo start -c
 ```
 
 ---
 
-## 12. Success Metrics
+## 12. Key API Contracts
+
+### Messaging (NEW — not in original plan)
+
+**Get conversation for incident:**
+```
+GET /api/messaging/conversations/?incident_id={uuid}
+Authorization: Bearer {token}
+
+Response:
+{
+  "results": [{
+    "id": "uuid",
+    "incident": {...},
+    "participants": [...],
+    "last_message_at": "ISO datetime",
+    "is_active": true,
+    "unread_count": 3
+  }]
+}
+```
+
+**Send message:**
+```
+POST /api/messaging/conversations/{id}/send_message/
+Authorization: Bearer {token}
+Content-Type: application/json
+Body: {"content": "message text"}
+
+Response: 201 Created
+{
+  "id": "uuid",
+  "sender": {...},
+  "content": "decrypted message text",  // Backend decrypts before responding
+  "message_type": "user_message",
+  "created_at": "ISO datetime",
+  "is_read": false
+}
+```
+
+**Register push token:**
+```
+POST /api/messaging/push-token/
+Authorization: Bearer {token}
+Body: {"token": "ExponentPushToken[...]", "platform": "ios|android|web"}
+
+Response: 200/201 {"success": true, "created": false}
+```
+
+**WebSocket (provider real-time):**
+```
+ws://{host}/ws/providers/?token={jwt}
+
+Inbound: {"type": "ping"}
+Outbound: {
+  "type": "case_assigned",
+  "data": {
+    "assignment_id": "uuid",
+    "incident_id": "uuid",
+    "case_number": "KIN-20260215-001",
+    "status": "pending"
+  }
+}
+```
+
+---
+
+## 13. Success Metrics
 
 **MVP Launch Criteria**:
-- ✅ Survivor can complete full incident flow
-- ✅ Provider can accept and manage cases
-- ✅ Messaging works between both parties
-- ✅ Push notifications delivered
-- ✅ No P0 bugs, < 5 P1 bugs
-- ✅ 80%+ test coverage on critical paths
-- ✅ API response time < 500ms (p95)
+- [ ] Survivor can complete full incident flow (register → report → see assignment → message provider)
+- [ ] Dispatcher can login → view all cases → assign providers → monitor response
+- [ ] Provider can login → see assigned cases → accept → message survivor
+- [ ] Messaging persists in database (no mock data)
+- [ ] Push notifications delivered on at least one platform
+- [ ] No P0 bugs in core flows
+- [ ] API response time < 500ms (p95)
+- [ ] Backend deployed to production URL
 
 ---
 
-## 13. Final Recommendations
+## 14. Document History
 
-### 13.1 Critical Success Factors
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | Dec 26, 2025 | Initial plan |
+| 2.0 | Mar 7, 2026 | Comprehensive update: reflects actual backend (messaging fully implemented), frontend status, remaining tasks, revised timeline |
 
-1. **Focus on MVP scope** - No feature creep
-2. **Fix security issues first** (Day 1)
-3. **Deploy backend early** (Day 10)
-4. **Test continuously**
-5. **Communicate daily**
-
-### 13.2 Day 1 Kickoff Checklist
-
-- [ ] Team roles clear
-- [ ] Daily standup time agreed
-- [ ] MVP scope locked
-- [ ] Development environments working
-- [ ] Backend running locally
-- [ ] Frontend running locally
-- [ ] First commit pushed
+**Last Updated**: March 7, 2026
+**Next Review**: March 14, 2026
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: December 26, 2025
-**Next Review**: January 5, 2026
-
----
-
-## Good luck with the MVP! 🚀
-
-**Remember**: Done is better than perfect. Ship on January 15, iterate after.
+**Current Phase**: Week 2+ — Core feature integration
+**Status**: ~70% complete. Messaging frontend integration is the critical path to MVP.
+**Critical Blocker**: Frontend messaging screen must be connected to `/api/messaging/` endpoints.
