@@ -259,25 +259,12 @@ export default function ReportScreen() {
     setReportData(prev => ({ ...prev, [key]: value }));
   };
 
-  // Auto-determine urgency based on selected services
-  const determineUrgency = (services: string[]) => {
-    const urgentServices = supportServices.filter(s => s.urgent && services.includes(s.id));
-    if (urgentServices.length > 0) {
-      // Check for immediate services (medical, police, emergency)
-      const immediateServices = urgentServices.filter(s =>
-        s.id === 'medical' || s.id === 'police' || s.id === 'emergency'
-      );
-      return immediateServices.length > 0 ? 'immediate' : 'urgent';
-    }
-    return 'routine';
-  };
-
+  // Update support services without auto-determining urgency
+  // Survivors now manually select urgency level in Step 4
   const updateSupportServices = (services: string[]) => {
-    const urgency = determineUrgency(services);
     setReportData(prev => ({
       ...prev,
       supportServices: services,
-      urgencyLevel: urgency
     }));
   };
 
@@ -806,20 +793,55 @@ export default function ReportScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Urgency Level</Text>
-              <View style={styles.urgencyContainer}>
-                <View style={[styles.urgencyBadge, {
-                  backgroundColor: reportData.urgencyLevel === 'immediate' ? '#E53935' :
-                                 reportData.urgencyLevel === 'urgent' ? '#FF8F00' : '#43A047'
-                }]}>
-                  <Text style={styles.urgencyText}>
-                    {reportData.urgencyLevel.charAt(0).toUpperCase() + reportData.urgencyLevel.slice(1)}
-                  </Text>
-                </View>
-                <Text style={styles.urgencyNote}>
-                  {reportData.urgencyLevel === 'immediate' ? 'Providers will be notified immediately' :
-                   reportData.urgencyLevel === 'urgent' ? 'Priority notification to providers' :
-                   'Standard notification process'}
-                </Text>
+              <Text style={styles.inputHelper}>
+                Select the urgency level for dispatcher review
+              </Text>
+              <View style={styles.urgencyOptions}>
+                {[
+                  {
+                    id: 'immediate',
+                    title: 'Immediate',
+                    description: 'Life-threatening situation requiring immediate response',
+                    color: '#E53935'
+                  },
+                  {
+                    id: 'urgent',
+                    title: 'Urgent',
+                    description: 'Serious situation requiring priority attention',
+                    color: '#FF8F00'
+                  },
+                  {
+                    id: 'routine',
+                    title: 'Routine',
+                    description: 'Standard case requiring normal processing',
+                    color: '#43A047'
+                  }
+                ].map((urgency) => (
+                  <TouchableOpacity
+                    key={urgency.id}
+                    style={[
+                      styles.urgencyOption,
+                      reportData.urgencyLevel === urgency.id && styles.urgencyOptionSelected,
+                    ]}
+                    onPress={() => updateReportData('urgencyLevel', urgency.id)}
+                  >
+                    <View style={[styles.urgencyIndicator, { backgroundColor: urgency.color }]} />
+                    <View style={styles.urgencyContent}>
+                      <Text style={[
+                        styles.urgencyTitle,
+                        reportData.urgencyLevel === urgency.id && styles.urgencyTitleSelected,
+                      ]}>
+                        {urgency.title}
+                      </Text>
+                      <Text style={styles.urgencyDescription}>
+                        {urgency.description}
+                      </Text>
+                    </View>
+                    {reportData.urgencyLevel === urgency.id && (
+                      <Check color="#6A2CB0" size={20} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
@@ -1471,6 +1493,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     fontStyle: 'italic',
+  },
+  inputHelper: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
+  },
+  urgencyOptions: {
+    gap: 12,
+  },
+  urgencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E8E8E8',
+  },
+  urgencyOptionSelected: {
+    borderColor: '#6A2CB0',
+    backgroundColor: '#F5F0FF',
+  },
+  urgencyIndicator: {
+    width: 4,
+    height: 40,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  urgencyContent: {
+    flex: 1,
+  },
+  urgencyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#341A52',
+    marginBottom: 4,
+  },
+  urgencyTitleSelected: {
+    color: '#6A2CB0',
+  },
+  urgencyDescription: {
+    fontSize: 14,
+    color: '#666666',
   },
   communicationOptions: {
     gap: 12,

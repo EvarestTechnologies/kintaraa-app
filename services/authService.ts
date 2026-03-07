@@ -18,7 +18,7 @@ export interface RegisterRequest {
   confirm_password: string;
   first_name: string;
   last_name: string;
-  role: 'survivor' | 'provider' | 'admin';
+  role: 'survivor' | 'provider' | 'dispatcher' | 'admin';
   provider_type?: string; // Required when role is 'provider'
   is_anonymous?: boolean;
 }
@@ -39,7 +39,7 @@ export interface User {
   first_name: string;
   last_name: string;
   full_name: string;
-  role: 'survivor' | 'provider' | 'admin';
+  role: 'survivor' | 'provider' | 'dispatcher' | 'admin';
   role_display: string;
   provider_type?: string; // Provider type for service providers
   provider_type_display?: string; // Human-readable provider type

@@ -1,12 +1,30 @@
-import React, { useState } from 'react';
-import { Alert } from 'react-native';
-import { CommunityManagement } from '@/dashboards/chw';
-import AddCommunityCaseModal from '@/dashboards/chw/components/AddCommunityCaseModal';
-import type { CommunityCase } from '@/dashboards/chw';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MyCases from '@/app/components/_MyCases';
 
 export default function CHWCommunityCasesScreen() {
-  // Mock community cases data
-  const [communityCases, setCommunityCases] = useState<CommunityCase[]>([
+  console.log('👥 CHWCommunityCasesScreen - CHW My Cases');
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <MyCases />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+});
+
+/*
+// Previous community management code commented out
+// Real cases now come from ProviderContext via MyCases component
+export function CHWCommunityCasesScreenOld() {
+  const [communityCases, setCommunityCases] = useState<any[]>([
     {
       id: '1',
       caseNumber: 'CC-2024-001',
@@ -234,3 +252,4 @@ export default function CHWCommunityCasesScreen() {
     </>
   );
 }
+*/

@@ -42,6 +42,12 @@ export default function Index() {
     return <Redirect href="/(auth)/welcome" />;
   }
 
+  // Route based on user role
+  if (user?.role === 'dispatcher') {
+    console.log('✅ Index - Dispatcher, redirecting to dispatcher dashboard');
+    return <Redirect href="/(dashboard)/dispatcher" />;
+  }
+
   // For provider users, redirect to specific dashboard
   if (user?.role === 'provider' && user?.providerType) {
     console.log(`✅ Index - Provider (${user.providerType}), redirecting to hierarchical dashboard`);

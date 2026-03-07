@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import PatientsList from '@/dashboards/healthcare/components/PatientsList';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MyCases from '@/app/components/_MyCases';
 
 export default function PatientsScreen() {
-  console.log('👥 PatientsScreen - Healthcare Patients');
+  console.log('👥 PatientsScreen - Healthcare My Cases');
 
   return (
-    <View style={styles.container}>
-      <PatientsList />
-    </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <MyCases />
+    </SafeAreaView>
   );
 }
 

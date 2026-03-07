@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking, ActivityIndicator } from 'react-native';
 import { useProvider } from '@/providers/ProviderContext';
 import { Siren, AlertTriangle, Clock, MapPin, User, Phone, Search, Filter, Users, MessageCircle, X, Send } from 'lucide-react-native';
 
@@ -25,7 +25,7 @@ interface EmergencyCase {
 }
 
 export default function EmergencyCases() {
-  const { assignedCases } = useProvider();
+  const { assignedCases, pendingAssignments, acceptAssignment, isAccepting } = useProvider();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -33,115 +33,72 @@ export default function EmergencyCases() {
   const [showDispatchModal, setShowDispatchModal] = useState<boolean>(false);
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [emergencyCases, setEmergencyCases] = useState<EmergencyCase[]>([]);
+  const [acceptingCaseId, setAcceptingCaseId] = useState<string | null>(null);
 
-  // Mock emergency cases data with enhanced fields
-  const mockCases: EmergencyCase[] = [
-    {
-      id: 'emergency-1',
-      caseNumber: 'EMG-241210001',
-      survivorName: 'Anonymous Survivor',
-      location: '123 Main St, Brooklyn, NY',
-      priority: 'critical',
-      status: 'pending',
-      reportedAt: '2024-12-10T14:30:00Z',
-      description: 'Immediate physical danger reported. Suspect still on premises.',
-      responseTeam: 'Team Alpha',
-      estimatedArrival: '8 minutes',
-      contactNumber: '+1-555-****-**01',
-      lastContact: '2024-12-10T14:28:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T14:30:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported via hotline',
-          user: 'Operator-001'
-        }
-      ]
-    },
-    {
-      id: 'emergency-2',
-      caseNumber: 'EMG-241210002',
-      survivorName: 'Maria Rodriguez',
-      location: '456 Oak Ave, Manhattan, NY',
-      priority: 'high',
-      status: 'responding',
-      reportedAt: '2024-12-10T13:45:00Z',
-      description: 'Escalating domestic violence situation. Survivor in safe room.',
-      responseTeam: 'Team Beta',
-      estimatedArrival: 'On scene',
-      contactNumber: '+1-555-****-**02',
-      lastContact: '2024-12-10T13:50:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T13:45:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported',
-          user: 'Operator-002'
-        },
-        {
-          timestamp: '2024-12-10T13:48:00Z',
-          action: 'Team Dispatched',
-          details: 'Team Beta dispatched to location',
-          user: 'Dispatcher-001'
-        }
-      ]
-    },
-    {
-      id: 'emergency-3',
-      caseNumber: 'EMG-241210003',
-      survivorName: 'Sarah Johnson',
-      location: '789 Pine St, Queens, NY',
-      priority: 'medium',
-      status: 'resolved',
-      reportedAt: '2024-12-10T12:15:00Z',
-      description: 'Survivor safely relocated to shelter. Follow-up scheduled.',
-      responseTeam: 'Team Gamma',
-      contactNumber: '+1-555-****-**03',
-      lastContact: '2024-12-10T15:30:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T12:15:00Z',
-          action: 'Case Created',
-          details: 'Emergency case reported',
-          user: 'Operator-003'
-        },
-        {
-          timestamp: '2024-12-10T14:20:00Z',
-          action: 'Case Resolved',
-          details: 'Survivor safely relocated to shelter',
-          user: 'Team Gamma'
-        }
-      ]
-    },
-    {
-      id: 'emergency-4',
-      caseNumber: 'EMG-241210004',
-      survivorName: 'Anonymous Survivor',
-      location: 'Location withheld for safety',
-      priority: 'critical',
-      status: 'pending',
-      reportedAt: '2024-12-10T14:45:00Z',
-      description: 'Sexual assault reported. Medical attention required.',
-      responseTeam: 'Team Alpha',
-      estimatedArrival: '12 minutes',
-      contactNumber: '+1-555-****-**04',
-      lastContact: '2024-12-10T14:43:00Z',
-      activityLog: [
-        {
-          timestamp: '2024-12-10T14:45:00Z',
-          action: 'Case Created',
-          details: 'Critical emergency case - sexual assault reported',
-          user: 'Operator-001'
-        }
-      ]
-    }
-  ];
-
-  // Initialize cases with state management
+  // Convert real assignments to emergency cases format
   React.useEffect(() => {
-    setEmergencyCases(mockCases);
-  }, []);
+    // Debug: Log first assignment to see date format
+    if (pendingAssignments && pendingAssignments.length > 0) {
+      console.log('🔍 First pending assignment:', {
+        assignedAt: pendingAssignments[0].assignedAt,
+        assignedAtType: typeof pendingAssignments[0].assignedAt,
+        caseNumber: pendingAssignments[0].caseNumber,
+      });
+    }
 
+    // Map pending assignments (CaseAssignment type)
+    const pendingCases: EmergencyCase[] = (pendingAssignments || [])
+      .filter(assignment => assignment.priority === 'critical' || assignment.priority === 'high')
+      .map(assignment => ({
+        id: assignment.id,
+        caseNumber: assignment.caseNumber,
+        survivorName: assignment.survivorName, // Real survivor name from API
+        location: assignment.location || 'Location not specified',
+        priority: assignment.priority as 'critical' | 'high' | 'medium',
+        status: 'pending' as const,
+        reportedAt: assignment.reportedAt, // When incident was originally submitted
+        description: assignment.description || `${assignment.serviceType} - Emergency response required`,
+        responseTeam: undefined,
+        estimatedArrival: `${assignment.estimatedResponseTime || 15} minutes`,
+        contactNumber: '+1-555-****-**XX', // Protected
+        lastContact: assignment.assignedAt, // When assigned to this provider
+        activityLog: [{
+          timestamp: assignment.assignedAt, // When assigned to this provider
+          action: 'Case Assigned',
+          details: 'Case assigned to provider via automated routing',
+          user: 'System'
+        }]
+      }));
+
+    // Map assigned cases (Incident type)
+    const activeCases: EmergencyCase[] = (assignedCases || [])
+      .filter(incident => incident.priority === 'critical' || incident.priority === 'high')
+      .map(incident => ({
+        id: incident.id,
+        caseNumber: incident.caseNumber,
+        survivorName: 'Anonymous Survivor',
+        location: incident.location?.address || 'Location secured',
+        priority: incident.priority as 'critical' | 'high' | 'medium',
+        status: incident.status === 'in_progress' ? 'responding' as const :
+                incident.status === 'completed' ? 'resolved' as const : 'pending' as const,
+        reportedAt: incident.createdAt,
+        description: incident.description || 'Emergency response required',
+        responseTeam: incident.status === 'in_progress' || incident.status === 'completed' ? 'Response Team' : undefined,
+        estimatedArrival: incident.status === 'assigned' ? '15 minutes' : undefined,
+        contactNumber: '+1-555-****-**XX',
+        lastContact: incident.updatedAt,
+        activityLog: [{
+          timestamp: incident.createdAt,
+          action: 'Case Created',
+          details: 'Case assigned to provider',
+          user: 'System'
+        }]
+      }));
+
+    setEmergencyCases([...pendingCases, ...activeCases]);
+  }, [pendingAssignments, assignedCases]);
+
+  // Filter emergency cases based on search and priority
   const filteredCases = emergencyCases.filter(emergencyCase => {
     const matchesSearch = emergencyCase.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          emergencyCase.survivorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -185,41 +142,75 @@ export default function EmergencyCases() {
     setShowContactModal(true);
   };
 
-  const dispatchTeam = (teamId: string) => {
+  const dispatchTeam = async (teamId: string) => {
     if (!selectedCase) return;
 
     const team = availableTeams.find(t => t.id === teamId);
     if (!team) return;
 
-    // Update case with dispatch information
-    setEmergencyCases(prev => prev.map(case_ =>
-      case_.id === selectedCase.id
-        ? {
-            ...case_,
-            status: 'responding' as const,
-            responseTeam: team.name,
-            estimatedArrival: team.eta,
-            activityLog: [
-              ...case_.activityLog,
-              {
-                timestamp: new Date().toISOString(),
-                action: 'Team Dispatched',
-                details: `${team.name} dispatched to location - ETA: ${team.eta}`,
-                user: 'Dispatcher-001'
-              }
-            ]
-          }
-        : case_
-    ));
+    // Find the incident ID from pending assignments
+    const pendingAssignment = pendingAssignments.find(a => a.id === selectedCase.id);
 
-    setShowDispatchModal(false);
-    setSelectedCase(null);
+    if (pendingAssignment) {
+      // This is a pending assignment - accept it via backend API
+      setAcceptingCaseId(selectedCase.id);
 
-    Alert.alert(
-      'Team Dispatched Successfully',
-      `${team.name} has been dispatched to ${selectedCase.location}. ETA: ${team.eta}`,
-      [{ text: 'OK' }]
-    );
+      try {
+        console.log('🚨 GBV Rescue accepting assignment:', pendingAssignment.incidentId);
+
+        // Accept the assignment via backend API
+        await acceptAssignment(pendingAssignment.incidentId);
+
+        console.log('✅ Assignment accepted successfully');
+
+        Alert.alert(
+          'Team Dispatched Successfully',
+          `${team.name} has been dispatched and assignment accepted. The case is now in progress.`,
+          [{ text: 'OK' }]
+        );
+      } catch (error) {
+        console.error('❌ Error accepting assignment:', error);
+        Alert.alert(
+          'Error',
+          'Failed to accept assignment. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setAcceptingCaseId(null);
+        setShowDispatchModal(false);
+        setSelectedCase(null);
+      }
+    } else {
+      // This is an already accepted case - just update local UI
+      setEmergencyCases(prev => prev.map(case_ =>
+        case_.id === selectedCase.id
+          ? {
+              ...case_,
+              status: 'responding' as const,
+              responseTeam: team.name,
+              estimatedArrival: team.eta,
+              activityLog: [
+                ...case_.activityLog,
+                {
+                  timestamp: new Date().toISOString(),
+                  action: 'Team Dispatched',
+                  details: `${team.name} dispatched to location - ETA: ${team.eta}`,
+                  user: 'GBV-Rescue-Team'
+                }
+              ]
+            }
+          : case_
+      ));
+
+      setShowDispatchModal(false);
+      setSelectedCase(null);
+
+      Alert.alert(
+        'Team Dispatched Successfully',
+        `${team.name} has been dispatched to ${selectedCase.location}. ETA: ${team.eta}`,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const contactSurvivor = (method: 'call' | 'sms' | 'secure') => {
@@ -272,12 +263,19 @@ export default function EmergencyCases() {
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Unknown time';
+      }
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Unknown time';
+    }
   };
 
   return (
@@ -438,15 +436,21 @@ export default function EmergencyCases() {
 
               <View style={styles.teamsSection}>
                 <Text style={styles.modalSectionTitle}>Available Teams</Text>
+                {acceptingCaseId && (
+                  <View style={styles.acceptingBanner}>
+                    <ActivityIndicator size="small" color="#6A2CB0" />
+                    <Text style={styles.acceptingText}>Accepting assignment and dispatching team...</Text>
+                  </View>
+                )}
                 {availableTeams.map((team) => (
                   <TouchableOpacity
                     key={team.id}
                     style={[
                       styles.teamCard,
-                      team.status === 'busy' && styles.teamCardDisabled
+                      (team.status === 'busy' || acceptingCaseId) && styles.teamCardDisabled
                     ]}
-                    onPress={() => team.status === 'available' && dispatchTeam(team.id)}
-                    disabled={team.status === 'busy'}
+                    onPress={() => team.status === 'available' && !acceptingCaseId && dispatchTeam(team.id)}
+                    disabled={team.status === 'busy' || !!acceptingCaseId}
                   >
                     <View style={styles.teamInfo}>
                       <Text style={styles.teamName}>{team.name}</Text>
@@ -891,5 +895,20 @@ const styles = StyleSheet.create({
   contactMethodDescription: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  acceptingBanner: {
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  acceptingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6A2CB0',
+    flex: 1,
   },
 });

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, AlertTriangle, Phone, Users2, User } from 'lucide-react-native';
+import { Home, AlertTriangle, Phone, Users2, User, MessageCircle } from 'lucide-react-native';
 
 export default function GbvRescueTabLayout() {
   console.log('🚨 GbvRescueTabLayout - Rendering GBV Rescue Dashboard');
@@ -52,6 +52,13 @@ export default function GbvRescueTabLayout() {
         options={{
           title: 'Response',
           tabBarIcon: ({ color, size }) => <Users2 color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen

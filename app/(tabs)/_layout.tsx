@@ -43,7 +43,19 @@ export default function TabLayout() {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  // All users (providers and survivors) should use the dashboard structure
+  // Route based on user role
+  console.log('🔍 TabLayout - Checking user role:', {
+    role: user?.role,
+    roleType: typeof user?.role,
+    isDispatcher: user?.role === 'dispatcher',
+    strictEqual: user?.role === 'dispatcher',
+  });
+
+  if (user?.role === 'dispatcher') {
+    console.log('📋 TabLayout - Dispatcher, redirecting to dispatcher dashboard');
+    return <Redirect href="/(dashboard)/dispatcher" />;
+  }
+
   if (user?.role === 'provider' && user?.providerType) {
     console.log(`🏥 TabLayout - Provider (${user.providerType}), redirecting to dashboard`);
     return <Redirect href={`/(dashboard)/${user.providerType}`} />;

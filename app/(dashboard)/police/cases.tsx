@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import CasesList from '@/dashboards/police/components/CasesList';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MyCases from '@/app/components/_MyCases';
 
 export default function PoliceCasesScreen() {
+  console.log('👮 PoliceCasesScreen - Police My Cases');
+
   return (
-    <View style={styles.container}>
-      <CasesList />
-    </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <MyCases />
+    </SafeAreaView>
   );
 }
 

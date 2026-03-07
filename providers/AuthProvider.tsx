@@ -15,7 +15,7 @@ export type ProviderType = 'healthcare' | 'legal' | 'police' | 'counseling' | 's
 export interface User {
   id: string;
   email: string;
-  role: 'survivor' | 'provider' | 'admin';
+  role: 'survivor' | 'provider' | 'dispatcher' | 'admin';
   providerType?: ProviderType; // For future provider implementation
   firstName: string;
   lastName: string;
@@ -47,22 +47,33 @@ export interface AuthState {
 }
 
 // Convert API user to app user format
-const convertApiUserToAppUser = (apiUser: ApiUser): User => ({
-  id: apiUser.id,
-  email: apiUser.email,
-  role: apiUser.role,
-  providerType: apiUser.provider_type as ProviderType, // Map provider_type from backend
-  firstName: apiUser.first_name,
-  lastName: apiUser.last_name,
-  fullName: apiUser.full_name,
-  isAnonymous: apiUser.is_anonymous,
-  biometricEnabled: apiUser.biometric_enabled,
-  isActive: apiUser.is_active,
-  lastLogin: apiUser.last_login,
-  createdAt: apiUser.created_at,
-  updatedAt: apiUser.updated_at,
-  emergencyContacts: [], // Default empty for now
-});
+const convertApiUserToAppUser = (apiUser: ApiUser): User => {
+  console.log('🔄 Converting API user to app user:', {
+    email: apiUser.email,
+    apiRole: apiUser.role,
+    roleType: typeof apiUser.role,
+  });
+
+  const user = {
+    id: apiUser.id,
+    email: apiUser.email,
+    role: apiUser.role,
+    providerType: apiUser.provider_type as ProviderType, // Map provider_type from backend
+    firstName: apiUser.first_name,
+    lastName: apiUser.last_name,
+    fullName: apiUser.full_name,
+    isAnonymous: apiUser.is_anonymous,
+    biometricEnabled: apiUser.biometric_enabled,
+    isActive: apiUser.is_active,
+    lastLogin: apiUser.last_login,
+    createdAt: apiUser.created_at,
+    updatedAt: apiUser.updated_at,
+    emergencyContacts: [], // Default empty for now
+  };
+
+  console.log('✅ Converted user role:', user.role, '(type:', typeof user.role, ')');
+  return user;
+};
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>({

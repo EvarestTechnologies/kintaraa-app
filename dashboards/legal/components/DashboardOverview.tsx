@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import type { LegalStats } from '../index';
+import ProviderNotificationFab from '@/app/components/_ProviderNotificationFab';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 60) / 2;
@@ -245,6 +246,9 @@ export default function DashboardOverview() {
         </View>
       </View>
       </ScrollView>
+
+      {/* Notification FAB for pending case assignments */}
+      <ProviderNotificationFab />
     </SafeAreaView>
   );
 }

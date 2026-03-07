@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Users, Calendar, FileText, User } from 'lucide-react-native';
+import { Home, Users, Calendar, FileText, User, MessageCircle } from 'lucide-react-native';
 
 export default function HealthcareTabLayout() {
   console.log('🏥 HealthcareTabLayout - Rendering Healthcare Dashboard');
@@ -36,7 +36,7 @@ export default function HealthcareTabLayout() {
       <Tabs.Screen
         name="patients"
         options={{
-          title: 'Patients',
+          title: 'My Cases',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
         }}
       />
@@ -52,6 +52,13 @@ export default function HealthcareTabLayout() {
         options={{
           title: 'Records',
           tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen

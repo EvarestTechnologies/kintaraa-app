@@ -39,6 +39,12 @@ export interface Incident {
   evidence: Evidence[];
   messages: Message[];
   assignedProviderId?: string;
+  assignedProviders?: Array<{
+    provider_id: string;
+    provider_name: string;
+    provider_type: string;
+    assigned_at: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -546,16 +552,23 @@ export const [IncidentProvider, useIncidents] = createContextHook(() => {
     },
   });
 
-  // Add message to incident
-  // TODO: Implement messaging API endpoint in backend
+  // Add message to incident via the conversation REST API.
+  // The messages screen handles WS messaging directly; this is the REST fallback
+  // for other callers (e.g. quick-reply from incident detail).
   const addMessageMutation = useMutation({
     mutationFn: async ({ incidentId, content }: { incidentId: string; content: string }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // TODO: Replace with API call when messaging endpoint is implemented
-      // const apiResponse = await MessagingAPI.sendMessage(incidentId, content);
+      const { getConversationForIncident, sendMessageRest } = await import('@/services/messaging');
 
-      throw new Error('Messaging feature is not yet implemented on the backend.');
+      const conversation = await getConversationForIncident(incidentId);
+      if (!conversation) {
+        throw new Error(
+          'No conversation found for this case. A provider must accept the case first.'
+        );
+      }
+
+      return sendMessageRest(conversation.id, content);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents', user?.id] });

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Shield, FileText, BarChart3, User } from 'lucide-react-native';
+import { Home, Shield, FileText, BarChart3, User, MessageCircle } from 'lucide-react-native';
 
 export default function PoliceTabLayout() {
   console.log('👮 PoliceTabLayout - Rendering Police Dashboard');
@@ -38,6 +38,13 @@ export default function PoliceTabLayout() {
         options={{
           title: 'Cases',
           tabBarIcon: ({ color, size }) => <Shield color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
       />
       <Tabs.Screen
