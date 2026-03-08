@@ -16,7 +16,9 @@
 
 ## Technical
 
-* [Blockchain & Privacy](technical/blockchain-privacy.md)
+* [Backend Architecture](technical/backend-architecture.md)
+* [API Reference](technical/api-reference.md)
+* [Privacy Architecture](technical/blockchain-privacy.md)
 * [AI Components](technical/ai-components.md)
 * [Data Security](technical/data-security.md)
 

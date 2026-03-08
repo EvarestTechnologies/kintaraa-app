@@ -1,101 +1,57 @@
-# Blockchain & Privacy
+# Privacy Architecture
 
-<!-- TODO: No blockchain components were found in the codebase. This page covers the privacy architecture and data isolation model actually implemented. If blockchain features are planned, this page should be updated with specifics. -->
+Kintaraa does not use blockchain technology. This page documents the privacy architecture that protects survivor data across the platform.
 
-Kintaraa does not currently use blockchain technology. This page documents the privacy architecture that protects survivor data across the platform.
+## Anonymous reporting
 
-## Privacy by design
+Survivors are not required to create an account or disclose their identity to use the platform. Anonymous sessions allow a survivor to submit a report and track their case without registering.
 
-The platform applies privacy-by-design at multiple levels: the data model, access control, local storage, and transmission.
+Anonymous session data is retained for 90 days, giving survivors a window to return to their case. After that period, data is eligible for deletion.
 
-### Anonymous reporting
+Anonymous users are subject to the same access controls as registered users. No provider can see more information about an anonymous survivor than they can about a registered one.
 
-Survivors can submit incident reports without creating an account. The system issues a temporary session token valid for 24 hours. Anonymous user records are retained for 90 days to allow survivors to return to their case, after which they are eligible for deletion.
+## Data isolation
 
-The `User` model has an `is_anonymous` flag:
+Every data access is scoped by role and case assignment. The platform enforces this at the API level, meaning it cannot be bypassed from the user interface.
 
-```python
-# apps/authentication/models.py
-is_anonymous = models.BooleanField(
-    default=False,
-    help_text="Whether this is an anonymous user account"
-)
-```
+A provider assigned to a case can access that case's record. They cannot query other survivors' records, other providers' caseloads, or cases they have not been assigned to. This is enforced server-side on every request.
 
-Anonymous users' data is treated with the same access controls as registered users — no provider can see more than they are assigned to see.
+## Sensitive data categories
 
-### Data isolation by role
+The following categories of data receive heightened protection:
 
-Every data access in the system is scoped by role and case assignment. Providers can only retrieve cases assigned to them. The Django permission layer enforces this at the API level, not just the UI level.
+| Data category | Examples | Protection approach |
+|---|---|---|
+| Incident narratives | Survivor descriptions | Access-controlled by assignment |
+| Voice recordings | Audio of survivor account | Private storage, access-controlled |
+| Location data | GPS coordinates | Optional collection; access-controlled |
+| Counseling session notes | Therapist records | Field-level encryption planned |
+| Medical records | Healthcare provider records | Field-level encryption planned |
+| Survivor journals | Private notes | Field-level encryption planned |
 
-A provider querying their assigned cases sees only:
+## On-device privacy
 
-```
-GET /api/providers/assigned-cases/
-→ Returns: only CaseAssignment records where provider == request.user
-```
+The mobile app stores data locally to support offline use. Sensitive data items are encrypted before being written to local device storage. The encryption implementation will use AES encryption via the device's secure cryptography APIs before production deployment.
 
-No provider can enumerate other providers' caseloads or access survivor records outside their assignments.
+## Session and token lifetimes
 
-### Field-level sensitivity
+| Parameter | Value |
+|---|---|
+| Access token lifetime | 30 minutes |
+| Refresh token lifetime | 7 days |
+| Biometric session timeout | 5 minutes |
+| Anonymous session duration | 24 hours |
+| Anonymous data retention | 90 days |
 
-Certain data fields are flagged as requiring heightened protection:
-
-| Field | Model | Sensitivity | Current handling |
-|---|---|---|---|
-| Voice transcription | Incident | High | Stored in database; encryption planned |
-| Session notes | CounselingSession (planned) | High | Field-level encryption planned |
-| Journal entries | JournalEntry (planned) | High | Field-level encryption planned |
-| Location coordinates | Incident (JSONField) | Medium | Access-controlled; not exposed to non-assigned providers |
-| Medical records | MedicalRecord (planned) | High | Role-scoped; encryption planned |
-
-### Local storage encryption
-
-On the mobile device, the `EncryptedStorage` service wraps `AsyncStorage` with a configurable encryption layer. Sensitive storage keys (defined in `SENSITIVE_STORAGE_KEYS`) are Base64-encoded before being written to local storage.
-
-```typescript
-// services/encryptedStorage.ts
-private shouldEncrypt(key: string): boolean {
-  if (!offlineConfig.get('features').encryption_enabled) {
-    return false;
-  }
-  return SENSITIVE_STORAGE_KEYS.includes(key as any);
-}
-```
-
-**Current limitation:** The encryption implementation uses Base64 encoding, which is encoding, not encryption. The codebase explicitly notes this is a development placeholder and documents the intended production implementation using `expo-crypto` with AES. This must be upgraded before production deployment.
-
-### Data in transit
-
-All communication between the mobile app and backend API uses HTTPS. JWT tokens are passed in request headers and are never logged in plaintext (the logging layer redacts token values from response logs).
-
-### Offline data
-
-When a survivor submits a report offline, the data is stored locally on their device. It is not uploaded until the device reconnects. This means:
-- Sensitive data lives on the survivor's device until sync
-- If the device is compromised before sync, data could be exposed
-- Production deployment should evaluate enabling SQLite-level encryption for the local store
+These values can be adjusted per deployment to meet organizational policy requirements.
 
 ## What is not yet implemented
 
 | Privacy control | Status |
 |---|---|
 | End-to-end message encryption | Planned |
-| AES encryption for local sensitive storage | Planned (Base64 placeholder in place) |
-| Field-level database encryption (journal, session notes) | Planned |
-| Signed S3 URLs with expiration for evidence files | Planned |
-| Data deletion on survivor request (right to erasure) | Planned |
-| Formal privacy impact assessment | Not started |
-
-## Session and token management
-
-| Parameter | Value |
-|---|---|
-| JWT access token lifetime | 30 minutes |
-| JWT refresh token lifetime | 7 days |
-| Biometric session timeout | 5 minutes |
-| Max biometric attempts | 3 |
-| Anonymous session duration | 24 hours |
-| Anonymous data retention | 90 days |
-
-These values are defined in `apps/authentication/constants.py` and can be adjusted per deployment.
+| Full local database encryption on device | Planned |
+| Field-level encryption for sensitive records | Planned |
+| Time-limited URLs for evidence file access | Planned |
+| Automated data deletion on survivor request | Planned |
+| Formal privacy impact assessment | Required before production |

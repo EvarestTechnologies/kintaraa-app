@@ -1,156 +1,95 @@
 # Data Security
 
-This page describes the security architecture of the Kintaraa platform: how data is protected at rest, in transit, and in access. It also documents what is not yet implemented and must be addressed before production deployment.
-
-## System architecture
-
-```mermaid
-graph TD
-    A[Survivor Device\niOS / Android] -->|HTTPS + JWT| B[API Gateway]
-    B --> C[Django REST API]
-    C --> D[PostgreSQL\nPrimary database]
-    C --> E[Redis\nCache + sessions]
-    C --> F[AWS S3\nEvidence files]
-    C --> G[FCM\nPush notifications]
-    A -->|Local SQLite\nOffline storage| A
-```
+This page describes how the Kintaraa platform protects survivor and provider data — at rest, in transit, and in access.
 
 ## Authentication
 
 ### Mobile app
 
-Authentication is JWT-based with access and refresh tokens.
+The mobile app uses token-based authentication. On login, the server issues a short-lived access token and a longer-lived refresh token. The access token is used for all API requests. When it expires, the refresh token is used to obtain a new one silently, without requiring the user to log in again.
 
-| Token | Lifetime | Storage |
-|---|---|---|
-| Access token | 30 minutes | AsyncStorage (encrypted key) |
-| Refresh token | 7 days | AsyncStorage (encrypted key) |
+Logging out invalidates the refresh token server-side, preventing further use even if the token itself is not yet expired.
 
-On app start, the stored access token is validated against the backend via `GET /api/auth/profile/`. If validation fails (expired or revoked), the user is logged out and local credentials are cleared.
-
-Logout blacklists the refresh token server-side using `djangorestframework-simplejwt`'s token blacklist.
+Tokens are stored securely on the device using encrypted local storage.
 
 ### Biometric authentication
 
-Biometric authentication (Face ID on iOS, fingerprint on Android) is available as a login method via `expo-local-authentication`. The biometric check is performed locally on the device by the OS — Kintaraa does not receive or store biometric data.
+Face ID (iOS) and fingerprint (Android) are supported as a login method. The biometric check is performed entirely by the device operating system — Kintaraa never receives or stores biometric data. A successful biometric check unlocks the stored credentials to authenticate with the server.
 
-When biometric authentication succeeds, the existing stored credentials are used to make the API call. Biometric does not bypass server-side token validation.
+### Password policy
 
-Settings:
-- Session timeout after biometric auth: 5 minutes
-- Maximum failed attempts before fallback: 3
+Passwords must meet minimum complexity requirements including minimum length, uppercase and lowercase characters, numbers, and special characters.
 
-### Password requirements
+## Authorization
 
-```python
-# apps/authentication/constants.py
-MIN_PASSWORD_LENGTH = 8
-PASSWORD_REQUIRE_UPPERCASE = True
-PASSWORD_REQUIRE_LOWERCASE = True
-PASSWORD_REQUIRE_NUMBERS = True
-PASSWORD_REQUIRE_SPECIAL_CHARS = True
-```
-
-## Authorization (role-based access control)
-
-Access to data is controlled at the Django API layer, not just the UI.
+Access to data is enforced at the API layer, not just the user interface. This means:
 
 - Survivors can only access their own incident records
-- Providers can only access cases assigned to them
-- Dispatchers can access all cases and provider profiles
-- Administrators have full access (all actions are logged)
+- Providers can only access cases that have been explicitly assigned to them
+- Dispatchers have read access to all cases for routing purposes
+- Administrators have full access, with all actions subject to audit logging (planned)
 
-Provider type is enforced at the model level: the `User` model requires that `provider_type` is set only when `role == 'provider'`, and validates this in `clean()`.
+Provider specialization is enforced at the account level — a healthcare provider cannot access legal case records, even if they are assigned to the same incident.
 
 ## Data in transit
 
-All traffic between mobile app and backend uses HTTPS/TLS. HTTP is not supported in production configuration.
+All communication between the mobile app and the backend uses HTTPS/TLS. Plaintext HTTP is not permitted.
 
-Logging redacts sensitive fields:
-
-```python
-# apps/authentication/views.py
-safe_response = response_data.copy()
-if "tokens" in safe_response:
-    safe_response["tokens"] = "*** REDACTED ***"
-if "password" in safe_response:
-    safe_response["password"] = "*** REDACTED ***"
-```
+Sensitive values such as authentication tokens and passwords are never written to logs.
 
 ## Data at rest
 
-### Backend database (PostgreSQL)
+### Backend database
 
-The database stores all incident records, user accounts, case assignments, and messages. Database-level encryption is the responsibility of the deployment infrastructure (e.g., AWS RDS with encryption at rest enabled).
+All incident records, user accounts, case assignments, and messages are stored in a managed relational database. Database-level encryption at rest is enabled at the infrastructure level.
 
-Field-level encryption for high-sensitivity fields (counseling session notes, journal entries) is planned but not yet implemented.
+Field-level encryption for particularly sensitive content — counseling session notes, journal entries, and medical records — is planned for a future release.
 
-### Evidence files (AWS S3)
+### Evidence and media files
 
-Voice recordings and evidence photos are stored in a dedicated S3 bucket (`kintara-evidence-bucket`). Configuration:
-- Bucket is private (no public access)
-- Files are accessed via signed URLs (planned — expiration not yet configured)
-- Server-side encryption using AWS S3 managed keys (SSE-S3)
+Voice recordings and evidence photos uploaded by survivors are stored in a private cloud storage bucket. Files are not publicly accessible. Access is controlled via time-limited signed URLs (planned — in active development).
 
-### Mobile device storage
+### On-device storage
 
-On-device data uses a three-tier storage model:
+The mobile app stores data locally to support offline use. This storage is organized in three layers:
 
-| Layer | Technology | Purpose | Encrypted? |
-|---|---|---|---|
-| Persistent data | AsyncStorage | Auth tokens, settings | Yes (configured sensitive keys) |
-| Structured data | SQLite (planned: WatermelonDB) | Offline incident records | No (planned) |
-| Media files | Expo FileSystem | Voice recordings, photos | No (OS-level only) |
+| Layer | Purpose | Encryption status |
+|---|---|---|
+| Secure key store | Auth tokens, sensitive settings | Encrypted |
+| Local database | Offline incident records and sync queue | Planned |
+| File system | Voice recordings, photos pending upload | OS-level protection only |
 
-**Current limitation:** Local encryption uses Base64 encoding as a placeholder. This provides obfuscation, not encryption. AES encryption via `expo-crypto` must be implemented before production.
+Full local database encryption is planned before production deployment.
 
-## What is implemented
+## What is in place
 
 | Control | Status |
 |---|---|
-| HTTPS enforcement | Yes |
-| JWT authentication with token blacklist | Yes |
-| Biometric authentication (local, no biometric data stored) | Yes |
-| Role-based access control (API level) | Yes |
-| Password strength validation | Yes |
-| Anonymous user support | Yes |
-| Log redaction for tokens and passwords | Yes |
-| CORS configuration | Yes |
+| HTTPS for all API traffic | Yes |
+| Token-based authentication with server-side invalidation | Yes |
+| Biometric authentication (no biometric data stored) | Yes |
+| Role-based access control enforced at the API level | Yes |
+| Password complexity enforcement | Yes |
+| Anonymous reporting (no identity required) | Yes |
+| Sensitive values redacted from server logs | Yes |
 
-## What must be implemented before production
+## What is in progress before production
 
-| Control | Priority | Notes |
-|---|---|---|
-| AES encryption for local storage | Critical | Base64 placeholder must be replaced |
-| SQLite encryption on device | Critical | WatermelonDB supports this |
-| Signed S3 URLs with expiration | Critical | Prevents permanent URL exposure |
-| End-to-end message encryption | High | Messages currently stored in plaintext |
-| Field-level encryption (journal, session notes, medical records) | High | Particularly sensitive data |
-| Virus scanning on file uploads | High | Before S3 storage |
-| Rate limiting on authentication endpoints | High | Brute-force protection |
-| Multi-factor authentication for providers | Medium | Especially law enforcement and healthcare |
-| IP allowlisting for admin endpoints | Medium | Optional per deployment |
-| Formal penetration test | Required before launch | |
-| GDPR/data retention automation | Required for relevant jurisdictions | |
+| Control | Priority |
+|---|---|
+| Full local database encryption on device | Critical |
+| Time-limited signed URLs for evidence files | Critical |
+| End-to-end message encryption | High |
+| Field-level encryption for counseling notes, journals, and medical records | High |
+| File type and virus scanning before storage | High |
+| Rate limiting on authentication endpoints | High |
+| Multi-factor authentication for provider accounts | Medium |
+| Formal security penetration test | Required before launch |
 
-## Security configuration (environment variables)
+## Configuration and secrets management
 
-The backend uses environment-variable-based configuration. No secrets are hardcoded. Key variables:
-
-```
-SECRET_KEY              Django secret key
-JWT_SECRET_KEY          JWT signing key
-DB_PASSWORD             Database password
-AWS_ACCESS_KEY_ID       S3 access
-AWS_SECRET_ACCESS_KEY   S3 secret
-FCM_SERVER_KEY          Push notification key
-FILE_ENCRYPTION_KEY     File encryption key (for future use)
-```
-
-See `kintara-backend/.env.example` for the full list of required variables.
+All sensitive configuration (database credentials, storage keys, push notification keys, encryption keys) is managed through environment variables. No secrets are hardcoded in the application. Deployment environments use secret management tooling appropriate to the hosting provider.
 
 ## Incident response
 
-<!-- TODO: Define incident response procedures — who is notified, what data is preserved, what actions are taken if a breach is detected. This is required before platform launch. -->
-
-No formal incident response procedure is currently documented. This must be defined in partnership with the deploying organization before the platform handles real survivor data.
+A formal incident response procedure — covering breach detection, notification obligations, and data preservation — must be defined in partnership with the deploying organization before the platform goes live with real survivor data.
