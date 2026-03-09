@@ -91,186 +91,109 @@ To provide immediate, accessible, and comprehensive support for GBV survivors wh
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Requirements
 
-- Node.js 18+ or Bun
-- iOS Simulator (for iOS development)
-- Android Studio/Emulator (for Android development)
-- Expo CLI
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Node.js** | **20+** | Node 12/14/16 will fail — Expo CLI requires Node 20+ |
+| **npm** | 10+ | Comes with Node 20 |
+| **Expo Go** | SDK 54 | Install on phone for device testing |
+| **iOS Simulator** | Xcode 15+ | macOS only — optional |
+| **Android Emulator** | Android Studio | Optional |
+
+> **Node version manager**: If you have `nvm`, run `nvm use 20` before starting.
+> The system Node on some Linux distros (e.g. Ubuntu) defaults to Node 12, which is incompatible.
 
 ### Installation
 
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-org/rork-kintaraa-mobile-app-for-gbv-support-and-prevention.git
-   cd rork-kintaraa-mobile-app-for-gbv-support-and-prevention
+   git clone https://github.com/your-org/kintaraa-app.git
+   cd kintaraa-app
    ```
 
 2. **Install dependencies**
 
    ```bash
-   # Install with force flag to resolve React 19 compatibility issues
+   # --force is required to resolve React 19 peer dependency conflicts
    npm install --force
    ```
 
-3. **Start the development server**
+3. **Configure the backend API URL**
 
-   ```bash
-   # For mobile device development (recommended - works with Expo Go app)
-   npx expo start
+   Open `constants/domains/config/ApiConfig.ts` and set:
 
-   # For web development only
-   npx expo start --web --offline
-
-   # For local network development (phone and computer on same WiFi)
-   npx expo start
-
-   # Alternative: Try the configured scripts (requires Bun runtime)
-   npm run start        # Uses bunx rork (requires Bun)
-   npm run start-web    # Uses bunx rork --web
+   ```ts
+   API_BASE_URL: 'http://<your-local-ip>:8000/api'   // local dev
+   // or
+   API_BASE_URL: 'https://api-kintara.onrender.com/api' // production
    ```
 
-4. **Open the app**
+   > The backend is a separate Django project (`kintara-backend`). See the backend README for setup instructions.
 
-   ### 📱 **On Your Phone (Recommended)**
-
-   #### Method 1: QR Code in Terminal (Easiest)
-
-   1. **Install Expo Go app**:
-
-      - **iOS**: Download from [App Store](https://apps.apple.com/app/expo-go/id982107779)
-      - **Android**: Download from [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
-
-   2. **Start the development server**:
-
-      ```bash
-      npx expo start
-      ```
-
-      **The QR code will appear directly in your terminal!** You'll see something like:
-
-      ```
-      › Metro waiting on exp://[your-ip]:8081
-      › Scan the QR code above with Expo Go (Android) or Camera app (iOS)
-
-      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-      █ ▄▄▄▄▄ █▀█ █▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀ █ ▄▄▄▄▄ █
-      (QR code pattern...)
-
-      › Press s │ switch to Expo Go
-      › Press a │ open Android
-      ```
-
-      **Note**: If you don't see the QR code immediately, wait a moment for Metro to finish bundling.
-
-   3. **Connect your phone**:
-      - Open **Expo Go** app on your phone
-      - **Scan the QR code** from your terminal
-      - The app will download and open on your phone
-
-   #### Method 2: Manual Connection (If QR code doesn't work)
-
-   1. **Both devices on same WiFi**: Make sure your phone and computer are connected to the same WiFi network
-   2. **Get the connection URL**: Look for `exp://` URL in your terminal output
-   3. **Enter manually in Expo Go**:
-      - Open Expo Go app
-      - Tap "Enter URL manually"
-      - Type the `exp://` URL from your terminal
-      - Tap "Connect"
-
-   #### Method 3: Tunnel Mode (For different networks)
+4. **Start the development server**
 
    ```bash
-   npx expo start --tunnel
+   npx expo start
    ```
 
-   - Works across different networks
-   - May show fetch errors but tunnel still works
-   - QR code appears in terminal, not browser
+   The QR code and interactive menu will appear in your terminal.
 
-   ### 💻 **On Computer**
+### Opening the App
 
-   - **Web**: Opens at `http://localhost:8081` (or specified port)
-   - **iOS Simulator**: Press `i` in terminal (requires Xcode)
-   - **Android Emulator**: Press `a` in terminal (requires Android Studio)
+#### On your phone (recommended)
 
-   ### 🔧 **Development Options**
+1. Install **Expo Go** from the [App Store](https://apps.apple.com/app/expo-go/id982107779) (iOS) or [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent) (Android)
+2. Make sure your phone and computer are on the **same WiFi network**
+3. Run `npx expo start` — scan the QR code that appears in the terminal with Expo Go
 
-   - **Custom Port**: Add `--port 8085` for consistent development
-   - **Tunnel Mode**: Add `--tunnel` for external device access
-   - **Offline Mode**: Add `--offline` to bypass network dependency checks
-
-### 🚨 **Important Setup Notes**
-
-- **Expo SDK 54**: The app uses Expo SDK 54. Ensure your Expo Go app is updated to SDK 54 or later.
-- **React 19 Compatibility**: The app uses React 19, but some dependencies expect React 18. Use `--force` flag during installation.
-- **Mobile Development**: For phone testing, use `npx expo start --tunnel` (not `--offline`) to enable device connections.
-- **Expo Go Required**: Install Expo Go app on your phone to run the development version.
-- **Network Requirements**: Tunnel mode works across different networks; local mode requires same WiFi.
-- **Bun vs NPM**: The package.json scripts are configured for Bun runtime. If you don't have Bun installed, use the `npx expo` commands directly.
-- **TypeScript**: Types are now included with React Native; no need for separate @types/react-native.
-
-### 🔧 **Troubleshooting Mobile Connection**
-
-**If you don't see the QR code:**
-
-1. **Check your terminal**: The QR code appears in your terminal window, not in a browser
-2. **Make sure server started**: Look for "Metro waiting on exp://..." message
-3. **Clear cache and restart**: `rm -rf .expo && npx expo start`
-
-**If the QR code doesn't work:**
-
-1. **Check WiFi**: Both devices must be on same WiFi network (for `npx expo start`)
-2. **Try tunnel mode**: Use `npx expo start --tunnel` for cross-network connection
-3. **Manual connection**: Copy the `exp://` URL from terminal and enter it manually in Expo Go
-4. **Restart Expo Go**: Close and reopen the Expo Go app
-5. **Alternative URL formats**:
-   - If `exp://192.168.x.x:8081` doesn't work
-   - Try `http://192.168.x.x:8081` in Expo Go
-
-**If you see fetch errors:**
-
-- These are dependency validation warnings and can be ignored
-- The tunnel/server will still work despite the errors
-- Look for "Metro waiting" or "Tunnel ready" messages to confirm it's working
-
-**SDK Compatibility Issues:**
-
-- **Expo Go Version**: Ensure your Expo Go app is SDK 54 compatible
-- **Clear Expo Cache**: `rm -rf .expo node_modules/.cache` then restart
-- **Check SDK Version**: Run `npx expo-doctor` to verify compatibility
-
-**Complete reset if nothing works:**
-
+**Different networks / hotspot?** Use tunnel mode:
 ```bash
-# Kill all processes and start fresh
+npx expo start --tunnel
+```
+
+#### On an emulator / simulator
+
+With `npx expo start` running, press:
+- `a` — open on Android emulator (requires Android Studio)
+- `i` — open on iOS simulator (requires Xcode, macOS only)
+- `w` — open in web browser (limited functionality)
+
+### Test Accounts
+
+Seeded by `python manage.py seed_test_data` (runs automatically on `docker compose up`).
+
+```
+survivor@kintara.com      / survivor123
+dispatcher@kintara.com    / dispatcher123
+gbv@kintara.com           / provider123
+healthcare@kintara.com    / provider123
+legal@kintara.com         / provider123
+police@kintara.com        / provider123
+counseling@kintara.com    / provider123
+social@kintara.com        / provider123
+chw@kintara.com           / provider123
+```
+
+See [TEST_ACCOUNTS.md](TEST_ACCOUNTS.md) for full workflow testing guide.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `SyntaxError: Unexpected token '?'` on start | Node version too old — upgrade to Node 20+ (`nvm use 20`) |
+| `expo-notifications not installed` error | Run `npm install --force` |
+| QR code doesn't connect | Use `npx expo start --tunnel` for cross-network |
+| Metro won't start | `rm -rf .expo node_modules/.cache && npx expo start` |
+| SDK mismatch warning | Non-blocking — app still runs; run `npx expo install --fix` to resolve |
+
+**Full reset:**
+```bash
 pkill -f expo
 rm -rf .expo node_modules/.cache
+npm install --force
 npx expo start
-```
-
-### 🧪 Test Accounts
-
-The app currently uses mock data. You can test different user types with these email patterns:
-
-**Survivors:**
-
-```
-email: survivor@test.com
-password: any password
-```
-
-**Providers:**
-
-```
-healthcare: doctor@test.com
-legal: legal@test.com
-police: police@test.com
-counseling: therapy@test.com
-social: social@test.com
-gbv_rescue: gbv@test.com
-chw: community@test.com
 ```
 
 ## 📱 Platform Support
@@ -286,17 +209,17 @@ chw: community@test.com
 ### Available Scripts
 
 ```bash
-# Development (Recommended)
-npx expo start --web --offline    # Start web development server
-npx expo start --offline          # Start with mobile support
+# Start dev server (phone + emulator)
+npx expo start
 
-# Legacy Scripts (Requires Bun)
-bun run start              # Start development server with tunnel
-bun run start-web         # Start web development
-bun run start-web-dev     # Start web with debug logs
+# Start with tunnel (cross-network / hotspot)
+npx expo start --tunnel
 
-# Code Quality
-npm run lint              # Run ESLint
+# Web only
+npx expo start --web
+
+# Code quality
+npm run lint
 ```
 
 ### Key Development Files
@@ -311,91 +234,85 @@ npm run lint              # Run ESLint
 
 ### Environment Configuration
 
-Create a `.env` file in the root directory:
-
-```env
-# API Configuration (when backend is ready)
-API_BASE_URL=https://api.kintaraa.com
-WEBSOCKET_URL=wss://ws.kintaraa.com
-
-# Third-party Services
-SENTRY_DSN=your_sentry_dsn
-ANALYTICS_API_KEY=your_analytics_key
-```
+The API URL is configured in `constants/domains/config/ApiConfig.ts` — no `.env` file needed for the frontend. Update `API_BASE_URL` and `WS_BASE_URL` directly in that file for local vs production targets.
 
 ## 🏃‍♂️ Current Status
 
-### ✅ Completed Features (98% Frontend Ready)
+### ✅ Completed (March 2026)
 
-- ✅ Multi-role authentication system
-- ✅ Dynamic provider dashboards (7 types)
-- ✅ Comprehensive incident reporting
-- ✅ Case management workflows
-- ✅ AI-powered recommendations
-- ✅ Biometric authentication
-- ✅ Voice recording & speech-to-text
-- ✅ Location services integration
-- ✅ Responsive mobile-first design
-- ✅ Error handling & loading states
-- ✅ **File structure optimization** (September 2025)
-- ✅ **Domain-organized constants** (September 2025)
-- ✅ **Shared component library** (September 2025)
+**Frontend:**
+- ✅ Multi-role authentication (JWT + biometric)
+- ✅ Dynamic provider dashboards (7 specializations)
+- ✅ Comprehensive incident reporting with voice upload
+- ✅ Real-time messaging — WebSocket primary, REST fallback (`hooks/useChatSocket.ts`)
+- ✅ Provider real-time case notifications — WebSocket with exponential back-off (`hooks/useProviderWebSocket.ts`)
+- ✅ Push notification token registration on login (`app/_layout.tsx`)
+- ✅ Dispatcher dashboard — view all cases, assign/reassign providers
+- ✅ Shared provider case management — accept/reject, status updates, case details modal
+- ✅ Full backend API integration (auth, incidents, assignments, dispatch, messaging)
 
-### 🚧 In Development
+**Backend (`kintara-backend`):**
+- ✅ Django 4.2 + Django Channels + Celery + Redis + PostgreSQL
+- ✅ JWT authentication (SimpleJWT with refresh + blacklist)
+- ✅ Incident CRUD, voice upload, case number generation
+- ✅ Hybrid case assignment (urgent auto-assign / routine manual via dispatcher)
+- ✅ WebSocket consumers: `ws/providers/` and `ws/conversations/<uuid>/`
+- ✅ Full messaging REST API + push notifications via Expo Push API
+- ✅ Fernet message encryption at rest
+- ✅ Deployed at `https://api-kintara.onrender.com`
 
-- 🔄 Backend API integration
-- 🔄 Real-time WebSocket communication
-- 🔄 File upload system
-- 🔄 Push notifications
+### 🚧 Remaining (P0)
 
-### ❌ Pending (Backend Required)
+- ❌ GBVRescueResponse model + endpoints (backend) — blocks GBV Rescue response logging
+- ❌ Backend test suite (0% coverage)
 
-- ❌ Real data persistence
-- ❌ Multi-user synchronization
-- ❌ File storage (evidence uploads)
-- ❌ Push notification delivery
-- ❌ Production deployment
+### ❌ Post-MVP
 
-## 🚧 Backend Integration Requirements
+- ❌ Wellbeing tracking (mood/sleep/journal) — currently mock only
+- ❌ Safety plans — currently mock only
+- ❌ Evidence file uploads
+- ❌ Voice transcription
 
-**Critical Path**: The app is frontend-complete but requires backend services for production use.
+## 🔌 Backend API Reference
 
-### Required API Endpoints
+**Base URL:** `https://api-kintara.onrender.com/api` (production) or `http://<ip>:8000/api` (local)
 
-```bash
-# Authentication
-POST /api/auth/login
-POST /api/auth/register
-POST /api/auth/refresh
-
-# Incidents/Cases
-GET    /api/incidents
-POST   /api/incidents
-PUT    /api/incidents/:id
-DELETE /api/incidents/:id
-
-# Messages
-GET    /api/cases/:id/messages
-POST   /api/cases/:id/messages
-WebSocket: /ws/cases/:id
-
-# File Uploads
-POST   /api/upload/evidence
-GET    /api/files/:id
-DELETE /api/files/:id
-
-# Push Notifications
-POST   /api/notifications/send
 ```
+# Auth
+POST   /api/auth/register/
+POST   /api/auth/login/
+POST   /api/auth/token/refresh/
+POST   /api/auth/logout/
+GET    /api/auth/me/
 
-### Database Schema (PostgreSQL Recommended)
+# Incidents
+GET    /api/incidents/
+POST   /api/incidents/
+GET    /api/incidents/<id>/
+PATCH  /api/incidents/<id>/
+POST   /api/incidents/upload-voice/
 
-```sql
--- Core tables needed
-CREATE TABLE users (id, email, role, provider_type, ...);
-CREATE TABLE incidents (id, survivor_id, type, status, ...);
-CREATE TABLE messages (id, incident_id, sender_id, content, ...);
-CREATE TABLE files (id, incident_id, file_path, file_type, ...);
+# Provider Cases
+GET    /api/providers/assigned-cases/
+PATCH  /api/incidents/<id>/accept/
+PATCH  /api/incidents/<id>/reject/
+
+# Dispatch
+GET    /api/dispatch/dashboard/
+GET    /api/dispatch/cases/
+POST   /api/dispatch/cases/<id>/assign/
+GET    /api/dispatch/providers/
+
+# Messaging
+GET    /api/messaging/conversations/
+GET    /api/messaging/conversations/<id>/messages/
+POST   /api/messaging/conversations/<id>/send_message/
+POST   /api/messaging/conversations/<id>/mark-all-read/
+POST   /api/messaging/push-token/
+
+# WebSocket
+ws(s)://<host>/ws/conversations/<id>/?token=<JWT>
+ws(s)://<host>/ws/providers/?token=<JWT>
 ```
 
 ## 🔒 Security & Privacy
@@ -415,11 +332,17 @@ CREATE TABLE files (id, incident_id, file_path, file_type, ...);
 - ✅ User control over data sharing
 - ✅ Secure communication protocols (planned)
 
-### Required Security Implementations
+### Implemented on Backend
 
-- ❌ End-to-end encryption
-- ❌ Secure file storage
-- ❌ API authentication & authorization
+- ✅ JWT Bearer token authentication (SimpleJWT)
+- ✅ Role-based permissions (IsAuthenticated + custom role guards)
+- ✅ API rate limiting (DRF throttling)
+- ✅ Message encryption at rest (Fernet AES-128)
+
+### Pending
+
+- ❌ Input sanitization (stub only)
+- ❌ Secure evidence file storage
 - ❌ Security audit & penetration testing
 
 ## 📊 Performance
@@ -530,10 +453,9 @@ npx expo export:web
 
 ## 🔗 Related Projects
 
-- **Backend API** (In Development)
+- **[kintara-backend](../kintara-backend)** — Django REST + Channels backend (local sibling directory)
 - **Admin Dashboard** (Planned)
 - **Analytics Platform** (Planned)
-- **Integration APIs** (Future)
 
 ## 📞 Support & Contact
 
@@ -578,33 +500,23 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 📝 Recent Updates
 
-### September 20, 2025 - Expo SDK 54 Upgrade
+### March 2026 - Full Backend Integration
 
-- ✅ **Expo SDK Update**: Upgraded from SDK 53 to SDK 54 for Expo Go compatibility
-- ✅ **React Native Update**: Updated to React Native 0.81.4
-- ✅ **Package Updates**: All Expo packages updated to SDK 54 compatible versions
-- ✅ **Expo Router**: Updated to v6 with enhanced features
-- ✅ **Bundle Identifiers**: Fixed Android/iOS bundle IDs to valid format
-- ✅ **Dependencies Cleanup**: Removed unnecessary @types/react-native package
-- ✅ **Lock Files**: Cleaned up multiple lock files for consistency
+- ✅ Real-time messaging connected end-to-end (`hooks/useChatSocket.ts` + `services/messaging.ts`)
+- ✅ Provider WebSocket notifications with exponential back-off (`hooks/useProviderWebSocket.ts`)
+- ✅ Push notification token registration wired in `app/_layout.tsx`
+- ✅ Dispatcher dashboard fully connected to backend API
+- ✅ Shared provider case management components (`_CaseDetailsModal`, `_MyCases`)
+- ✅ Dispatcher routing bug fixed
 
-### September 16, 2025 - File Structure Optimization
+### September 2025 - Expo SDK 54 + Structure
 
-- ✅ **File Cleanup**: Removed unnecessary development markdown files
-- ✅ **Constants Organization**: Moved constants to domain-based structure (`constants/domains/`)
-- ✅ **Shared Components**: Created reusable `StatCard` component
-- ✅ **Import Path Fixes**: Updated all import paths for better maintainability
-- ✅ **Route Verification**: Confirmed all root-level routes are actively used
-- ✅ **TypeScript Cleanup**: Resolved all import/export errors
-
-### September 15, 2025 - Initial Release
-
-- 🎉 **Initial comprehensive README**
-- 📱 **95% frontend completion**
-- 🔧 **Development setup documentation**
+- ✅ Upgraded to Expo SDK 54 / React Native 0.81.4 / Expo Router v6
+- ✅ Domain-organized constants (`constants/domains/`)
+- ✅ Shared component library
 
 ---
 
-_Last updated: September 20, 2025_
-_Version: 1.0.2_
-_React Native: 0.81.4 | Expo: 54.0.0 | TypeScript: 5.9.2_
+_Last updated: March 7, 2026_
+_Version: 2.2_
+_React Native: 0.81.4 | Expo: 54 | TypeScript: 5.9.2 | Node.js: 20+ required_

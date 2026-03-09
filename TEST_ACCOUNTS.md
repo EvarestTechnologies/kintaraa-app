@@ -378,14 +378,18 @@ This document contains login credentials for testing the Kintara mobile applicat
 ## 🐛 Troubleshooting
 
 ### Network Error on Login
-- **Issue**: "Network request failed" or "Cannot connect to server"
-- **Solution**: Ensure Django backend is running on `http://localhost:8000`
-- **Check**: Run `curl http://localhost:8000/api/auth/health/`
-- **Start Backend**:
+- **Issue**: "Network error. Please check your connection."
+- **Root cause**: Backend Docker containers are not running
+- **Fix**: Start the backend from the `kintara-backend` directory:
   ```bash
-  cd /Users/stellaoiro/Projects/kintara-backend
-  source venv/bin/activate
-  python manage.py runserver 0.0.0.0:8000
+  cd ../kintara-backend
+  docker compose up -d
+  ```
+- **Verify**: `curl http://localhost:8000/api/auth/login/ -X POST -H "Content-Type: application/json" -d '{"email":"survivor@kintara.com","password":"survivor123"}'`
+- **If containers crash on startup**: The Docker image may be stale. Rebuild it:
+  ```bash
+  docker build --no-cache --target development -t kintara-backend-backend .
+  docker compose up -d
   ```
 
 ### Mobile Device Testing (Same Network)
@@ -413,10 +417,8 @@ This document contains login credentials for testing the Kintara mobile applicat
   ```
   Then recreate the user.
 
-### Dispatcher Routing Bug
-- **Known Issue**: Dispatcher login currently redirects to survivor dashboard
-- **Workaround**: This is documented as a known issue in Day 10 progress
-- **Fix Pending**: Update `app/(tabs)/_layout.tsx` to handle dispatcher role routing
+### Dispatcher Routing
+- **Status**: ✅ Fixed — `app/(tabs)/_layout.tsx` correctly redirects dispatcher role to `/(dashboard)/dispatcher`
 
 ---
 
@@ -445,19 +447,18 @@ This document contains login credentials for testing the Kintara mobile applicat
 
 ## 📅 Last Updated
 
-**Date**: February 15, 2026
-**Backend Version**: Django 4.2.24
-**Frontend Version**: Expo SDK 54, React Native 0.81.4
-**Status**: ✅ Week 2, Day 10 - Provider Assignment Workflow COMPLETE
+**Date**: March 8, 2026
+**Backend Version**: Django 4.2.24 (Docker — `kintara-backend-backend` image)
+**Frontend Version**: Expo SDK 54, React Native 0.81.4, Node.js 20+ required
+**Status**: ✅ Full backend integration complete — messaging, WebSocket, push notifications
 
 **Latest Features:**
-- ✅ All 7 provider types can receive and accept assignments
-- ✅ Real-time notification bell with pending assignment counts
-- ✅ Dispatcher dashboard shows full provider details for in-progress cases
-- ✅ Color-coded provider type badges (GBV Rescue, Healthcare, Legal, Police, Counseling, Social, CHW)
-- ✅ Centralized dispatcher queue for all incidents
-- ✅ Real backend API integration (no mock data for assignments)
-- ✅ Polling-based real-time updates (5s providers, 10s dispatcher)
+- ✅ All 7 provider types can receive and accept assignments (real-time WebSocket)
+- ✅ Real-time messaging — WebSocket primary + REST fallback
+- ✅ Dispatcher routing works correctly
+- ✅ Push notification token registered on login
+- ✅ Conversation auto-created when provider accepts a case
+- ✅ Provider WebSocket notifications with exponential back-off (replaces polling)
 
 ---
 
