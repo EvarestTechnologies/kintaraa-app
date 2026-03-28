@@ -24,6 +24,10 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Patient, Appointment } from '../index';
+import { NotificationService } from '@/services/notificationService';
+import { AppointmentReminderService } from '@/services/appointmentReminderService';
+import { useProvider } from '@/providers/ProviderContext';
+import { useIncidents } from '@/providers/IncidentProvider';
 
 interface AppointmentSchedulingModalProps {
   visible: boolean;
@@ -62,6 +66,8 @@ export default function AppointmentSchedulingModal({
   onClose,
   onSchedule,
 }: AppointmentSchedulingModalProps) {
+  const { providerProfile } = useProvider();
+  const { incidents } = useIncidents();
   const [selectedType, setSelectedType] = useState<AppointmentType>('consultation');
   const [selectedMode, setSelectedMode] = useState<AppointmentMode>('in_person');
   const [selectedPriority, setSelectedPriority] = useState<Priority>('medium');
@@ -151,6 +157,46 @@ export default function AppointmentSchedulingModal({
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       onSchedule(appointmentData);
+
+      // Create survivor notification if we have provider info and can find the incident
+      if (providerProfile && patient.caseId) {
+        const incident = incidents.find(inc => inc.id === patient.caseId);
+        if (incident) {
+          const survivorNotification = NotificationService.createSurvivorAppointmentNotification(
+            incident,
+            providerProfile.name,
+            'healthcare', // Default to healthcare since this is the healthcare dashboard
+            {
+              date: selectedDate.toISOString().split('T')[0],
+              time: formatTime(selectedTime),
+              location: selectedMode === 'in_person' ? location : `${selectedMode === 'video_call' ? 'Video Call' : 'Phone Call'}`,
+              type: selectedType === 'consultation' ? 'consultation' :
+                    selectedType === 'follow_up' ? 'follow_up' :
+                    selectedType === 'therapy' ? 'counseling' : 'examination'
+            }
+          );
+
+          // Store notification for survivor to see
+          NotificationService.storeSurvivorNotification(survivorNotification);
+
+          // Schedule appointment reminders
+          const appointmentId = `${patient.caseId}-apt-${Date.now()}`;
+          AppointmentReminderService.scheduleAppointmentReminders(
+            appointmentId,
+            selectedDate.toISOString().split('T')[0],
+            formatTime(selectedTime),
+            'survivor-1', // This would be the actual survivor ID from the incident
+            providerProfile.id || 'provider-1', // Provider ID
+            {
+              patientName: patient.name,
+              providerName: providerProfile.name,
+              location: selectedMode === 'in_person' ? location : `${selectedMode === 'video_call' ? 'Video Call' : 'Phone Call'}`,
+              type: selectedType,
+            }
+          );
+        }
+      }
+
       handleClose();
 
       Alert.alert(
